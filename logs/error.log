@@ -1,0 +1,285 @@
+2025-10-01 02:33:30 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 02:35:49 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:35:49 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:36:11 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 02:36:13 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:41:16 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:41:16 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:41:16 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:41:16 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:41:16 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:41:16 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:41:26 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:41:28 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 02:45:59 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:45:59 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:45:59 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:45:59 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:45:59 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:45:59 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:49:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:49:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:49:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:49:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:49:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:49:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:49:05 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:49:07 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 02:49:52 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:51:17 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:52:22 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:52:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:52:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:52:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:52:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:52:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:52:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:52:58 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 02:53:00 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 02:53:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:53:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:53:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:53:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:53:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:53:02 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:57:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:57:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:57:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:57:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:57:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:57:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:58:34 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 02:58:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 02:58:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:58:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:58:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:58:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:58:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 02:58:50 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:06:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:06:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:06:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:06:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:06:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:06:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:06:29 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:07:23 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:07:24 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:09:00 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:09:00 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:09:00 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:09:00 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:09:00 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:09:00 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:09:02 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:09:04 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:09:06 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:09:10 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:09:13 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:09:37 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:09:41 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:10:25 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:10:25 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:10:25 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:10:26 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:10:30 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:10:48 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:10:52 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:10:54 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:10:54 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:10:54 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:10:54 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:10:54 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:10:54 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:11:57 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:11:57 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:11:57 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:11:57 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:11:57 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:11:57 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:12:01 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:12:09 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 03:17:20 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:17:20 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:17:20 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:20:06 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:20:06 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:06 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:06 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:06 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:06 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:20:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:20:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:22:31 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:22:45 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:461
+2025-10-01 03:22:45 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:461
+2025-10-01 03:23:41 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:23:45 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:31:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:31:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:31:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:31:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:31:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:31:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:31:40 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:461
+2025-10-01 03:31:43 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:31:56 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:461
+2025-10-01 03:32:24 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:32:27 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:461
+2025-10-01 03:32:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:32:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:32:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:32:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:32:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:32:28 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:34:34 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:461
+2025-10-01 03:38:14 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:474
+2025-10-01 03:38:14 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:474
+2025-10-01 03:47:50 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:48:23 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:480
+2025-10-01 03:48:23 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:480
+2025-10-01 03:48:23 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:480
+2025-10-01 03:52:54 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:53:14 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:54:18 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:55:13 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:55:22 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:55:25 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:56:14 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:511
+2025-10-01 03:56:24 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:56:28 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:57:14 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:57:17 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:511
+2025-10-01 03:57:19 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 03:57:21 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:511
+2025-10-01 03:57:22 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 03:57:22 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:57:22 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:57:22 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:57:22 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 03:57:22 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:01:26 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:511
+2025-10-01 04:02:41 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 04:02:41 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:02:41 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:02:41 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:02:41 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:02:41 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:05:55 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:527
+2025-10-01 04:19:03 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:530
+2025-10-01 04:19:53 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:530
+2025-10-01 04:19:54 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:530
+2025-10-01 04:19:54 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:530
+2025-10-01 04:19:54 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:530
+2025-10-01 04:22:59 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:533
+2025-10-01 04:22:59 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:533
+2025-10-01 04:25:30 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:546
+2025-10-01 04:28:08 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:541
+2025-10-01 04:28:34 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:29:02 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:29:19 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 04:29:19 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:19 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:19 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:19 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:19 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:22 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:29:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 04:29:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:26 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:29:45 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:30:53 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:541
+2025-10-01 04:45:46 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:521
+2025-10-01 04:46:02 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:46:05 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:521
+2025-10-01 04:46:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 04:46:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:22 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:521
+2025-10-01 04:46:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 04:46:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:46:24 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:53:17 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 04:53:20 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 04:53:20 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 04:53:21 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 04:53:21 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 04:57:45 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:57:47 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 04:59:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 04:59:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:59:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:59:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:59:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:59:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 04:59:32 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 04:59:34 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:535
+2025-10-01 05:08:08 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:526
+2025-10-01 05:08:10 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:526
+2025-10-01 05:08:10 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:526
+2025-10-01 05:11:28 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:15:55 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:16:56 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:17:12 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 05:17:12 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:17:12 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:17:12 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:17:12 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:17:12 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:17:15 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:18:06 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:18:06 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:18:06 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:18:06 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:18:37 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:19:04 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:19:13 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:19:23 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 05:19:23 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:19:23 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:19:23 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:19:23 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:19:23 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:25:05 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:25:11 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:25:11 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:25:14 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:25:23 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:25:43 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:30:29 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:30:32 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:33:40 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:33:40 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:33:44 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:33:49 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:33:52 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:33:56 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:520
+2025-10-01 05:36:10 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 05:36:10 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 05:36:10 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 05:36:43 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:37:56 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:38:16 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:39:05 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:39:08 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374
+2025-10-01 05:39:26 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:462
+2025-10-01 05:39:30 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:20
+2025-10-01 05:39:30 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:39:30 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:39:30 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:39:30 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:39:30 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:32
+2025-10-01 05:39:32 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_activities.php:374

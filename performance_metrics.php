@@ -10,42 +10,83 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // Include database connection
 require_once 'db.php';
 
-// Sample performance metrics functions (you can replace with actual database queries)
+// Performance metrics functions with database queries
 function getAveragePerformanceRating() {
-    // Sample data - replace with actual query
-    return 4.2;
+    global $conn;
+    try {
+        $stmt = $conn->prepare("SELECT AVG(overall_rating) as avg_rating FROM performance_reviews");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($result['avg_rating'], 1) ?: 0;
+    } catch (PDOException $e) {
+        return 0; // Return 0 on error
+    }
 }
 
 function getCompletedGoalsCount() {
-    // Sample data - replace with actual query
-    return 87;
+    global $conn;
+    try {
+        $stmt = $conn->prepare("SELECT (COUNT(CASE WHEN status = 'Completed' THEN 1 END) * 100.0 / COUNT(*)) as rate FROM goals");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($result['rate']) ?: 0;
+    } catch (PDOException $e) {
+        return 0;
+    }
 }
 
 function getTotalGoalsCount() {
-    // Sample data - replace with actual query
-    return 120;
+    global $conn;
+    try {
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM goals");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['total'] ?: 0;
+    } catch (PDOException $e) {
+        return 0;
+    }
 }
 
 function getTopPerformers() {
-    // Sample data - replace with actual query
-    return [
-        ['name' => 'John Smith', 'rating' => 4.8, 'department' => 'IT'],
-        ['name' => 'Sarah Johnson', 'rating' => 4.7, 'department' => 'HR'],
-        ['name' => 'Mike Davis', 'rating' => 4.6, 'department' => 'Finance'],
-        ['name' => 'Emma Wilson', 'rating' => 4.5, 'department' => 'Marketing'],
-        ['name' => 'Alex Brown', 'rating' => 4.4, 'department' => 'Sales']
-    ];
+    global $conn;
+    try {
+        $stmt = $conn->prepare("SELECT CONCAT(e.first_name, ' ', e.last_name) as name, pr.overall_rating as rating, d.department_name as department FROM performance_reviews pr JOIN employees e ON pr.employee_id = e.employee_id JOIN job_roles jr ON e.job_role_id = jr.job_role_id JOIN departments d ON jr.department = d.department_name ORDER BY pr.overall_rating DESC LIMIT 5");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return [];
+    }
 }
 
 function getDepartmentPerformance() {
-    // Sample data - replace with actual query
-    return [
-        ['department' => 'IT', 'avg_rating' => 4.3, 'completed_goals' => 45],
-        ['department' => 'HR', 'avg_rating' => 4.1, 'completed_goals' => 32],
-        ['department' => 'Finance', 'avg_rating' => 4.0, 'completed_goals' => 28],
-        ['department' => 'Marketing', 'avg_rating' => 3.9, 'completed_goals' => 25],
-        ['department' => 'Sales', 'avg_rating' => 4.2, 'completed_goals' => 38]
-    ];
+    global $conn;
+    try {
+        $stmt = $conn->prepare("
+            SELECT 
+                d.department_name as department,
+                COALESCE(AVG(pr.overall_rating), 0) as avg_rating,
+                COALESCE(SUM(CASE WHEN g.status = 'Completed' THEN 1 ELSE 0 END), 0) as completed_goals,
+                COUNT(DISTINCT e.employee_id) as employee_count
+            FROM departments d
+            LEFT JOIN job_roles jr ON d.department_name = jr.department
+            LEFT JOIN employees e ON jr.job_role_id = e.job_role_id
+            LEFT JOIN performance_reviews pr ON e.employee_id = pr.employee_id
+            LEFT JOIN goals g ON e.employee_id = g.employee_id
+            GROUP BY d.department_name
+        ");
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map(function($row) {
+            return [
+                'department' => $row['department'],
+                'avg_rating' => round($row['avg_rating'], 1),
+                'completed_goals' => (int)$row['completed_goals'],
+                'employee_count' => (int)$row['employee_count']
+            ];
+        }, $results);
+    } catch (PDOException $e) {
+        return [];
+    }
 }
 
 function getPerformanceTrendData() {
