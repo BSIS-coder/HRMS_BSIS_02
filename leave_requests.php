@@ -8,21 +8,25 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'dp.php';
 
 // Fetch leave requests from the database
 function getLeaveRequests() {
     global $conn;
-    $sql = "SELECT lr.*, et.leave_type_name FROM leave_requests lr JOIN leave_types et ON lr.leave_type_id = et.leave_type_id";
+    $sql = "SELECT lr.*, et.leave_type_name, CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
+            FROM leave_requests lr
+            JOIN leave_types et ON lr.leave_type_id = et.leave_type_id
+            JOIN employee_profiles ep ON lr.employee_id = ep.employee_id
+            JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+            ORDER BY lr.created_at DESC";
     $stmt = $conn->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Handle approval and rejection of leave requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['approveRequest'])) {
         $requestId = $_POST['requestId'];
-        $sql = "UPDATE leave_requests SET status = 'Approved' WHERE request_id = ?";
+        $sql = "UPDATE leave_requests SET status = 'Approved' WHERE leave_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->execute([$requestId]);
         // Redirect to prevent form resubmission
@@ -30,16 +34,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } elseif (isset($_POST['rejectRequest'])) {
         $requestId = $_POST['requestId'];
-        $sql = "UPDATE leave_requests SET status = 'Rejected' WHERE request_id = ?";
+        $sql = "UPDATE leave_requests SET status = 'Rejected' WHERE leave_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->execute([$requestId]);
         // Redirect to prevent form resubmission
         header("Location: leave_requests.php");
         exit;
+    } elseif (isset($_POST['submitLeaveRequest'])) {
+        // Handle new leave request submission
+        $employeeId = $_POST['employeeId'];
+        $leaveTypeId = $_POST['leaveTypeId'];
+        $startDate = $_POST['startDate'];
+        $endDate = $_POST['endDate'];
+        $reason = $_POST['reason'];
+
+        // Calculate duration in days
+        $duration = (strtotime($endDate) - strtotime($startDate)) / (60 * 60 * 24) + 1;
+
+        try {
+            $sql = "INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, total_days, reason, status, applied_on)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$employeeId, $leaveTypeId, $startDate, $endDate, $duration, $reason]);
+            // Redirect to refresh the page
+            header("Location: leave_requests.php");
+            exit;
+        } catch (PDOException $e) {
+            $error = "Error submitting leave request: " . $e->getMessage();
+        }
     }
 }
 
 $leaveRequests = getLeaveRequests();
+$leaveTypes = getLeaveTypes();
+$employees = getEmployees();
 
 // Calculate statistics
 $totalRequests = count($leaveRequests);
@@ -165,18 +193,18 @@ $rejectedPercentage = $totalRequests > 0 ? ($rejectedRequests / $totalRequests) 
                                                 <td><?php echo htmlspecialchars($request['employee_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($request['leave_type_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($request['start_date']) . ' - ' . htmlspecialchars($request['end_date']); ?></td>
-                                                <td><?php echo htmlspecialchars($request['duration']); ?></td>
+                                                <td><?php echo htmlspecialchars($request['total_days']); ?></td>
                                                 <td><?php echo htmlspecialchars($request['reason']); ?></td>
                                                 <td><span class="status-badge badge-<?php echo strtolower($request['status']); ?>"><?php echo htmlspecialchars($request['status']); ?></span></td>
                                                 <td>
                                                     <form method="POST" style="display:inline;">
-                                                        <input type="hidden" name="requestId" value="<?php echo $request['request_id']; ?>">
+                                                        <input type="hidden" name="requestId" value="<?php echo $request['leave_id']; ?>">
                                                         <button type="submit" name="approveRequest" class="btn btn-sm btn-outline-success mr-2">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     </form>
                                                     <form method="POST" style="display:inline;">
-                                                        <input type="hidden" name="requestId" value="<?php echo $request['request_id']; ?>">
+                                                        <input type="hidden" name="requestId" value="<?php echo $request['leave_id']; ?>">
                                                         <button type="submit" name="rejectRequest" class="btn btn-sm btn-outline-danger">
                                                             <i class="fas fa-times"></i>
                                                         </button>
@@ -276,45 +304,48 @@ $rejectedPercentage = $totalRequests > 0 ? ($rejectedRequests / $totalRequests) 
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form method="POST" action="leave_requests.php">
+                        <div class="form-group">
+                            <label for="employeeId">Employee</label>
+                            <select class="form-control" id="employeeId" name="employeeId" required>
+                                <option value="">Select Employee</option>
+                                <?php foreach ($employees as $employee): ?>
+                                    <option value="<?php echo $employee['employee_id']; ?>"><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label for="leaveType">Leave Type</label>
-                            <select class="form-control" id="leaveType">
+                            <select class="form-control" id="leaveType" name="leaveTypeId" required>
                                 <option value="">Select leave type</option>
-                                <option value="vacation">Vacation Leave</option>
-                                <option value="sick">Sick Leave</option>
-                                <option value="emergency">Emergency Leave</option>
-                                <option value="maternity">Maternity Leave</option>
-                                <option value="paternity">Paternity Leave</option>
+                                <?php foreach ($leaveTypes as $leaveType): ?>
+                                    <option value="<?php echo $leaveType['leave_type_id']; ?>"><?php echo htmlspecialchars($leaveType['leave_type_name']); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="startDate">Start Date</label>
-                                    <input type="date" class="form-control" id="startDate">
+                                    <input type="date" class="form-control" id="startDate" name="startDate" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="endDate">End Date</label>
-                                    <input type="date" class="form-control" id="endDate">
+                                    <input type="date" class="form-control" id="endDate" name="endDate" required>
                                 </div>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="reason">Reason</label>
-                            <textarea class="form-control" id="reason" rows="3" placeholder="Enter reason for leave"></textarea>
+                            <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Enter reason for leave" required></textarea>
                         </div>
-                        <div class="form-group">
-                            <label for="attachment">Attachment (Optional)</label>
-                            <input type="file" class="form-control-file" id="attachment">
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" name="submitLeaveRequest" class="btn btn-primary">Submit Request</button>
                         </div>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary">Submit Request</button>
                 </div>
             </div>
         </div>

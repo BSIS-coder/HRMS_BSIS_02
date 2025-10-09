@@ -11,8 +11,7 @@ $employee_id = intval($_GET['employee_id']);
 
 // Fetch employee details along with job role
 $stmt = $conn->prepare("
-    SELECT ep.employee_id,
-           CONCAT(pi.first_name, ' ', pi.last_name) AS name,
+    SELECT CONCAT(pi.first_name, ' ', pi.last_name) AS name,
            jr.title AS job_role,
            ep.job_role_id
     FROM employee_profiles ep
@@ -20,7 +19,7 @@ $stmt = $conn->prepare("
         ON ep.personal_info_id = pi.personal_info_id
     LEFT JOIN job_roles jr 
         ON ep.job_role_id = jr.job_role_id
-    WHERE ep.employee_id = ?
+    WHERE ep.personal_info_id = ?
 ");
 
 if (!$stmt) {

@@ -390,7 +390,6 @@ foreach ($sessions as $session) {
                             <h6>Upcoming Sessions</h6>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- Calendar Controls -->
@@ -705,9 +704,7 @@ foreach ($sessions as $session) {
                 document.body.appendChild(form);
                 form.submit();
             }
-
         }
     </script>
 </body>
 </html>
-

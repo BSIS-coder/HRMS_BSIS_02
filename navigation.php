@@ -5,7 +5,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'dp.php';
 
 // Helper functions for navigation
 function getNotificationCount($role) {

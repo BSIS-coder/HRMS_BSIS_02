@@ -10,19 +10,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'db.php';
-
-// Fetch leave types from the database
-function getLeaveTypes() {
-    global $conn;
-    try {
-        $sql = "SELECT * FROM leave_types ORDER BY leave_type_name";
-        $stmt = $conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
-    }
-}
+require_once 'dp.php';
 
 // Handle CRUD operations
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
