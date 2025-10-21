@@ -1,14 +1,14 @@
 <?php
 session_start();
 
-// Check if the user is logged in, if not then redirect to login page
+// Check if the user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: login.php');
     exit;
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'db_connect.php';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,254 +27,260 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Functions for feedback management
+// Create a feedback cycle
 function createFeedbackCycle($data) {
     global $conn;
-    try {
-        $sql = "INSERT INTO feedback_cycles (cycle_name, description, start_date, end_date, status, created_by)
-                VALUES (?, ?, ?, ?, 'Active', ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([
-            $data['cycle_name'],
-            $data['description'],
-            $data['start_date'],
-            $data['end_date'],
-            $_SESSION['user_id']
-        ]);
-        $_SESSION['success_message'] = "Feedback cycle created successfully!";
-    } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Error creating feedback cycle: " . $e->getMessage();
+    $stmt = mysqli_prepare($conn, "INSERT INTO feedback_cycles (cycle_name, description, start_date, end_date, status, created_by)
+                            VALUES (?, ?, ?, ?, 'Active', ?)");
+    if (!$stmt) {
+        $_SESSION['error_message'] = "Database error: " . mysqli_error($conn);
+        header('Location: feedback_360.php');
+        exit;
     }
+    mysqli_stmt_bind_param($stmt, "ssssi", $data['cycle_name'], $data['description'], $data['start_date'], $data['end_date'], $_SESSION['user_id']);
+
+    if (mysqli_stmt_execute($stmt)) {
+        $_SESSION['success_message'] = "Feedback cycle created successfully!";
+    } else {
+        $_SESSION['error_message'] = "Error creating feedback cycle: " . mysqli_stmt_error($stmt);
+    }
+    mysqli_stmt_close($stmt);
+
     header('Location: feedback_360.php');
     exit;
 }
 
+// Submit feedback
 function submitFeedback($data) {
     global $conn;
-    try {
-        $sql = "INSERT INTO feedback_responses (request_id, reviewer_id, responses, comments, submitted_at)
-                VALUES (?, ?, ?, ?, NOW())";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([
-            $data['request_id'],
-            $_SESSION['user_id'],
-            json_encode($data['responses']),
-            $data['comments']
-        ]);
 
-        // Update request status
-        $sql = "UPDATE feedback_requests SET status = 'Completed' WHERE request_id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$data['request_id']]);
+    $responses_json = json_encode($data['responses']);
+    $stmt = mysqli_prepare($conn, "INSERT INTO feedback_responses (request_id, reviewer_id, responses, comments, submitted_at)
+                            VALUES (?, ?, ?, ?, NOW())");
+    mysqli_stmt_bind_param($stmt, "iiss", $data['request_id'], $_SESSION['user_id'], $responses_json, $data['comments']);
 
+    if (mysqli_stmt_execute($stmt)) {
+        $update = mysqli_prepare($conn, "UPDATE feedback_requests SET status = 'Completed' WHERE request_id = ?");
+        mysqli_stmt_bind_param($update, "i", $data['request_id']);
+        mysqli_stmt_execute($update);
+        mysqli_stmt_close($update);
         $_SESSION['success_message'] = "Feedback submitted successfully!";
-    } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Error submitting feedback: " . $e->getMessage();
+    } else {
+        $_SESSION['error_message'] = "Error submitting feedback: " . mysqli_stmt_error($stmt);
     }
+
+    mysqli_stmt_close($stmt);
     header('Location: feedback_360.php');
     exit;
 }
 
+// Request feedback
 function requestFeedback($data) {
     global $conn;
-    try {
-        $reviewers = explode(',', $data['reviewers']);
-        foreach ($reviewers as $reviewer_id) {
-            $sql = "INSERT INTO feedback_requests (employee_id, reviewer_id, cycle_id, relationship_type, status, created_at)
-                    VALUES (?, ?, ?, ?, 'Pending', NOW())";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([
-                $data['employee_id'],
-                trim($reviewer_id),
-                $data['cycle_id'],
-                $data['relationship_type']
-            ]);
-        }
-        $_SESSION['success_message'] = "Feedback requests sent successfully!";
-    } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Error requesting feedback: " . $e->getMessage();
+
+    $reviewers = explode(',', $data['reviewers']);
+    $stmt = mysqli_prepare($conn, "INSERT INTO feedback_requests (employee_id, reviewer_id, cycle_id, relationship_type, status, created_at)
+                            VALUES (?, ?, ?, ?, 'Pending', NOW())");
+
+    foreach ($reviewers as $reviewer_id) {
+        $reviewer_id = trim($reviewer_id);
+        mysqli_stmt_bind_param($stmt, "iiis", $data['employee_id'], $reviewer_id, $data['cycle_id'], $data['relationship_type']);
+        mysqli_stmt_execute($stmt);
     }
+
+    mysqli_stmt_close($stmt);
+    $_SESSION['success_message'] = "Feedback requests sent successfully!";
     header('Location: feedback_360.php');
     exit;
 }
 
-// Get feedback statistics
+// Feedback statistics
 function getFeedbackStats() {
     global $conn;
-    try {
-        $stats = [];
+    $stats = [];
 
-        // Total feedback cycles
-        $sql = "SELECT COUNT(*) as total FROM feedback_cycles";
-        $stmt = $conn->query($sql);
-        $stats['total_cycles'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $queries = [
+        'total_cycles' => "SELECT COUNT(*) AS total FROM feedback_cycles",
+        'active_cycles' => "SELECT COUNT(*) AS total FROM feedback_cycles WHERE status = 'Active'",
+        'pending_requests' => "SELECT COUNT(*) AS total FROM feedback_requests WHERE status = 'Pending'",
+        'completed_feedback' => "SELECT COUNT(*) AS total FROM feedback_responses"
+    ];
 
-        // Active cycles
-        $sql = "SELECT COUNT(*) as total FROM feedback_cycles WHERE status = 'Active'";
-        $stmt = $conn->query($sql);
-        $stats['active_cycles'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Pending feedback requests
-        $sql = "SELECT COUNT(*) as total FROM feedback_requests WHERE status = 'Pending'";
-        $stmt = $conn->query($sql);
-        $stats['pending_requests'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Completed feedback
-        $sql = "SELECT COUNT(*) as total FROM feedback_responses";
-        $stmt = $conn->query($sql);
-        $stats['completed_feedback'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        return $stats;
-    } catch (PDOException $e) {
-        return ['total_cycles' => 4, 'active_cycles' => 0, 'pending_requests' => 0, 'completed_feedback' => 0];
+    foreach ($queries as $key => $sql) {
+        $result = $conn->query($sql);
+        $row = $result ? $result->fetch_assoc() : ['total' => 0];
+        $stats[$key] = $row['total'];
     }
+
+    return $stats;
 }
 
-// Get recent feedback activities
+// Recent feedback activities
 function getRecentFeedbackActivities() {
     global $conn;
-    try {
-        $sql = "SELECT fr.request_id, e.first_name, e.last_name, fr.status, fr.created_at,
-                       fc.cycle_name, fr.relationship_type
-                FROM feedback_requests fr
-                JOIN employee_profiles ep ON fr.employee_id = ep.employee_id
-                JOIN personal_information e ON ep.personal_info_id = e.personal_info_id
-                JOIN feedback_cycles fc ON fr.cycle_id = fc.cycle_id
-                ORDER BY fr.created_at DESC LIMIT 10";
-        $stmt = $conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
+    $sql = "SELECT fr.request_id, e.first_name, e.last_name, fr.status, fr.created_at,
+                   fc.cycle_name, fr.relationship_type
+            FROM feedback_requests fr
+            JOIN employee_profiles ep ON fr.employee_id = ep.employee_id
+            JOIN personal_information e ON ep.personal_info_id = e.personal_info_id
+            JOIN feedback_cycles fc ON fr.cycle_id = fc.cycle_id
+            ORDER BY fr.created_at DESC LIMIT 10";
+    $result = $conn->query($sql);
+
+    $activities = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $activities[] = $row;
+        }
     }
+    return $activities;
 }
 
-// Get employees list
-function getEmployees() {
+// Employee list
+function getEmployeesWithDetails() {
     global $conn;
-    try {
-        $sql = "SELECT ep.employee_id, pi.first_name, pi.last_name, jr.title, d.department_name
-                FROM employee_profiles ep
-                JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-                JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-                LEFT JOIN departments d ON jr.department = d.department_name
-                WHERE ep.employment_status = 'Full-time'
-                ORDER BY pi.first_name, pi.last_name";
-        $stmt = $conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
+    $sql = "SELECT ep.employee_id, pi.first_name, pi.last_name, jr.title, d.department_name
+            FROM employee_profiles ep
+            JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+            JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+            LEFT JOIN departments d ON jr.department = d.department_name
+            WHERE ep.employment_status = 'Full-time'
+            ORDER BY pi.first_name, pi.last_name";
+    $result = $conn->query($sql);
+
+    $employees = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $employees[] = $row;
+        }
     }
+    return $employees;
 }
 
-// Get feedback cycles
+// Feedback cycles
 function getFeedbackCycles() {
     global $conn;
-    try {
-        $sql = "SELECT * FROM feedback_cycles ORDER BY created_at DESC";
-        $stmt = $conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
+    $sql = "SELECT * FROM feedback_cycles ORDER BY created_at DESC";
+    $result = $conn->query($sql);
+
+    $cycles = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $cycles[] = $row;
+        }
     }
+    return $cycles;
 }
 
-// Get pending feedback requests for current user
+// Pending feedback requests
 function getPendingFeedbackRequests() {
     global $conn;
-    try {
-        $sql = "SELECT fr.request_id, fr.employee_id, fr.relationship_type, fc.cycle_name,
-                       pi.first_name, pi.last_name, fr.created_at
-                FROM feedback_requests fr
-                JOIN feedback_cycles fc ON fr.cycle_id = fc.cycle_id
-                JOIN employee_profiles ep ON fr.employee_id = ep.employee_id
-                JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-                WHERE fr.reviewer_id = ? AND fr.status = 'Pending'
-                ORDER BY fr.created_at DESC";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$_SESSION['user_id']]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
+    $sql = "SELECT fr.request_id, fr.employee_id, fr.relationship_type, fc.cycle_name,
+                   pi.first_name, pi.last_name, fr.created_at
+            FROM feedback_requests fr
+            JOIN feedback_cycles fc ON fr.cycle_id = fc.cycle_id
+            JOIN employee_profiles ep ON fr.employee_id = ep.employee_id
+            JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+            WHERE fr.reviewer_id = ? AND fr.status = 'Pending'
+            ORDER BY fr.created_at DESC";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return []; // Return empty array if prepare fails
     }
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $requests = [];
+    while ($row = $result->fetch_assoc()) {
+        $requests[] = $row;
+    }
+    $stmt->close();
+
+    return $requests;
 }
 
-// Get total aggregated feedback for an employee
+// Aggregated feedback for employee
 function getTotalFeedback($employee_id) {
     global $conn;
-    try {
-        $sql = "SELECT fr.responses, fr.comments, fr.submitted_at, fc.cycle_name,
-                       pi.first_name, pi.last_name, fr.relationship_type
-                FROM feedback_responses fr
-                JOIN feedback_requests freq ON fr.request_id = freq.request_id
-                JOIN feedback_cycles fc ON freq.cycle_id = fc.cycle_id
-                JOIN employee_profiles ep ON freq.employee_id = ep.employee_id
-                JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-                WHERE freq.employee_id = ?
-                ORDER BY fr.submitted_at DESC";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$employee_id]);
-        $feedbacks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT fr.responses, fr.comments, fr.submitted_at, fc.cycle_name,
+                   pi.first_name, pi.last_name, freq.relationship_type
+            FROM feedback_responses fr
+            JOIN feedback_requests freq ON fr.request_id = freq.request_id
+            JOIN feedback_cycles fc ON freq.cycle_id = fc.cycle_id
+            JOIN employee_profiles ep ON freq.employee_id = ep.employee_id
+            JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+            WHERE freq.employee_id = ?
+            ORDER BY fr.submitted_at DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $employee_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-        // Aggregate responses
-        $aggregated = [
-            'leadership' => [],
-            'communication' => [],
-            'teamwork' => [],
-            'problem_solving' => [],
-            'work_quality' => [],
-            'comments' => [],
-            'reviewers' => []
-        ];
+    $feedbacks = [];
+    while ($row = $result->fetch_assoc()) {
+        $feedbacks[] = $row;
+    }
+    $stmt->close();
 
-        foreach ($feedbacks as $feedback) {
-            $responses = json_decode($feedback['responses'], true);
-            if ($responses) {
-                foreach ($responses as $key => $value) {
-                    if (isset($aggregated[$key])) {
-                        $aggregated[$key][] = (int)$value;
-                    }
+    // Aggregate responses
+    $aggregated = [
+        'leadership' => [], 'communication' => [], 'teamwork' => [],
+        'problem_solving' => [], 'work_quality' => [],
+        'comments' => [], 'reviewers' => []
+    ];
+
+    foreach ($feedbacks as $feedback) {
+        $responses = json_decode($feedback['responses'], true);
+        if ($responses) {
+            foreach ($responses as $key => $value) {
+                if (isset($aggregated[$key])) {
+                    $aggregated[$key][] = (int)$value;
                 }
             }
-            if (!empty($feedback['comments'])) {
-                $aggregated['comments'][] = [
-                    'comment' => $feedback['comments'],
-                    'reviewer' => $feedback['first_name'] . ' ' . $feedback['last_name'],
-                    'relationship' => $feedback['relationship_type'],
-                    'cycle' => $feedback['cycle_name'],
-                    'date' => $feedback['submitted_at']
-                ];
-            }
-            $aggregated['reviewers'][] = [
-                'name' => $feedback['first_name'] . ' ' . $feedback['last_name'],
+        }
+
+        if (!empty($feedback['comments'])) {
+            $aggregated['comments'][] = [
+                'comment' => $feedback['comments'],
+                'reviewer' => $feedback['first_name'] . ' ' . $feedback['last_name'],
                 'relationship' => $feedback['relationship_type'],
-                'cycle' => $feedback['cycle_name']
+                'cycle' => $feedback['cycle_name'],
+                'date' => $feedback['submitted_at']
             ];
         }
 
-        // Calculate averages
-        $averages = [];
-        foreach (['leadership', 'communication', 'teamwork', 'problem_solving', 'work_quality'] as $key) {
-            $averages[$key] = !empty($aggregated[$key]) ? round(array_sum($aggregated[$key]) / count($aggregated[$key]), 1) : 0;
-        }
-
-        return [
-            'averages' => $averages,
-            'comments' => $aggregated['comments'],
-            'reviewers' => $aggregated['reviewers'],
-            'total_feedbacks' => count($feedbacks)
+        $aggregated['reviewers'][] = [
+            'name' => $feedback['first_name'] . ' ' . $feedback['last_name'],
+            'relationship' => $feedback['relationship_type'],
+            'cycle' => $feedback['cycle_name']
         ];
-    } catch (PDOException $e) {
-        return ['averages' => [], 'comments' => [], 'reviewers' => [], 'total_feedbacks' => 0];
     }
+
+    // Calculate averages
+    $averages = [];
+    foreach (['leadership', 'communication', 'teamwork', 'problem_solving', 'work_quality'] as $key) {
+        $averages[$key] = !empty($aggregated[$key])
+            ? round(array_sum($aggregated[$key]) / count($aggregated[$key]), 1)
+            : 0;
+    }
+
+    return [
+        'averages' => $averages,
+        'comments' => $aggregated['comments'],
+        'reviewers' => $aggregated['reviewers'],
+        'total_feedbacks' => count($feedbacks)
+    ];
 }
 
 $stats = getFeedbackStats();
 $recent_activities = getRecentFeedbackActivities();
-$employees = getEmployees();
+$employees = getEmployeesWithDetails();
 $cycles = getFeedbackCycles();
 $pending_requests = getPendingFeedbackRequests();
 ?>
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -905,7 +911,6 @@ $pending_requests = getPendingFeedbackRequests();
 
         $('#provideFeedbackModal').modal('show');
     }
-s
     // Enhanced star rating functionality
     $(document).on('change', 'input[type="radio"]', function() {
         const name = $(this).attr('name');
@@ -1060,6 +1065,62 @@ s
             }
             reviewersByType[reviewer.relationship].push(reviewer);
         });
+
+        // Build reviewers list
+        for (const [type, reviewers] of Object.entries(reviewersByType)) {
+            html += `<li class="list-group-item">
+                <strong>${type.charAt(0).toUpperCase() + type.slice(1)} (${reviewers.length})</strong>
+                <ul class="mb-0 mt-1">`;
+            reviewers.forEach(reviewer => {
+                html += `<li class="small">${reviewer.name} - ${reviewer.cycle}</li>`;
+            });
+            html += `</ul></li>`;
+        }
+
+        html += `
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-comments mr-2"></i>
+                                    Feedback Comments
+                                </h5>
+                            </div>
+                            <div class="card-body">
+        `;
+
+        if (data.comments.length > 0) {
+            data.comments.forEach(comment => {
+                html += `
+                                <div class="mb-3 p-3 border-left-primary">
+                                    <p class="mb-1"><strong>${comment.reviewer}</strong> (${comment.relationship}) - ${comment.cycle}</p>
+                                    <p class="mb-1">${comment.comment}</p>
+                                    <small class="text-muted">${new Date(comment.date).toLocaleDateString()}</small>
+                                </div>
+                `;
+            });
+        } else {
+            html += `<p class="text-muted">No comments available.</p>`;
+        }
+
+        html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        `;
+
+        $('#totalFeedbackContent').html(html);
+    }
 
     </script>
 

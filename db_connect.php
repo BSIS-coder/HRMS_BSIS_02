@@ -2,7 +2,7 @@
 $servername = "localhost";   // usually "localhost"
 $username   = "root";        // your MySQL username
 $password   = "";            // your MySQL password ("" if none)
-$dbname     = "cc_hr";     // your database name
+$dbname     = "hr_system";     // your database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

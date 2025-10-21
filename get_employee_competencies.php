@@ -15,6 +15,7 @@ try {
         SELECT 
             ec.employee_id,
             ec.competency_id,
+            ec.cycle_id,             -- ✅ Added cycle_id (for linking to review cycle)
             ec.rating,
             ec.assessment_date,
             ec.comments,

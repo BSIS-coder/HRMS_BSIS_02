@@ -205,6 +205,9 @@ $employees_result = $conn->query($employees_query);
         }
 
         .add-plan-btn {
+            display: inline-flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
             position: fixed;
             bottom: 30px;
             right: 30px;
@@ -215,6 +218,7 @@ $employees_result = $conn->query($employees_query);
             border: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transition: all 0.3s ease;
+            z-index: 1051;
         }
 
         .add-plan-btn:hover {
@@ -337,167 +341,170 @@ $employees_result = $conn->query($employees_query);
                     </div>
                 </div>
 
-                <!-- Development Plans Grid -->
-                <div class="row">
-                    <?php if ($plans_result && $plans_result->num_rows > 0): ?>
-                        <?php while ($plan = $plans_result->fetch_assoc()):
-                            // Get activities for this plan
-                            $activities_query = "SELECT * FROM development_activities WHERE plan_id = ? ORDER BY start_date";
-                            $activities_stmt = $conn->prepare($activities_query);
-                            $activities_stmt->bind_param("i", $plan['plan_id']);
-                            $activities_stmt->execute();
-                            $activities_result = $activities_stmt->get_result();
+<!-- Development Plans Wrapper -->
+<div id="plans-container">
 
-                            // Calculate progress
-                            $total_activities = $activities_result->num_rows;
-                            $completed_activities = 0;
-                            while ($activity = $activities_result->fetch_assoc()) {
-                                if ($activity['status'] == 'Completed') {
-                                    $completed_activities++;
-                                }
-                            }
-                            $progress = $total_activities > 0 ? round(($completed_activities / $total_activities) * 100) : 0;
+    <!-- Development Plans Grid -->
+    <div class="row">
+        <?php if ($plans_result && $plans_result->num_rows > 0): ?>
+            <?php while ($plan = $plans_result->fetch_assoc()):
+                // Get activities for this plan
+                $activities_query = "SELECT * FROM development_activities WHERE plan_id = ? ORDER BY start_date";
+                $activities_stmt = $conn->prepare($activities_query);
+                $activities_stmt->bind_param("i", $plan['plan_id']);
+                $activities_stmt->execute();
+                $activities_result = $activities_stmt->get_result();
 
-                            // Reset activities result pointer
-                            $activities_result->data_seek(0);
-                        ?>
-                        <div class="col-md-6 col-lg-4 mb-4">
-                            <div class="card plan-card h-100">
-                                <div class="plan-header">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h5 class="mb-1"><?php echo htmlspecialchars($plan['plan_name']); ?></h5>
-                                            <small>Employee: <?php echo htmlspecialchars($plan['employee_name']); ?> (<?php echo htmlspecialchars($plan['employee_number']); ?>)</small>
-                                        </div>
-                                        <span class="plan-status status-<?php echo strtolower($plan['status']); ?>"><?php echo htmlspecialchars($plan['status']); ?></span>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <p class="text-muted mb-3"><?php echo htmlspecialchars($plan['plan_description']); ?></p>
+                // Calculate progress
+                $total_activities = $activities_result->num_rows;
+                $completed_activities = 0;
+                while ($activity = $activities_result->fetch_assoc()) {
+                    if ($activity['status'] == 'Completed') {
+                        $completed_activities++;
+                    }
+                }
+                $progress = $total_activities > 0 ? round(($completed_activities / $total_activities) * 100) : 0;
 
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <small>Progress</small>
-                                            <small><?php echo $progress; ?>%</small>
-                                        </div>
-                                        <div class="plan-progress">
-                                            <div class="plan-progress-bar" style="width: <?php echo $progress; ?>%"></div>
-                                        </div>
-                                    </div>
+                // Reset activities result pointer
+                $activities_result->data_seek(0);
+            ?>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card plan-card h-100" id="plan-<?php echo $plan['plan_id']; ?>">
 
-                                    <div class="row text-center mb-3">
-                                        <div class="col-6">
-                                            <small class="text-muted d-block">Start Date</small>
-                                            <strong><?php echo date('M Y', strtotime($plan['start_date'])); ?></strong>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted d-block">End Date</small>
-                                            <strong><?php echo date('M Y', strtotime($plan['end_date'])); ?></strong>
-                                        </div>
-                                    </div>
-
-                                    <div class="activity-list mb-3">
-                                        <?php if ($activities_result->num_rows > 0): ?>
-                                            <?php while ($activity = $activities_result->fetch_assoc()): ?>
-                                                <div class="activity-item">
-                                                    <small><strong><?php echo $activity['status'] == 'Completed' ? '✓' : '○'; ?></strong> <?php echo htmlspecialchars($activity['activity_name']); ?></small>
-                                                </div>
-                                            <?php endwhile; ?>
-                                        <?php else: ?>
-                                            <div class="activity-item">
-                                                <small><em>No activities added yet</em></small>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="plan-actions text-center">
-                                        <button class="btn btn-sm btn-outline-primary mr-2" onclick="editPlan(<?php echo $plan['plan_id']; ?>)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-success mr-2" onclick="addActivity(<?php echo $plan['plan_id']; ?>)">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deletePlan(<?php echo $plan['plan_id']; ?>)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                    <div class="plan-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1"><?php echo htmlspecialchars($plan['plan_name']); ?></h5>
+                                <small>Employee: <?php echo htmlspecialchars($plan['employee_name']); ?> (<?php echo htmlspecialchars($plan['employee_number']); ?>)</small>
                             </div>
+                            <span class="plan-status status-<?php echo strtolower($plan['status']); ?>"><?php echo htmlspecialchars($plan['status']); ?></span>
                         </div>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <div class="col-12">
-                            <div class="text-center py-5">
-                                <i class="fas fa-project-diagram fa-3x text-muted mb-3"></i>
-                                <h4 class="text-muted">No Development Plans Found</h4>
-                                <p class="text-muted">Click the + button to create your first development plan.</p>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- Development Plans Timeline -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-history mr-2"></i>
-                            Recent Development Activities
-                        </h5>
                     </div>
+
                     <div class="card-body">
-                        <div class="plan-timeline">
-                            <?php
-                            // Get recent activities from development_activities table
-                            $recent_activities_query = "SELECT da.*, dp.plan_name,
-                                                       CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-                                                       ep.employee_number
-                                                       FROM development_activities da
-                                                       JOIN development_plans dp ON da.plan_id = dp.plan_id
-                                                       JOIN employee_profiles ep ON dp.employee_id = ep.employee_id
-                                                       JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-                                                       ORDER BY da.updated_at DESC LIMIT 10";
+                        <p class="text-muted mb-3"><?php echo htmlspecialchars($plan['plan_description']); ?></p>
 
-                            $recent_activities_result = $conn->query($recent_activities_query);
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Progress</small>
+                                <small><?php echo $progress; ?>%</small>
+                            </div>
+                            <div class="plan-progress">
+                                <div class="plan-progress-bar" style="width: <?php echo $progress; ?>%"></div>
+                            </div>
+                        </div>
 
-                            if ($recent_activities_result && $recent_activities_result->num_rows > 0):
-                                while ($activity = $recent_activities_result->fetch_assoc()):
-                                    $time_ago = time_elapsed_string($activity['updated_at']);
-                            ?>
-                                <div class="timeline-item">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="mb-1"><?php echo htmlspecialchars($activity['activity_name']); ?> <?php echo $activity['status'] == 'Completed' ? 'Completed' : 'Updated'; ?></h6>
-                                            <p class="text-muted mb-0">
-                                                <?php echo htmlspecialchars($activity['employee_name']); ?> (<?php echo htmlspecialchars($activity['employee_number']); ?>) - <?php echo htmlspecialchars($activity['activity_type']); ?> in "<?php echo htmlspecialchars($activity['plan_name']); ?>"
-                                                <?php if ($activity['status'] == 'Completed'): ?>
-                                                    <span class="badge badge-success">Completed</span>
-                                                <?php elseif ($activity['status'] == 'In Progress'): ?>
-                                                    <span class="badge badge-warning">In Progress</span>
-                                                <?php endif; ?>
-                                            </p>
-                                        </div>
-                                        <small class="text-muted"><?php echo $time_ago; ?></small>
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Start Date</small>
+                                <strong><?php echo date('M Y', strtotime($plan['start_date'])); ?></strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">End Date</small>
+                                <strong><?php echo date('M Y', strtotime($plan['end_date'])); ?></strong>
+                            </div>
+                        </div>
+
+                        <div class="activity-list mb-3">
+                            <?php if ($activities_result->num_rows > 0): ?>
+                                <?php while ($activity = $activities_result->fetch_assoc()): ?>
+                                    <div class="activity-item">
+                                        <small><strong><?php echo $activity['status'] == 'Completed' ? '✓' : '○'; ?></strong> <?php echo htmlspecialchars($activity['activity_name']); ?></small>
                                     </div>
-                                </div>
-                            <?php endwhile; ?>
+                                <?php endwhile; ?>
                             <?php else: ?>
-                                <div class="timeline-item">
-                                    <div class="text-center py-3">
-                                        <p class="text-muted mb-0">No recent activities found.</p>
-                                    </div>
+                                <div class="activity-item">
+                                    <small><em>No activities added yet</em></small>
                                 </div>
                             <?php endif; ?>
+                        </div>
+
+                        <div class="plan-actions text-center">
+                            <button class="btn btn-sm btn-outline-primary mr-2" onclick="editPlan(<?php echo $plan['plan_id']; ?>)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success mr-2" onclick="addActivity(<?php echo $plan['plan_id']; ?>)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePlan(<?php echo $plan['plan_id']; ?>)">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-project-diagram fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Development Plans Found</h4>
+                    <p class="text-muted">Click the + button to create your first development plan.</p>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 
-    <!-- Add Development Plan Button -->
-    <button class="btn btn-primary add-plan-btn" data-toggle="tooltip" title="Add New Development Plan" onclick="showAddPlanModal()">
-        <i class="fas fa-plus"></i>
-    </button>
+</div> <!-- END of #plans-container -->
+
+<!-- Add Development Plan Button -->
+<button class="btn btn-primary add-plan-btn" data-toggle="tooltip" title="Add New Development Plan" onclick="showAddPlanModal()">
+    <i class="fas fa-plus"></i>
+</button>
+
+<!-- Development Plans Timeline -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-history mr-2"></i>
+            Recent Development Activities
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="plan-timeline">
+            <?php
+            $recent_activities_query = "SELECT da.*, dp.plan_name,
+                                        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+                                        ep.employee_number
+                                        FROM development_activities da
+                                        JOIN development_plans dp ON da.plan_id = dp.plan_id
+                                        JOIN employee_profiles ep ON dp.employee_id = ep.employee_id
+                                        JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+                                        ORDER BY da.updated_at DESC LIMIT 10";
+
+            $recent_activities_result = $conn->query($recent_activities_query);
+
+            if ($recent_activities_result && $recent_activities_result->num_rows > 0):
+                while ($activity = $recent_activities_result->fetch_assoc()):
+                    $time_ago = time_elapsed_string($activity['updated_at']);
+            ?>
+                <div class="timeline-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="mb-1"><?php echo htmlspecialchars($activity['activity_name']); ?> <?php echo $activity['status'] == 'Completed' ? 'Completed' : 'Updated'; ?></h6>
+                            <p class="text-muted mb-0">
+                                <?php echo htmlspecialchars($activity['employee_name']); ?> (<?php echo htmlspecialchars($activity['employee_number']); ?>) - <?php echo htmlspecialchars($activity['activity_type']); ?> in "<?php echo htmlspecialchars($activity['plan_name']); ?>"
+                                <?php if ($activity['status'] == 'Completed'): ?>
+                                    <span class="badge badge-success">Completed</span>
+                                <?php elseif ($activity['status'] == 'In Progress'): ?>
+                                    <span class="badge badge-warning">In Progress</span>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                        <small class="text-muted"><?php echo $time_ago; ?></small>
+                    </div>
+                </div>
+            <?php endwhile; ?>
+            <?php else: ?>
+                <div class="timeline-item">
+                    <div class="text-center py-3">
+                        <p class="text-muted mb-0">No recent activities found.</p>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
 
     <!-- Add/Edit Development Plan Modal -->
     <div class="modal fade" id="planModal" tabindex="-1" role="dialog" aria-labelledby="planModalLabel" aria-hidden="true">
@@ -640,47 +647,94 @@ $employees_result = $conn->query($employees_query);
             </div>
         </div>
     </div>
+    
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip();
-        });
+<script>
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
 
-        function showAddPlanModal() {
-            $('#planModalLabel').text('Add New Development Plan');
-            $('#planAction').val('add_plan');
-            $('#planForm')[0].reset();
-            $('#planModal').modal('show');
-        }
+// Show Add Plan modal
+function showAddPlanModal() {
+    $('#planModalLabel').text('Add New Development Plan');
+    $('#planAction').val('add_plan');
+    $('#planForm')[0].reset();
+    $('#planModal').modal('show');
+}
 
-        function editPlan(planId) {
-            // This would typically fetch plan data via AJAX
-            $('#planModalLabel').text('Edit Development Plan');
-            $('#planAction').val('edit_plan');
-            $('#planId').val(planId);
-            // Populate form fields with existing data
-            $('#planModal').modal('show');
-        }
+// Edit Plan
+function editPlan(planId) {
+    $('#planModalLabel').text('Edit Development Plan');
+    $('#planAction').val('edit_plan');
+    $('#planId').val(planId);
+    $('#planModal').modal('show');
+}
 
-        function addActivity(planId) {
-            $('#activityModalLabel').text('Add New Activity');
-            $('#activityPlanId').val(planId);
-            $('#activityForm')[0].reset();
-            $('#activityModal').modal('show');
-        }
+// Add Activity
+function addActivity(planId) {
+    $('#activityModalLabel').text('Add New Activity');
+    $('#activityPlanId').val(planId);
+    $('#activityForm')[0].reset();
+    $('#activityModal').modal('show');
+}
 
-        function deletePlan(planId) {
-            if (confirm('Are you sure you want to delete this development plan? This action cannot be undone.')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = '<input type="hidden" name="action" value="delete_plan"><input type="hidden" name="plan_id" value="' + planId + '">';
-                document.body.appendChild(form);
-                form.submit();
+// Delete Plan
+function deletePlan(planId) {
+    if (confirm('Are you sure you want to delete this development plan? This action cannot be undone.')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="action" value="delete_plan">
+            <input type="hidden" name="plan_id" value="${planId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+$(document).ready(function () {
+
+    // Handle Add Activity form submission via AJAX
+    $('#activityForm').on('submit', function (e) {
+        e.preventDefault();
+
+        const planId = $('#activityPlanId').val();
+
+        $.ajax({
+            type: 'POST',
+            url: '', // same PHP page
+            data: $(this).serialize(),
+            success: function () {
+                $('#activityModal').modal('hide');
+                alert('Activity added successfully!');
+
+                // Reload the entire plan card to update progress bar and activity list
+                const planCard = $(`#plan-${planId}`);
+                const tempScroll = $(window).scrollTop();
+
+                $.get(window.location.href, function (data) {
+                    const updatedCard = $(data).find(`#plan-${planId}`);
+                    planCard.replaceWith(updatedCard);
+
+                    // Reinit tooltips and restore scroll position
+                    $('[data-toggle="tooltip"]').tooltip();
+                    $(window).scrollTop(tempScroll);
+                });
+            },
+            error: function () {
+                alert('Something went wrong while adding the activity.');
             }
-        }
-    </script>
+        });
+    });
+});
+</script>
+
+
+
 </body>
 </html>
+                  
