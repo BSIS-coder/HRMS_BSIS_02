@@ -3,6 +3,7 @@ include 'db_connect.php';
 
 $role_id = $_GET['role_id'] ?? '';
 $department = $_GET['department'] ?? '';
+$search_role = $_GET['search_role'] ?? '';
 
 $conditions = [];
 $params = [];
@@ -20,12 +21,18 @@ if ($department) {
     $types .= 's';
 }
 
+if ($search_role) {
+    $conditions[] = "r.title LIKE ?";
+    $params[] = '%' . $search_role . '%';
+    $types .= 's';
+}
+
 $whereClause = '';
 if (!empty($conditions)) {
     $whereClause = 'WHERE ' . implode(' AND ', $conditions);
 }
 
-$query = "SELECT c.competency_id, c.name, c.description, r.title AS role
+$query = "SELECT c.competency_id, c.name, c.description, r.title AS role, r.department AS department
           FROM competencies c
           LEFT JOIN job_roles r ON c.job_role_id = r.job_role_id
           $whereClause

@@ -38,11 +38,12 @@ try {
         exit;
     }
 
-    // Fetch competencies for the cycle
+    // Fetch competencies for the employee in the cycle
     $compStmt = $conn->prepare("
         SELECT c.competency_id, c.name, ec.rating, ec.comments
         FROM competencies c
-        LEFT JOIN employee_competencies ec ON ec.competency_id = c.competency_id AND ec.employee_id = :emp_id AND ec.cycle_id = :cycle_id
+        INNER JOIN employee_competencies ec ON ec.competency_id = c.competency_id
+        WHERE ec.employee_id = :emp_id AND ec.cycle_id = :cycle_id
         ORDER BY c.name
     ");
     $compStmt->execute([':emp_id' => $employee_id, ':cycle_id' => $cycle_id]);

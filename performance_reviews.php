@@ -25,6 +25,14 @@ require_once 'dp.php'; // database connection
     .section-title { color: var(--primary-color); margin-bottom: 1.5rem; font-weight:600 }
     .stat-card { min-height:100px }
     table th, table td { vertical-align: middle }
+    @media print {
+      .container { max-width: 100%; margin-left: 0; padding-top: 0; }
+      .btn, .modal, nav, .row.g-3, .d-flex.justify-content-between.align-items-center { display: none !important; }
+      .table-responsive { overflow: visible; }
+      table { width: 100%; font-size: 12px; }
+      .card { border: 1px solid #000; margin-bottom: 10px; }
+      .stat-card h3 { font-size: 18px; }
+    }
   </style>
 </head>
 <body>
@@ -36,7 +44,8 @@ require_once 'dp.php'; // database connection
       <h1 class="section-title">Performance Reviews</h1>
       <div>
         <button id="refreshBtn" class="btn btn-outline-secondary me-2"><i class="fas fa-sync"></i> Refresh</button>
-        <button id="exportBtn" class="btn btn-outline-primary"><i class="fas fa-file-export"></i> Export</button>
+        <button id="exportBtn" class="btn btn-outline-primary me-2"><i class="fas fa-file-export"></i> Export</button>
+        <button id="printBtn" class="btn btn-outline-info"><i class="fas fa-print"></i> Print</button>
       </div>
     </div>
 
@@ -44,7 +53,7 @@ require_once 'dp.php'; // database connection
     <div class="row g-3 align-items-end">
       <div class="col-md-5">
         <label class="form-label">Select Review Cycle</label>
-        <select id="cycleSelect" class="form-select"> 
+        <select id="cycleSelect" class="form-select">
           <option value="">-- Loading cycles --</option>
         </select>
       </div>
@@ -95,7 +104,17 @@ require_once 'dp.php'; // database connection
       </div>
     </div>
 
-    <!-- Competencies table -->
+    <!-- Review Status Selector -->
+    <div class="d-flex justify-content-end mt-3 align-items-center">
+      <label class="form-label me-2">Review Status</label>
+      <select id="reviewStatusSelect" class="form-select" style="width: auto;">
+        <option value="all">Default (All Reviews)</option>
+        <option value="pending">Pending Reviews</option>
+        <option value="completed">Completed Reviews</option>
+      </select>
+    </div>
+
+    <!--Performance review table -->
     <div class="table-responsive mt-4">
       <table class="table table-hover table-bordered" id="competenciesTable">
         <thead class="table-dark">
@@ -110,7 +129,7 @@ require_once 'dp.php'; // database connection
           </tr>
         </thead>
         <tbody id="competenciesTbody">
-          <tr><td colspan="8" class="text-center">Select a review cycle to load data</td></tr>
+          <tr><td colspan="7" class="text-center">Select a review cycle to load data</td></tr>
         </tbody>
       </table>
     </div>
@@ -186,9 +205,11 @@ require_once 'dp.php'; // database connection
 <script>
 const rowsPerPage = 10;
 let competenciesData = [];
+let completedReviewsData = [];
 let currentPage = 1;
 let currentCycleId = null;
 let currentEmployeeId = null;
+let isShowingCompleted = false;
 
 function elem(id){ return document.getElementById(id); }
 
@@ -247,30 +268,32 @@ function loadDepartments(){
     .catch(err => console.error('loadDepartments error', err));
 }
 
-// ---------- Load Competencies ----------
-function loadCompetencies(cycleId, page = 1) {
-  if (!cycleId) return;
-  currentCycleId = cycleId;
-  elem('competenciesTbody').innerHTML = '<tr><td colspan="8" class="text-center">Loading...</td></tr>';
+  // ---------- Load Competencies ----------
+  function loadCompetencies(cycleId, page = 1) {
+    if (!cycleId) return;
+    currentCycleId = cycleId;
+    elem('competenciesTbody').innerHTML = '<tr><td colspan="7" class="text-center">Loading...</td></tr>';
 
-  const dept = elem('deptFilter').value;
-  const url = `get_cycle_competencies.php?cycle_id=${encodeURIComponent(cycleId)}${dept ? `&department=${encodeURIComponent(dept)}` : ''}`;
+    const dept = elem('deptFilter').value;
+    const status = elem('reviewStatusSelect').value;
+    const statusParam = status !== 'all' ? `&status=${encodeURIComponent(status)}` : '';
+    const url = `get_cycle_competencies.php?cycle_id=${encodeURIComponent(cycleId)}${dept ? `&department=${encodeURIComponent(dept)}` : ''}${statusParam}`;
 
-  fetch(url)
+    fetch(url)
     .then(r => r.json())
     .then(data => {
       console.log('Fetched data:', data);
 
       if (!data || !data.success || !Array.isArray(data.competencies)) {
         elem('competenciesTbody').innerHTML =
-          '<tr><td colspan="8" class="text-center text-muted">No data found for this cycle</td></tr>';
+          '<tr><td colspan="7" class="text-center text-muted">No data found for this cycle</td></tr>';
         elem('finalizeBtn').disabled = true;
         return;
       }
 
       competenciesData = data.competencies;
       currentPage = page;
-      renderCompetenciesPage();
+      renderTablePage();
 
       // Update stats
       const avgRating =
@@ -278,9 +301,8 @@ function loadCompetencies(cycleId, page = 1) {
           ? competenciesData.reduce((sum, c) => sum + (parseFloat(c.avg_rating) || 0), 0) / competenciesData.length
           : 0;
       elem('avgRating').textContent = avgRating > 0 ? avgRating.toFixed(2) : '-';
-      elem('completedPct').textContent = '-';
-      elem('pendingCount').textContent = '-';
       elem('employeesReviewed').textContent = competenciesData.length;
+      loadStats(currentCycleId);
 
       elem('finalizeBtn').disabled = false;
     })
@@ -291,12 +313,77 @@ function loadCompetencies(cycleId, page = 1) {
     });
 }
 
+// ---------- Load Completed Reviews ----------
+function loadCompletedReviews(cycleId, page = 1) {
+  console.log('loadCompletedReviews called with cycleId:', cycleId);
+  if (!cycleId) {
+    console.log('No cycleId provided, returning');
+    return;
+  }
 
-function renderCompetenciesPage(){
+  currentCycleId = cycleId;
+  elem('competenciesTbody').innerHTML =
+    '<tr><td colspan="7" class="text-center">Loading...</td></tr>';
+
+  const dept = elem('deptFilter').value;
+  const url = `get_completed_reviews.php?cycle_id=${encodeURIComponent(cycleId)}${
+    dept ? `&department=${encodeURIComponent(dept)}` : ''
+  }`;
+
+  console.log('Fetching URL for completed reviews:', url);
+
+  fetch(url)
+    .then((r) => {
+      console.log('Fetch response status:', r.status);
+      return r.json();
+    })
+    .then((data) => {
+      console.log('Fetched completed reviews data:', data);
+
+      if (!data || !data.success || !Array.isArray(data.reviews)) {
+        console.log('No valid data received or success=false');
+        elem('competenciesTbody').innerHTML =
+          '<tr><td colspan="7" class="text-center text-muted">No completed reviews found for this cycle</td></tr>';
+        return;
+      }
+
+      completedReviewsData = data.reviews;
+      console.log('Completed reviews data set:', completedReviewsData);
+      currentPage = page;
+      renderTablePage();
+
+      // Optional: Update stats display when showing completed reviews
+      const avgRating =
+        completedReviewsData.length > 0
+          ? completedReviewsData.reduce(
+              (sum, c) => sum + (parseFloat(c.avg_rating) || 0),
+              0
+            ) / completedReviewsData.length
+          : 0;
+
+      elem('avgRating').textContent =
+        avgRating > 0 ? avgRating.toFixed(2) : '-';
+      elem('employeesReviewed').textContent = completedReviewsData.length;
+      elem('completedPct').textContent = completedReviewsData.length;
+      elem('pendingCount').textContent = '-';
+    })
+    .catch((err) => {
+      console.error('loadCompletedReviews error', err);
+      elem('competenciesTbody').innerHTML =
+        '<tr><td colspan="7" class="text-center text-danger">Error loading completed reviews</td></tr>';
+    });
+}
+
+
+      // Update stats for completed reviews
+
+
+function renderTablePage(){
   const tbody = elem('competenciesTbody');
   tbody.innerHTML = '';
+  const data = isShowingCompleted ? completedReviewsData : competenciesData;
   const start = (currentPage-1)*rowsPerPage;
-  const pageItems = competenciesData.slice(start, start + rowsPerPage);
+  const pageItems = data.slice(start, start + rowsPerPage);
 
   if(pageItems.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No employees to show</td></tr>';
@@ -306,30 +393,32 @@ function renderCompetenciesPage(){
 
   pageItems.forEach(c => {
     const tr = document.createElement('tr');
+    const actions = isShowingCompleted
+      ? `<button class="btn btn-sm btn-info me-1" onclick="viewDetails(${c.employee_id})"><i class="fas fa-eye"></i></button>`
+      : `<button class="btn btn-sm btn-info me-1" onclick="viewDetails(${c.employee_id})"><i class="fas fa-eye"></i></button>
+         <button class="btn btn-sm btn-warning me-1" onclick="openEditModal(${c.employee_id})"><i class="fas fa-edit"></i></button>
+         <button class="btn btn-sm btn-success me-1" onclick="markAsComplete(${c.employee_id})"><i class="fas fa-check"></i></button>
+         <button class="btn btn-sm btn-danger" onclick="deleteEmployeeCompetencies(${c.employee_id})"><i class="fas fa-trash"></i></button>`;
     tr.innerHTML = `
       <td>${escapeHtml(c.employee_name)}</td>
       <td>${escapeHtml(c.department ?? '')}</td>
       <td>${escapeHtml(c.role ?? '')}</td>
-      <td>${c.avg_rating !== null ? c.avg_rating.toFixed(2) : '-'}</td>
+      <td>${c.avg_rating !== null && !isNaN(parseFloat(c.avg_rating)) ? parseFloat(c.avg_rating).toFixed(2) : '-'}</td>
       <td>${c.competencies_assessed ?? 0}</td>
       <td>${escapeHtml(c.last_assessment_date ?? '')}</td>
-      <td>
-        <button class="btn btn-sm btn-info me-1" onclick="viewDetails(${c.employee_id})"><i class="fas fa-eye"></i></button>
-        <button class="btn btn-sm btn-primary me-1" onclick="openEditModal(${c.employee_id})"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-danger" onclick="deleteEmployeeCompetencies(${c.employee_id})"><i class="fas fa-trash"></i></button>
-      </td>`;
+      <td>${actions}</td>`;
     tbody.appendChild(tr);
   });
 
   // Pagination
-  const pages = Math.ceil(competenciesData.length/rowsPerPage);
+  const pages = Math.ceil(data.length/rowsPerPage);
   const pag = elem('reviewsPagination');
   pag.innerHTML = '';
   for(let i=1;i<=pages;i++){
     const li = document.createElement('li');
     li.className = `page-item ${i===currentPage? 'active':''}`;
     li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-    li.addEventListener('click', (e)=>{ e.preventDefault(); currentPage=i; renderCompetenciesPage(); });
+    li.addEventListener('click', (e)=>{ e.preventDefault(); currentPage=i; renderTablePage(); });
     pag.appendChild(li);
   }
 }
@@ -450,9 +539,27 @@ elem('exportBtn').addEventListener('click', ()=>{
   window.open(`export_review_report.php?cycle_id=${encodeURIComponent(currentCycleId)}`,'_blank');
 });
 
+// ---------- Print ----------
+elem('printBtn').addEventListener('click', ()=>{
+  window.print();
+});
+
 // ---------- Refresh ----------
 elem('refreshBtn').addEventListener('click', ()=>{
-  if(currentCycleId) loadCompetencies(currentCycleId); else loadCycles();
+  // Unselect the cycle dropdown
+  elem('cycleSelect').value = '';
+  currentCycleId = null;
+  isShowingCompleted = false;
+  elem('reviewStatusSelect').value = 'pending';
+  elem('competenciesTbody').innerHTML = '<tr><td colspan="7" class="text-center">Select a review cycle to load data</td></tr>';
+  elem('finalizeBtn').disabled = true;
+  // Reset stats
+  elem('avgRating').textContent = '-';
+  elem('completedPct').textContent = '-';
+  elem('pendingCount').textContent = '-';
+  elem('employeesReviewed').textContent = '-';
+  // Reload cycles to refresh options
+  loadCycles();
 });
 
 // ---------- Utilities ----------
@@ -572,6 +679,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cycleId = e.target.value;
     if (cycleId) {
       console.log('Cycle selected:', cycleId);
+      elem('reviewStatusSelect').value = 'pending';
+      isShowingCompleted = false;
       loadCompetencies(cycleId);
     } else {
       elem('competenciesTbody').innerHTML =
@@ -582,9 +691,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ✅ Department filter refreshes the table for the same cycle
   elem('deptFilter').addEventListener('change', () => {
-    if (currentCycleId) loadCompetencies(currentCycleId);
+    if (currentCycleId) {
+      if (isShowingCompleted) {
+        loadCompletedReviews(currentCycleId);
+      } else {
+        loadCompetencies(currentCycleId);
+      }
+    }
+  });
+
+  // ✅ Select between completed and pending reviews
+  elem('reviewStatusSelect').addEventListener('change', () => {
+    const status = elem('reviewStatusSelect').value;
+    isShowingCompleted = status === 'completed';
+    if (currentCycleId) {
+      if (isShowingCompleted) {
+        loadCompletedReviews(currentCycleId);
+      } else {
+        loadCompetencies(currentCycleId);
+      }
+    }
   });
 });
+
+// ---------- Load Stats ----------
+function loadStats(cycleId) {
+  if (!cycleId) return;
+  fetch(`get_cycle_stats.php?cycle_id=${encodeURIComponent(cycleId)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        elem('completedPct').textContent = data.completed_reviews || 0;
+        elem('pendingCount').textContent = data.pending_reviews || 0;
+      } else {
+        elem('completedPct').textContent = '-';
+        elem('pendingCount').textContent = '-';
+      }
+    })
+    .catch(err => {
+      console.error('loadStats error', err);
+      elem('completedPct').textContent = '-';
+      elem('pendingCount').textContent = '-';
+    });
+}
+
+// ---------- Mark as Complete ----------
+function markAsComplete(employeeId) {
+  if (!currentCycleId) return alert('Select a review cycle first');
+
+  if (!confirm('Mark this review as complete? This will store the data in the performance_reviews table.')) return;
+
+  fetch('mark_review_complete.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `employee_id=${encodeURIComponent(employeeId)}&cycle_id=${encodeURIComponent(currentCycleId)}`
+  })
+    .then(r => r.json())
+    .then(data => {
+      alert(data.message || (data.success ? 'Marked as complete!' : 'Failed to mark as complete'));
+      if (data.success) {
+        // Remove the completed employee from the table
+        competenciesData = competenciesData.filter(c => c.employee_id != employeeId);
+        renderTablePage();
+        loadStats(currentCycleId);
+      }
+    })
+    .catch(err => {
+      console.error('markAsComplete error', err);
+      alert('Error marking as complete');
+    });
+}
+
+
 
 </script>
 
