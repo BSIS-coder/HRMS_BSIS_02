@@ -8,13 +8,31 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'dp.php';
+
+// Clean up any existing gender violations first
+$cleanedUp = cleanupGenderViolations();
+if ($cleanedUp > 0) {
+    error_log("Cleaned up $cleanedUp gender-violating leave balance records");
+}
+
+// Ensure all employees have leave balance records with gender restrictions
+$createdBalances = ensureEmployeeLeaveBalances();
+if ($createdBalances > 0) {
+    error_log("Created $createdBalances missing leave balance records with gender restrictions");
+}
 
 // Fetch leave balances data
 $leaveBalances = getLeaveBalances();
 $leaveTypeTotals = getLeaveTypeTotals();
 $utilizationTrend = getLeaveUtilizationTrend();
 $lowBalanceAlerts = getLowBalanceAlerts();
+
+// Debug: Log the number of leave balances found
+error_log("Leave balances found: " . count($leaveBalances));
+if (count($leaveBalances) > 0) {
+    error_log("First employee: " . json_encode($leaveBalances[0]));
+}
 
 // Calculate actual totals from database data
 $vacationTotal = 0;
@@ -23,10 +41,10 @@ $maternityTotal = 0;
 $paternityTotal = 0;
 
 foreach ($leaveBalances as $employee) {
-    $vacationTotal += $employee['vacation_leave'];
-    $sickTotal += $employee['sick_leave'];
-    $maternityTotal += $employee['maternity_leave'];
-    $paternityTotal += $employee['paternity_leave'];
+    $vacationTotal += $employee['vacation_leave'] ?? 0;
+    $sickTotal += $employee['sick_leave'] ?? 0;
+    $maternityTotal += $employee['maternity_leave'] ?? 0;
+    $paternityTotal += $employee['paternity_leave'] ?? 0;
 }
 
 // Calculate utilization percentages based on actual data
@@ -153,19 +171,27 @@ $specialLeaveTotal = [
                                                         </td>
                                                         <td><?= htmlspecialchars($employee['department_name'] ?? 'N/A') ?></td>
                                                         <td>
-                                                            <span class="badge badge-primary"><?= $employee['vacation_leave'] ?> days</span>
+                                                            <span class="badge badge-primary"><?= $employee['vacation_leave'] ?? 0 ?> days</span>
                                                         </td>
                                                         <td>
-                                                            <span class="badge badge-success"><?= $employee['sick_leave'] ?> days</span>
+                                                            <span class="badge badge-success"><?= $employee['sick_leave'] ?? 0 ?> days</span>
                                                         </td>
                                                         <td>
-                                                            <span class="badge badge-info"><?= $employee['maternity_leave'] ?> days</span>
+                                                            <?php if ($employee['gender'] === 'Female'): ?>
+                                                                <span class="badge badge-info"><?= $employee['maternity_leave'] ?? 0 ?> days</span>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-secondary" title="Not applicable for <?= $employee['gender'] ?> employees">N/A</span>
+                                                            <?php endif; ?>
                                                         </td>
                                                         <td>
-                                                            <span class="badge badge-warning"><?= $employee['paternity_leave'] ?> days</span>
+                                                            <?php if ($employee['gender'] === 'Male'): ?>
+                                                                <span class="badge badge-warning"><?= $employee['paternity_leave'] ?? 0 ?> days</span>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-secondary" title="Not applicable for <?= $employee['gender'] ?> employees">N/A</span>
+                                                            <?php endif; ?>
                                                         </td>
                                                         <td>
-                                                            <strong><?= $employee['total_balance'] ?> days</strong>
+                                                            <strong><?= $employee['total_balance'] ?? 0 ?> days</strong>
                                                         </td>
                                                         <td>
                                                             <button class="btn btn-sm btn-outline-primary">

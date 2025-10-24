@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'dp.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -262,6 +262,7 @@ require_once 'db.php';
                                     <tbody>
                                         <?php
                                         $recentActivities = getRecentActivities();
+                                        error_log("Index: recent activities count: " . count($recentActivities));
                                         if (count($recentActivities) > 0) {
                                             foreach ($recentActivities as $activity) {
                                                 echo "<tr>";
