@@ -214,7 +214,7 @@ $tax_types = [
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -223,14 +223,14 @@ $tax_types = [
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -253,7 +253,7 @@ $tax_types = [
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -279,17 +279,17 @@ $tax_types = [
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #E91E63;
             font-weight: 600;
         }
         .table td {
@@ -298,12 +298,12 @@ $tax_types = [
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -320,20 +320,20 @@ $tax_types = [
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .tax-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .modal-header {
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
         }
         .close {
@@ -352,7 +352,7 @@ $tax_types = [
             margin-bottom: 20px;
         }
         .tax-summary-card {
-            background: linear-gradient(135deg, #800000 0%, #a60000 100%);
+            background: linear-gradient(135deg, #E91E63 0%, #E91E63 100%);
             color: white;
             border-radius: 10px;
             padding: 20px;
@@ -659,9 +659,15 @@ $tax_types = [
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="tax_percentage">Tax Percentage (%)</label>
-                                    <input type="number" class="form-control" id="tax_percentage" name="tax_percentage" 
+                                    <input type="number" class="form-control" id="tax_percentage" name="tax_percentage"
                                            step="0.01" min="0" max="100" placeholder="e.g., 15.00">
-                                    <small class="form-text text-muted">Leave blank if using percentage</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="tax_amount">Fixed Tax Amount (₱)</label>
+                                    <input type="number" class="form-control" id="tax_amount" name="tax_amount"
+                                           step="0.01" min="0" placeholder="e.g., 5000.00">
                                 </div>
                             </div>
                         </div>

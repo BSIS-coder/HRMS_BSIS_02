@@ -94,11 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $amount_stmt->execute([$employee_id]);
                 $salary_data = $amount_stmt->fetch(PDO::FETCH_ASSOC);
 
-                $deduction_amount = 0;
-                if ($salary_data) {
-                    $monthly_salary = $salary_data['base_salary'];
-                    $deduction_amount = calculateStatutoryDeduction($monthly_salary, $deduction_type);
-                }
+                $deduction_amount = $_POST['deduction_amount'];
+if (empty($deduction_amount) && $salary_data) {
+    // fallback only if user didn't input any amount
+    $monthly_salary = $salary_data['base_salary'];
+    $deduction_amount = calculateStatutoryDeduction($monthly_salary, $deduction_type);
+}
 
                 try {
                     $sql = "INSERT INTO statutory_deductions (employee_id, deduction_type, deduction_amount, effective_date) 
@@ -227,7 +228,7 @@ if ($department_filter) {
     $params[] = $department_filter;
 }
 
-$sql .= " ORDER BY sd.effective_date DESC, pi.first_name ASC";
+$sql .= " ORDER BY pi.last_name ASC, pi.first_name ASC, sd.deduction_type ASC";
 
 try {
     $stmt = $conn->prepare($sql);
@@ -289,7 +290,7 @@ $deduction_types = [
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -298,14 +299,14 @@ $deduction_types = [
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -328,7 +329,7 @@ $deduction_types = [
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -354,17 +355,17 @@ $deduction_types = [
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #E91E63;
             font-weight: 600;
         }
         .table td {
@@ -373,12 +374,12 @@ $deduction_types = [
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -395,20 +396,20 @@ $deduction_types = [
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .deduction-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .modal-header {
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
         }
         .close {
@@ -427,7 +428,7 @@ $deduction_types = [
             margin-bottom: 20px;
         }
         .deduction-summary-card {
-            background: linear-gradient(135deg, #800000 0%, #a60000 100%);
+            background: linear-gradient(135deg, #E91E63 0%, #E91E63 100%);
             color: white;
             border-radius: 10px;
             padding: 20px;
@@ -464,6 +465,68 @@ $deduction_types = [
         .deduction-type-pagibig { background-color: #ffc107; color: #212529; }
         .deduction-type-gsis { background-color: #17a2b8; color: white; }
         .deduction-type-other { background-color: #6c757d; color: white; }
+
+        .employee-row td {
+    background: #fff6f6;
+    border-top: 1px solid rgba(128,0,0,0.06);
+}
+
+.deduction-row td {
+    background: transparent;
+}
+
+.deduction-row td:first-of-type {
+    width: 15%; /* keeps spacing consistent */
+}
+
+.deduction-amount {
+    font-weight: 600;
+    color: #800000;
+}
+
+/* Deduction type badges */
+.deduction-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.deduction-type-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+/* Badge color styles */
+.deduction-type-sss {
+    background-color: #007bff; /* Blue */
+}
+
+.deduction-type-philhealth {
+    background-color: #28a745; /* Green */
+}
+
+.deduction-type-pagibig {
+    background-color: #ffc107; /* Yellow */
+    color: #212529;
+}
+
+.deduction-type-gsis {
+    background-color: #17a2b8; /* Teal */
+}
+
+.deduction-type-other {
+    background-color: #6c757d; /* Gray */
+}
+
     </style>
 </head>
 <body>
@@ -589,47 +652,90 @@ $deduction_types = [
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <?php if (!empty($statutory_deductions)): ?>
-                                        <?php foreach ($statutory_deductions as $deduction): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($deduction['first_name'] . ' ' . $deduction['last_name']); ?></td>
-                                                <td><?php echo htmlspecialchars($deduction['employee_number']); ?></td>
-                                                <td><?php echo htmlspecialchars($deduction['department_name'] ?? 'N/A'); ?></td>
-                                                <td>
-                                                    <?php 
-                                                    $deduction_class = 'deduction-type-' . strtolower($deduction['deduction_type']);
-                                                    ?>
-                                                    <span class="deduction-type-badge <?php echo $deduction_class; ?>">
-                                                        <?php echo htmlspecialchars($deduction['deduction_type']); ?>
-                                                    </span>
-                                                </td>
-                                                <td class="deduction-amount">₱<?php echo number_format($deduction['deduction_amount'], 2); ?></td>
-                                                <td><?php echo date('M d, Y', strtotime($deduction['effective_date'])); ?></td>
-                                                <td>
-                                                    <div class="btn-group" role="group">
-                                                        <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                                onclick="editDeduction(<?php echo htmlspecialchars(json_encode($deduction)); ?>)">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <form method="post" style="display: inline;" 
-                                                              onsubmit="return confirm('Are you sure you want to delete this statutory deduction?');">
-                                                            <input type="hidden" name="action" value="delete_statutory_deduction">
-                                                            <input type="hidden" name="statutory_deduction_id" value="<?php echo $deduction['statutory_deduction_id']; ?>">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center">No statutory deductions found.</td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
+                               <tbody>
+<?php 
+$previous_employee = null;
+if (!empty($statutory_deductions)): 
+    foreach ($statutory_deductions as $deduction): 
+        // When a new employee starts, show a heading row
+        if ($previous_employee !== $deduction['employee_id']): 
+?>
+<tr class="employee-row">
+    <td colspan="7" style="font-weight:600; color:#800000;">
+        <i class="fas fa-user"></i>
+        <?php echo htmlspecialchars($deduction['first_name'] . ' ' . $deduction['last_name']); ?> 
+        (<?php echo htmlspecialchars($deduction['employee_number']); ?>)
+        — <?php echo htmlspecialchars($deduction['department_name'] ?? 'N/A'); ?>
+    </td>
+</tr>
+<?php 
+        endif;
+        $previous_employee = $deduction['employee_id'];
+?>
+<tr class="deduction-row">
+    <!-- Keep the same number of cells as the header (7) -->
+    <td></td> <!-- Employee column (empty for deduction row) -->
+    <td></td> <!-- Employee # column (empty for deduction row) -->
+    <td></td> <!-- Department column (empty for deduction row) -->
+    <?php 
+    // Normalize the type (remove spaces/dashes and lowercase it)
+    $raw_type = strtolower(str_replace([' ', '-', '_'], '', $deduction['deduction_type']));
+    $badge_class = 'deduction-type-badge deduction-type-' . $raw_type;
+
+    // Choose icon based on normalized type
+    $icon = '';
+    switch ($raw_type) {
+        case 'sss':
+            $icon = '<i class="fas fa-id-card"></i>';
+            break;
+        case 'philhealth':
+            $icon = '<i class="fas fa-heartbeat"></i>';
+            break;
+        case 'pagibig': // ✅ handles "Pag-IBIG" or "Pag Ibig" or "Pagibig"
+            $icon = '<i class="fas fa-home"></i>';
+            break;
+        case 'gsis':
+            $icon = '<i class="fas fa-building"></i>';
+            break;
+        default:
+            $icon = '<i class="fas fa-coins"></i>';
+            break;
+    }
+?>
+<td>
+    <span class="<?php echo $badge_class; ?>">
+        <?php echo $icon; ?>
+        <?php echo htmlspecialchars($deduction['deduction_type']); ?>
+    </span>
+</td>
+    <td class="deduction-amount">₱<?php echo number_format($deduction['deduction_amount'], 2); ?></td> <!-- Amount -->
+    <td><?php echo date('M d, Y', strtotime($deduction['effective_date'])); ?></td> <!-- Effective Date -->
+    <td>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-outline-primary" 
+                    onclick="editDeduction(<?php echo htmlspecialchars(json_encode($deduction)); ?>)">
+                <i class="fas fa-edit"></i>
+            </button>
+            <form method="post" style="display:inline;" 
+                  onsubmit="return confirm('Are you sure you want to delete this deduction?');">
+                <input type="hidden" name="action" value="delete_statutory_deduction">
+                <input type="hidden" name="statutory_deduction_id" value="<?php echo $deduction['statutory_deduction_id']; ?>">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </form>
+        </div>
+    </td>
+</tr>
+<?php 
+    endforeach; 
+else: 
+?>
+<tr>
+    <td colspan="7" class="text-center">No statutory deductions found.</td>
+</tr>
+<?php endif; ?>
+</tbody>
                             </table>
                         </div>
                     </div>
@@ -737,6 +843,15 @@ $deduction_types = [
                                 <div class="form-group">
                                     <label for="effective_date">Effective Date</label>
                                     <input type="date" class="form-control" id="effective_date" name="effective_date" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="deduction_amount">Deduction Amount (₱)</label>
+                                    <input type="number" class="form-control" id="deduction_amount" name="deduction_amount"
+                                           step="0.01" min="0" placeholder="e.g., 500.00" required>
                                 </div>
                             </div>
                         </div>
@@ -884,7 +999,7 @@ $deduction_types = [
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
@@ -980,3 +1095,13 @@ $deduction_types = [
             }
             return Math.round(deductionAmount * 100) / 100; // Round to 2 decimal places
         }
+        // ✅ Fix for Edit Deduction button modal trigger
+$(document).on('click', '.edit-btn', function() {
+    const deduction = $(this).data('deduction');
+    $('#edit_statutory_deduction_id').val(deduction.statutory_deduction_id);
+    $('#edit_deduction_type').val(deduction.deduction_type);
+    $('#edit_deduction_amount').val(deduction.deduction_amount);
+    $('#edit_effective_date').val(deduction.effective_date);
+    $('#editDeductionModal').modal('show');
+});
+        </script>

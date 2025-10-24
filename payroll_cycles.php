@@ -67,23 +67,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
             case 'delete_payroll_cycle':
                 $payroll_cycle_id = $_POST['payroll_cycle_id'];
-                
+
                 try {
-                    // Check if there are any payroll transactions for this cycle
-                    $check_sql = "SELECT COUNT(*) FROM payroll_transactions WHERE payroll_cycle_id = ?";
-                    $check_stmt = $conn->prepare($check_sql);
-                    $check_stmt->execute([$payroll_cycle_id]);
-                    $transaction_count = $check_stmt->fetchColumn();
-                    
-                    if ($transaction_count > 0) {
-                        $error_message = "Cannot delete payroll cycle: There are existing payroll transactions for this cycle.";
-                    } else {
-                        $sql = "DELETE FROM payroll_cycles WHERE payroll_cycle_id = ?";
-                        $stmt = $conn->prepare($sql);
-                        $stmt->execute([$payroll_cycle_id]);
-                        $success_message = "Payroll cycle deleted successfully!";
-                    }
+                    $conn->beginTransaction();
+
+                    // Delete all payroll transactions for this cycle first
+                    $delete_trans_sql = "DELETE FROM payroll_transactions WHERE payroll_cycle_id = ?";
+                    $conn->prepare($delete_trans_sql)->execute([$payroll_cycle_id]);
+
+                    // Then delete the payroll cycle
+                    $sql = "DELETE FROM payroll_cycles WHERE payroll_cycle_id = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->execute([$payroll_cycle_id]);
+
+                    $conn->commit();
+                    $success_message = "Payroll cycle and all associated transactions deleted successfully!";
                 } catch (PDOException $e) {
+                    $conn->rollBack();
                     $error_message = "Error deleting payroll cycle: " . $e->getMessage();
                 }
                 break;
@@ -181,24 +181,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Calculate tax deductions from tax_deductions table
                 $tax_deductions = 0;
-                $tax_sql = "SELECT tax_percentage, tax_amount
+                $tax_sql = "SELECT SUM(CASE
+                               WHEN tax_percentage IS NOT NULL THEN ? * (tax_percentage / 100)
+                               ELSE tax_amount
+                           END) as total_tax
                            FROM tax_deductions
                            WHERE employee_id = ?
-                           AND effective_date <= (SELECT pay_period_end FROM payroll_cycles WHERE payroll_cycle_id = ?)
-                           ORDER BY effective_date DESC
-                           LIMIT 1";
+                           AND effective_date <= (SELECT pay_period_end FROM payroll_cycles WHERE payroll_cycle_id = ?)";
                 $tax_stmt = $conn->prepare($tax_sql);
-                $tax_stmt->execute([$employee['employee_id'], $payroll_cycle_id]);
+                $tax_stmt->execute([$adjusted_gross_pay, $employee['employee_id'], $payroll_cycle_id]);
                 $tax_result = $tax_stmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($tax_result) {
-                    if ($tax_result['tax_percentage']) {
-                        // Calculate percentage-based tax
-                        $tax_deductions = $adjusted_gross_pay * ($tax_result['tax_percentage'] / 100);
-                    } elseif ($tax_result['tax_amount']) {
-                        // Use fixed tax amount
-                        $tax_deductions = $tax_result['tax_amount'];
-                    }
+                if ($tax_result && $tax_result['total_tax']) {
+                    $tax_deductions = $tax_result['total_tax'];
                 }
 
                 // Calculate statutory deductions from database
@@ -286,7 +281,7 @@ try {
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -295,14 +290,14 @@ try {
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -325,7 +320,7 @@ try {
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -351,17 +346,17 @@ try {
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #E91E63;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #E91E63;
             font-weight: 600;
         }
         .table td {
@@ -370,12 +365,12 @@ try {
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -392,12 +387,12 @@ try {
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .badge-pending {
@@ -411,7 +406,7 @@ try {
             background-color: #28a745;
         }
         .modal-header {
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
         }
         .close {
@@ -424,7 +419,7 @@ try {
         }
         .salary-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .btn-process {
             background-color: #28a745;
@@ -521,26 +516,24 @@ try {
                                                                 </button>
                                                             </form>
                                                         <?php endif; ?>
-                                                        
+
                                                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="editCycle(<?php echo htmlspecialchars(json_encode($cycle)); ?>)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        
-                                                        <?php if ($cycle['employee_count'] == 0): ?>
-                                                            <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this payroll cycle?');">
-                                                                <input type="hidden" name="action" value="delete_payroll_cycle">
-                                                                <input type="hidden" name="payroll_cycle_id" value="<?php echo $cycle['payroll_cycle_id']; ?>">
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </form>
-                                                        <?php endif; ?>
-                                                        
+
                                                         <?php if ($cycle['status'] == 'Completed'): ?>
                                                             <a href="payroll_transactions.php?cycle_id=<?php echo $cycle['payroll_cycle_id']; ?>" class="btn btn-sm btn-outline-info" title="View Transactions">
                                                                 <i class="fas fa-eye"></i>
                                                             </a>
                                                         <?php endif; ?>
+
+                                                        <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this payroll cycle<?php echo $cycle['employee_count'] > 0 ? ' and all associated transactions' : ''; ?>?');">
+                                                            <input type="hidden" name="action" value="delete_payroll_cycle">
+                                                            <input type="hidden" name="payroll_cycle_id" value="<?php echo $cycle['payroll_cycle_id']; ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Cycle">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
                                                     </div>
                                                 </td>
                                             </tr>

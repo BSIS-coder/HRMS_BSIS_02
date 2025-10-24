@@ -10,17 +10,44 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // Include database connection
 require_once 'config.php';
 
-// Handle form submissions
+// ================================
+// ✅ ADDED: Dynamic statutory rate fetch (rates stored AS DECIMALS, e.g. 0.045 for 4.5%)
+// ================================
+function getStatutoryRate($conn, $type, $salary = 0) {
+    try {
+        $sql = "SELECT rate FROM statutory_deductions 
+                WHERE type = ? 
+                AND (min_salary IS NULL OR ? >= min_salary)
+                AND (max_salary IS NULL OR ? <= max_salary)
+                LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$type, $salary, $salary]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Expecting rate stored as decimal (e.g. 0.045 for 4.5%)
+        return $result ? floatval($result['rate']) : 0.0;
+    } catch (PDOException $e) {
+        return 0.0;
+    }
+}
+// ================================
+
+/* Handle form submissions */
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add_salary_structure':
                 $employee_id = $_POST['employee_id'];
                 $basic_salary = $_POST['basic_salary'];
-                $allowances = $_POST['allowances'] ?? 0;
-                $deductions = $_POST['deductions'] ?? 0;
-                $effective_date = $_POST['effective_date'];
-                
+$allowances = $_POST['allowances'] ?? 0;
+$deductions = $_POST['deductions'] ?? 0;
+$effective_date = $_POST['effective_date'];
+
+// ✅ Auto-fetch salary if not manually entered
+if (empty($basic_salary) || $basic_salary == 0) {
+    $stmt = $conn->prepare("SELECT salary FROM employee_profiles WHERE employee_id = ?");
+    $stmt->execute([$employee_id]);
+    $basic_salary = $stmt->fetchColumn() ?? 0;
+}
                 try {
                     $sql = "INSERT INTO salary_structures (employee_id, basic_salary, allowances, deductions, effective_date) 
                             VALUES (?, ?, ?, ?, ?)";
@@ -66,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Fetch salary structures with employee details
+/* Fetch salary structures with employee details */
 try {
     $sql = "SELECT ss.*, ep.employee_number, pi.first_name, pi.last_name, jr.title as job_title, d.department_name
             FROM salary_structures ss
@@ -82,7 +109,7 @@ try {
     $error_message = "Error fetching salary structures: " . $e->getMessage();
 }
 
-// Fetch employees for dropdown
+/* Fetch employees for dropdown */
 try {
     $sql = "SELECT ep.employee_id, ep.employee_number, pi.first_name, pi.last_name
             FROM employee_profiles ep
@@ -112,7 +139,7 @@ try {
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color:#E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -121,14 +148,14 @@ try {
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -151,7 +178,7 @@ try {
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -172,7 +199,7 @@ try {
         }
         .dropdown-menu .dropdown-item:hover {
             background-color: #fff0f0;
-            color: #800000;
+            color: #E91E63;
         }
         .main-content {
             margin-left: 250px;
@@ -193,17 +220,17 @@ try {
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #E91E63;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #C2185B;
             font-weight: 600;
         }
         .table td {
@@ -212,12 +239,12 @@ try {
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -234,17 +261,17 @@ try {
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .salary-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .badge-active {
             background-color: #28a745;
@@ -253,7 +280,7 @@ try {
             background-color: #6c757d;
         }
         .modal-header {
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
         }
         .close {
@@ -312,6 +339,7 @@ try {
                                         <th>Allowances</th>
                                         <th>Deductions</th>
                                         <th>Total Gross</th>
+                                        <th>Net Pay</th>
                                         <th>Effective Date</th>
                                         <th>Actions</th>
                                     </tr>
@@ -319,15 +347,35 @@ try {
                                 <tbody>
                                     <?php if (!empty($salary_structures)): ?>
                                         <?php foreach ($salary_structures as $structure): ?>
+                                            <?php
+                                                // ✅ Compute Statutory Deductions (SSS, PhilHealth, Pag-IBIG)
+                                                $basic_salary = $structure['basic_salary'];
+                                                $allowances = $structure['allowances'];
+                                                $deductions = $structure['deductions'];
+
+                                                // rates are decimals (e.g. 0.045)
+                                                $sss_rate = getStatutoryRate($conn, 'SSS', $basic_salary);
+                                                $philhealth_rate = getStatutoryRate($conn, 'PhilHealth', $basic_salary);
+                                                $pagibig_rate = getStatutoryRate($conn, 'Pag-IBIG', $basic_salary);
+
+                                                $sss = $basic_salary * $sss_rate;
+                                                $philhealth = $basic_salary * $philhealth_rate;
+                                                $pagibig = $basic_salary * $pagibig_rate;
+
+                                                $total_statutory = $sss + $philhealth + $pagibig;
+                                                $gross = $basic_salary + $allowances;
+                                                $net_pay = $gross - ($deductions + $total_statutory);
+                                            ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($structure['first_name'] . ' ' . $structure['last_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($structure['employee_number']); ?></td>
                                                 <td><?php echo htmlspecialchars($structure['department_name'] ?? 'N/A'); ?></td>
                                                 <td><?php echo htmlspecialchars($structure['job_title'] ?? 'N/A'); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($structure['basic_salary'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($structure['allowances'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($structure['deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($structure['basic_salary'] + $structure['allowances'] - $structure['deductions'], 2); ?></td>
+                                                <td class="salary-amount">₱<?php echo number_format($basic_salary, 2); ?></td>
+                                                <td class="salary-amount">₱<?php echo number_format($allowances, 2); ?></td>
+                                                <td class="salary-amount">₱<?php echo number_format($deductions, 2); ?></td>
+                                                <td class="salary-amount">₱<?php echo number_format($gross, 2); ?></td>
+                                                <td class="salary-amount">₱<?php echo number_format($net_pay, 2); ?></td>
                                                 <td><?php echo htmlspecialchars($structure['effective_date']); ?></td>
                                                 <td>
                                                     <div class="btn-group" role="group">
@@ -347,7 +395,7 @@ try {
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="10" class="text-center">No salary structures found.</td>
+                                            <td colspan="12" class="text-center">No salary structures found.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
@@ -355,146 +403,225 @@ try {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Add Salary Structure Modal -->
-    <div class="modal fade" id="addSalaryModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Salary Structure</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                <!-- Add Salary Structure Modal -->
+                <div class="modal fade" id="addSalaryModal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add Salary Structure</h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <form method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" name="action" value="add_salary_structure">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label for="employee_name">Employee Name</label>
+                                                <input type="text" class="form-control" id="employee_name" name="employee_name" required list="employees" autocomplete="off" oninput="handleEmployeeInput()">
+                                                <datalist id="employees">
+                                                    <?php foreach ($employees as $employee): ?>
+                                                        <option value="<?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>" data-id="<?php echo $employee['employee_id']; ?>">
+                                                    <?php endforeach; ?>
+                                                </datalist>
+                                                <input type="hidden" id="employee_id" name="employee_id">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="employee_info" style="display: none;" class="alert alert-info">
+                                        <strong>Employee Details:</strong><br>
+                                        <span id="emp_number"></span><br>
+                                        <span id="emp_status"></span><br>
+                                        <span id="emp_job"></span><br>
+                                        <span id="emp_dept"></span><br>
+                                        <span id="emp_salary"></span>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="basic_salary">Basic Salary (₱)</label>
+                                                <input type="number" class="form-control" id="basic_salary" name="basic_salary" step="0.01" min="0" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="allowances">Allowances (₱)</label>
+                                                <input type="number" class="form-control" id="allowances" name="allowances" step="0.01" min="0" value="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="deductions">Deductions (₱)</label>
+                                                <input type="number" class="form-control" id="deductions" name="deductions" step="0.01" min="0" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="effective_date">Effective Date</label>
+                                                <input type="date" class="form-control" id="effective_date" name="effective_date" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Add Salary Structure</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <form method="post">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add_salary_structure">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="employee_id">Employee</label>
-                                    <select class="form-control" id="employee_id" name="employee_id" required>
-                                        <option value="">Select Employee</option>
-                                        <?php foreach ($employees as $employee): ?>
-                                            <option value="<?php echo $employee['employee_id']; ?>">
-                                                <?php echo htmlspecialchars($employee['employee_number'] . ' - ' . $employee['first_name'] . ' ' . $employee['last_name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="basic_salary">Basic Salary (₱)</label>
-                                    <input type="number" class="form-control" id="basic_salary" name="basic_salary" step="0.01" min="0" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="allowances">Allowances (₱)</label>
-                                    <input type="number" class="form-control" id="allowances" name="allowances" step="0.01" min="0" value="0">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="deductions">Deductions (₱)</label>
-                                    <input type="number" class="form-control" id="deductions" name="deductions" step="0.01" min="0" value="0">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="effective_date">Effective Date</label>
-                                    <input type="date" class="form-control" id="effective_date" name="effective_date" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Salary Structure</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <!-- Edit Salary Structure Modal -->
-    <div class="modal fade" id="editSalaryModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Salary Structure</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                <!-- Edit Salary Structure Modal -->
+                <div class="modal fade" id="editSalaryModal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Salary Structure</h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <form method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" name="action" value="update_salary_structure">
+                                    <input type="hidden" name="salary_structure_id" id="edit_salary_structure_id">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="edit_basic_salary">Basic Salary (₱)</label>
+                                                <input type="number" class="form-control" id="edit_basic_salary" name="basic_salary" step="0.01" min="0" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="edit_allowances">Allowances (₱)</label>
+                                                <input type="number" class="form-control" id="edit_allowances" name="allowances" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="edit_deductions">Deductions (₱)</label>
+                                                <input type="number" class="form-control" id="edit_deductions" name="deductions" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="edit_effective_date">Effective Date</label>
+                                                <input type="date" class="form-control" id="edit_effective_date" name="effective_date" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Update Salary Structure</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <form method="post">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="update_salary_structure">
-                        <input type="hidden" name="salary_structure_id" id="edit_salary_structure_id">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="edit_basic_salary">Basic Salary (₱)</label>
-                                    <input type="number" class="form-control" id="edit_basic_salary" name="basic_salary" step="0.01" min="0" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="edit_allowances">Allowances (₱)</label>
-                                    <input type="number" class="form-control" id="edit_allowances" name="allowances" step="0.01" min="0">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="edit_deductions">Deductions (₱)</label>
-                                    <input type="number" class="form-control" id="edit_deductions" name="deductions" step="0.01" min="0">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="edit_effective_date">Effective Date</label>
-                                    <input type="date" class="form-control" id="edit_effective_date" name="effective_date" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Salary Structure</button>
-                    </div>
-                </form>
+
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-        function editSalaryStructure(structure) {
-            $('#edit_salary_structure_id').val(structure.salary_structure_id);
-            $('#edit_basic_salary').val(structure.basic_salary);
-            $('#edit_allowances').val(structure.allowances);
-            $('#edit_deductions').val(structure.deductions);
-            $('#edit_effective_date').val(structure.effective_date);
-            $('#editSalaryModal').modal('show');
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    function editSalaryStructure(structure) {
+        $('#edit_salary_structure_id').val(structure.salary_structure_id);
+        $('#edit_basic_salary').val(structure.basic_salary);
+        $('#edit_allowances').val(structure.allowances);
+        $('#edit_deductions').val(structure.deductions);
+        $('#edit_effective_date').val(structure.effective_date);
+        $('#editSalaryModal').modal('show');
+    }
+
+    function handleEmployeeInput() {
+        const input = document.getElementById('employee_name');
+        const datalist = document.getElementById('employees');
+        const hiddenId = document.getElementById('employee_id');
+        const employeeInfoDiv = document.getElementById('employee_info');
+
+        const inputValue = input.value.trim();
+        if (!inputValue) {
+            hiddenId.value = '';
+            employeeInfoDiv.style.display = 'none';
+            return;
         }
 
-        // Set default effective date to today
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('effective_date').value = today;
-        });
-    </script>
+        // Find matching option
+        const options = datalist.querySelectorAll('option');
+        let matchedId = null;
+        for (let option of options) {
+            if (option.value.toLowerCase() === inputValue.toLowerCase()) {
+                matchedId = option.getAttribute('data-id');
+                break;
+            }
+        }
+
+        if (matchedId) {
+            hiddenId.value = matchedId;
+            loadEmployeeDetails(matchedId);
+        } else {
+            hiddenId.value = '';
+            employeeInfoDiv.style.display = 'none';
+        }
+    }
+
+    function loadEmployeeDetails(employeeId) {
+        const employeeInfoDiv = document.getElementById('employee_info');
+
+        if (!employeeId) {
+            employeeInfoDiv.style.display = 'none';
+            return;
+        }
+
+        // Make AJAX request to get employee details
+        fetch('get_employee_details.php?employee_id=' + employeeId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error:', data.error);
+                    employeeInfoDiv.style.display = 'none';
+                    return;
+                }
+
+                // Populate the employee info div
+                document.getElementById('emp_number').textContent = 'Employee Number: ' + data.employee_number;
+                document.getElementById('emp_status').textContent = 'Employment Status: ' + data.employment_status;
+                document.getElementById('emp_job').textContent = 'Job Title: ' + (data.job_title || 'N/A');
+                document.getElementById('emp_dept').textContent = 'Department: ' + (data.department_name || 'N/A');
+                document.getElementById('emp_salary').textContent = 'Current Salary: ₱' + parseFloat(data.current_salary).toFixed(2);
+                document.getElementById('basic_salary').value = parseFloat(data.current_salary).toFixed(2);
+                // ✅ Automatically set Basic Salary input
+document.getElementById('basic_salary').value = parseFloat(data.current_salary).toFixed(2);
+                // Show the info div
+                employeeInfoDiv.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching employee details:', error);
+                employeeInfoDiv.style.display = 'none';
+            });
+    }
+
+    // Set default effective date to today
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        const el = document.getElementById('effective_date');
+        if (el) el.value = today;
+    });
+</script>
 </body>
 </html>

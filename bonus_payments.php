@@ -101,7 +101,7 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -110,14 +110,14 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -140,7 +140,7 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -166,17 +166,17 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: ;
         }
         .card-header i {
-            color: #800000;
+            color: #E91E63;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);;
             font-weight: 600;
         }
         .table td {
@@ -185,12 +185,12 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .top-navbar {
             background: #fff;
@@ -207,12 +207,12 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .badge-pending {
@@ -226,7 +226,7 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #28a745;
         }
         .modal-header {
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
         }
         .close {
@@ -239,7 +239,7 @@ $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .salary-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .btn-process {
             background-color: #28a745;

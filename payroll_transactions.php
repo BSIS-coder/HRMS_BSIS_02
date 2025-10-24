@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt->execute([$status, $transaction_id]);
                     $success_message = "Transaction status updated successfully!";
                 } catch (PDOException $e) {
+
                     $error_message = "Error updating transaction: " . $e->getMessage();
                 }
                 break;
@@ -93,9 +94,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Build the query with filters
-$sql = "SELECT pt.*, pc.cycle_name, ep.employee_number, pi.first_name, pi.last_name, 
-               jr.title as job_title, d.department_name,
-               ps.payslip_id, ps.status as payslip_status
+$sql = "SELECT 
+            pt.*, 
+            pc.cycle_name, 
+            ep.employee_number, 
+            pi.first_name, 
+            pi.last_name,
+            jr.title as job_title, 
+            d.department_name,
+            ps.payslip_id, 
+            ps.status as payslip_status,
+            COALESCE(td.tax_deductions, 0) AS tax_deductions
         FROM payroll_transactions pt
         JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
         JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
@@ -103,6 +112,14 @@ $sql = "SELECT pt.*, pc.cycle_name, ep.employee_number, pi.first_name, pi.last_n
         LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
         LEFT JOIN departments d ON jr.department = d.department_name
         LEFT JOIN payslips ps ON pt.payroll_transaction_id = ps.payroll_transaction_id
+
+        /* ✅ Added: pull tax deduction totals from the tax_deductions table */
+        LEFT JOIN (
+            SELECT employee_id, SUM(tax_amount) AS tax_deductions
+            FROM tax_deductions
+            GROUP BY employee_id
+        ) td ON pt.employee_id = td.employee_id
+
         WHERE 1=1";
 
 $params = [];
@@ -130,6 +147,44 @@ try {
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+     // ✅ Add this: filter tax deductions that match the payroll cycle period
+    if ($cycle_id) {
+        $date_query = "SELECT pay_period_start, pay_period_end FROM payroll_cycles WHERE payroll_cycle_id = ?";
+        $date_stmt = $conn->prepare($date_query);
+        $date_stmt->execute([$cycle_id]);
+        $cycle_dates = $date_stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($cycle_dates) {
+            $pay_start = $cycle_dates['pay_period_start'];
+            $pay_end = $cycle_dates['pay_period_end'];
+
+            // Modify tax deduction totals dynamically for this cycle
+            foreach ($transactions as &$transaction) {
+                $tax_sql = "SELECT 
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN tax_percentage IS NOT NULL THEN (tax_percentage / 100) * ?
+                                        ELSE tax_amount
+                                    END
+                                ), 0) AS total_tax
+                            FROM tax_deductions
+                            WHERE employee_id = ?
+                            AND effective_date BETWEEN ? AND ?";
+                $tax_stmt = $conn->prepare($tax_sql);
+                $tax_stmt->execute([
+                    $transaction['gross_pay'],
+                    $transaction['employee_id'],
+                    $pay_start,
+                    $pay_end
+                ]);
+                $tax_result = $tax_stmt->fetch(PDO::FETCH_ASSOC);
+                $transaction['tax_deductions'] = $tax_result['total_tax'];
+                $transaction['net_pay'] = $transaction['gross_pay'] - $transaction['tax_deductions'] - $transaction['statutory_deductions'] - $transaction['other_deductions'];
+            }
+        }
+    }
+
+} catch (PDOException $e) {
 } catch (PDOException $e) {
     $transactions = [];
     $error_message = "Error fetching transactions: " . $e->getMessage();
@@ -167,7 +222,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -176,14 +231,14 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -206,7 +261,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -232,17 +287,17 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #E91E63;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #E91E63;
             font-weight: 600;
         }
         .table td {
@@ -251,12 +306,12 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -273,17 +328,17 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .salary-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .badge-pending {
             background-color: #ffc107;
@@ -299,7 +354,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             background-color: #dc3545;
         }
         .summary-card {
-            background: linear-gradient(135deg, #800000 0%, #a60000 100%);
+            background: linear-gradient(135deg, #E91E63 0%, #a60000 100%);
             color: white;
             border-radius: 10px;
             padding: 20px;

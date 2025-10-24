@@ -1,44 +1,51 @@
 <?php
-header('Content-Type: application/json');
-include __DIR__ . '/db_connect.php';
+session_start();
 
-if (!isset($_GET['employee_id'])) {
-    echo json_encode(['error' => 'Employee ID is required']);
+// Check if the user is logged in, if not then redirect to login page
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
 
-$employee_id = intval($_GET['employee_id']);
+// Include database connection
+require_once 'config.php';
 
-// Fetch employee details along with job role
-$stmt = $conn->prepare("
-    SELECT CONCAT(pi.first_name, ' ', pi.last_name) AS name,
-           jr.title AS job_role,
-           ep.job_role_id
-    FROM employee_profiles ep
-    JOIN personal_information pi 
-        ON ep.personal_info_id = pi.personal_info_id
-    LEFT JOIN job_roles jr 
-        ON ep.job_role_id = jr.job_role_id
-    WHERE ep.personal_info_id = ?
-");
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['employee_id'])) {
+    $employee_id = $_GET['employee_id'];
 
-if (!$stmt) {
-    echo json_encode(['error' => $conn->error]);
-    exit;
+    try {
+        $sql = "SELECT 
+            ep.employee_number, 
+            ep.employment_status,
+            ep.current_salary, -- ✅ get from employee_profiles
+            pi.first_name, 
+            pi.last_name,
+            jr.title AS job_title,
+            d.department_name
+        FROM employee_profiles ep
+        JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+        LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+        LEFT JOIN departments d ON jr.department = d.department_name
+        WHERE ep.employee_id = ?";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$employee_id]);
+        $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($employee) {
+            header('Content-Type: application/json');
+            echo json_encode($employee);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Employee not found']);
+        }
+    } catch (PDOException $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    }
+} else {
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Invalid request']);
 }
-
-$stmt->bind_param("i", $employee_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$employee = $result->fetch_assoc();
-
-// If job_role_id is null, return it as 0 for JS handling
-if ($employee && $employee['job_role_id'] === null) {
-    $employee['job_role_id'] = 0;
-    $employee['job_role'] = 'No role assigned';
-}
-
-echo json_encode($employee ?: ['error' => 'Employee not found']);
-
-$stmt->close();
-$conn->close();
+?>
