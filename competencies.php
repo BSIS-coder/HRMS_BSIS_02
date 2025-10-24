@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'dp.php';
+require_once 'db.php';
 ?>
 
 <!DOCTYPE html>
@@ -207,8 +207,8 @@ function loadCompetencies(roleId = "") {
             <td>${c.description ?? ''}</td>
             <td>${c.role ?? ''}</td>
             <td>
-              <button class="btn btn-sm btn-warning" onclick="editCompetency(${c.competency_id})">Edit</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteCompetency(${c.competency_id})">Delete</button>
+              <button class="btn btn-sm btn-warning" onclick="editCompetency(${c.competency_id})"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" onclick="deleteCompetency(${c.competency_id})"><i class="fas fa-trash"></i></button>
             </td>
           </tr>`;
       });

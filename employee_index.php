@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION
 }
 
 // Include database connection
-require_once 'dp.php';
+require_once 'db.php';
 
 // Get employee information
 $employee_id = $_SESSION['user_id'];

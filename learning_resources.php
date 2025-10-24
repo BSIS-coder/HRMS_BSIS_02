@@ -25,16 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add_resource':
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO learning_resources (title, description, resource_type, file_url, category, tags, is_public, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO learning_resources (resource_name, description, resource_type, resource_url, author, publication_date, duration, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['title'],
                         $_POST['description'],
                         $_POST['resource_type'],
                         $_POST['file_url'],
-                        $_POST['category'],
-                        $_POST['tags'],
-                        isset($_POST['is_public']) ? 1 : 0,
-                        $_POST['status']
+                        $_POST['author'],
+                        $_POST['publication_date'],
+                        $_POST['duration'],
+                        $_POST['tags']
                     ]);
                     $message = "Learning resource added successfully!";
                     $messageType = "success";
@@ -46,16 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             case 'edit_resource':
                 try {
-                    $stmt = $pdo->prepare("UPDATE learning_resources SET title=?, description=?, resource_type=?, file_url=?, category=?, tags=?, is_public=?, status=? WHERE resource_id=?");
+                    $stmt = $pdo->prepare("UPDATE learning_resources SET resource_name=?, description=?, resource_type=?, resource_url=?, author=?, publication_date=?, duration=?, tags=? WHERE resource_id=?");
                     $stmt->execute([
                         $_POST['title'],
                         $_POST['description'],
                         $_POST['resource_type'],
                         $_POST['file_url'],
-                        $_POST['category'],
+                        $_POST['author'],
+                        $_POST['publication_date'],
+                        $_POST['duration'],
                         $_POST['tags'],
-                        isset($_POST['is_public']) ? 1 : 0,
-                        $_POST['status'],
                         $_POST['resource_id']
                     ]);
                     $message = "Learning resource updated successfully!";
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch learning resources
 try {
-    $stmt = $pdo->query("SELECT * FROM learning_resources ORDER BY title");
+    $stmt = $pdo->query("SELECT * FROM learning_resources ORDER BY resource_name");
     $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $resources = [];
@@ -96,13 +96,13 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM learning_resources");
     $totalResources = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
     
-    $stmt = $pdo->query("SELECT COUNT(*) as active FROM learning_resources WHERE status = 'Active'");
+    $stmt = $pdo->query("SELECT COUNT(*) as active FROM learning_resources WHERE resource_type IS NOT NULL");
     $activeResources = $stmt->fetch(PDO::FETCH_ASSOC)['active'];
     
-    $stmt = $pdo->query("SELECT COUNT(DISTINCT category) as categories FROM learning_resources");
+    $stmt = $pdo->query("SELECT COUNT(DISTINCT resource_type) as categories FROM learning_resources");
     $resourceCategories = $stmt->fetch(PDO::FETCH_ASSOC)['categories'];
     
-    $stmt = $pdo->query("SELECT COUNT(*) as public FROM learning_resources WHERE is_public = 1");
+    $stmt = $pdo->query("SELECT COUNT(*) as public FROM learning_resources WHERE resource_url IS NOT NULL");
     $publicResources = $stmt->fetch(PDO::FETCH_ASSOC)['public'];
 } catch (PDOException $e) {
     $totalResources = 0;
@@ -120,7 +120,364 @@ try {
     <title>Learning Resources Management - HR System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=rose">
+    <style>
+        /* Additional custom styles for learning resources page */
+        :root {
+            --azure-blue: #E91E63;
+            --azure-blue-light: #F06292;
+            --azure-blue-dark: #C2185B;
+            --azure-blue-lighter: #F8BBD0;
+            --azure-blue-pale: #FCE4EC;
+        }
+
+        .section-title {
+            color: var(--azure-blue);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .container-fluid {
+            padding: 0;
+        }
+        
+        .row {
+            margin-right: 0;
+            margin-left: 0;
+        }
+
+        body {
+            background: var(--azure-blue-pale);
+        }
+
+        .main-content {
+            background: var(--azure-blue-pale);
+            padding: 20px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--azure-blue);
+            outline: none;
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
+            background: linear-gradient(135deg, var(--azure-blue-light) 0%, var(--azure-blue-dark) 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin: 0 3px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .stats-card i {
+            font-size: 3rem;
+            color: var(--azure-blue);
+            margin-bottom: 15px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #e9ecef 100%);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f1f1;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--azure-blue-lighter);
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .resource-type-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .type-video {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-document {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .type-link {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .type-course {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            opacity: 0.7;
+        }
+
+        .close:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--azure-blue);
+            outline: none;
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .no-results i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                max-width: none;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -129,6 +486,12 @@ try {
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
                 <h2 class="section-title">Learning Resources Management</h2>
+                <div class="content">
+                    <?php if ($message): ?>
+                        <div class="alert alert-<?= $messageType ?>">
+                            <?= htmlspecialchars($message) ?>
+                        </div>
+                    <?php endif; ?>
                 
                 <!-- Statistics Cards -->
                 <div class="row mb-4">
@@ -162,270 +525,155 @@ try {
                     </div>
                 </div>
 
-                <!-- Controls -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="input-group" style="max-width: 400px;">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <div class="controls">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="searchResources" placeholder="Search resources by name, type, or author..." onkeyup="searchResources()">
                         </div>
-                        <input type="text" class="form-control" id="resourceSearch" placeholder="Search resources...">
+                        <button class="btn btn-primary" onclick="openModal('resource')">
+                            ➕ Add New Resource
+                        </button>
                     </div>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#addResourceModal">
-                        <i class="fas fa-plus"></i> Add Resource
-                    </button>
-                </div>
 
-                <!-- Resources Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-book"></i> Learning Resources List</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Category</th>
-                                        <th>Type</th>
-                                        <th>Description</th>
-                                        <th>Access</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($resources as $resource): ?>
-                                    <tr>
-                                        <td><strong><?php echo htmlspecialchars($resource['title']); ?></strong></td>
-                                        <td><?php echo htmlspecialchars($resource['category']); ?></td>
-                                        <td><?php echo htmlspecialchars($resource['resource_type']); ?></td>
-                                        <td><?php echo htmlspecialchars(substr($resource['description'], 0, 50)) . (strlen($resource['description']) > 50 ? '...' : ''); ?></td>
-                                        <td>
-                                            <span class="badge badge-<?php echo $resource['is_public'] ? 'success' : 'warning'; ?>">
-                                                <?php echo $resource['is_public'] ? 'Public' : 'Private'; ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="status-badge status-<?php echo strtolower($resource['status']); ?>">
-                                                <?php echo htmlspecialchars($resource['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="editResource(<?php echo $resource['resource_id']; ?>)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteResource(<?php echo $resource['resource_id']; ?>)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                    <div class="table-container">
+                        <table class="table" id="resourcesTable">
+                            <thead>
+                                <tr>
+                                    <th>Resource Name</th>
+                                    <th>Type</th>
+                                    <th>Author</th>
+                                    <th>Description</th>
+                                    <th>Duration</th>
+                                    <th>Publication Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resourceTableBody">
+                                <?php foreach ($resources as $resource): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($resource['resource_name']); ?></strong></td>
+                                    <td>
+                                        <span class="resource-type-badge type-<?php echo strtolower(str_replace(' ', '-', $resource['resource_type'])); ?>">
+                                            <?php echo htmlspecialchars($resource['resource_type']); ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($resource['author'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars(substr($resource['description'] ?? '', 0, 50)) . (strlen($resource['description'] ?? '') > 50 ? '...' : ''); ?></td>
+                                    <td><?php echo htmlspecialchars($resource['duration'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($resource['publication_date'] ?? 'N/A'); ?></td>
+                                    <td>
+                                        <button class="btn btn-warning btn-small" onclick="editResource(<?php echo $resource['resource_id']; ?>, '<?php echo addslashes($resource['resource_name']); ?>', '<?php echo addslashes($resource['author']); ?>', '<?php echo $resource['resource_type']; ?>', '<?php echo addslashes($resource['resource_url']); ?>', '<?php echo $resource['publication_date']; ?>', '<?php echo addslashes($resource['duration']); ?>', '<?php echo addslashes($resource['description']); ?>', '<?php echo addslashes($resource['tags']); ?>')">
+                                            ✏️ Edit
+                                        </button>
+                                        <button class="btn btn-danger btn-small" onclick="deleteResource(<?php echo $resource['resource_id']; ?>)">
+                                            🗑️ Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        
+                        <?php if (empty($resources)): ?>
+                        <div class="no-results">
+                            <i class="fas fa-book"></i>
+                            <h3>No resources found</h3>
+                            <p>Start by adding your first learning resource.</p>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Resource Modal -->
-    <div class="modal fade" id="addResourceModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-plus"></i> Add New Learning Resource</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add_resource">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Title *</label>
-                                    <input type="text" class="form-control" name="title" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Category *</label>
-                                    <select class="form-control" name="category" required>
-                                        <option value="">Select Category</option>
-                                        <option value="Leadership Development">Leadership Development</option>
-                                        <option value="Technical Skills">Technical Skills</option>
-                                        <option value="Soft Skills">Soft Skills</option>
-                                        <option value="Compliance Training">Compliance Training</option>
-                                        <option value="Safety Training">Safety Training</option>
-                                        <option value="Customer Service">Customer Service</option>
-                                        <option value="Project Management">Project Management</option>
-                                        <option value="Communication Skills">Communication Skills</option>
-                                        <option value="Digital Literacy">Digital Literacy</option>
-                                        <option value="Administrative Skills">Administrative Skills</option>
-                                    </select>
-                                </div>
+    <!-- Add/Edit Resource Modal -->
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="resourceModalTitle">Add New Learning Resource</h2>
+                <span class="close" onclick="closeModal('resource')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="resourceForm" method="POST">
+                    <input type="hidden" id="resource_action" name="action" value="add_resource">
+                    <input type="hidden" id="resource_id" name="resource_id">
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="title">Resource Name *</label>
+                                <input type="text" id="title" name="title" class="form-control" required>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Resource Type *</label>
-                                    <select class="form-control" name="resource_type" required>
-                                        <option value="">Select Type</option>
-                                        <option value="Document">Document</option>
-                                        <option value="Video">Video</option>
-                                        <option value="Presentation">Presentation</option>
-                                        <option value="Manual">Manual</option>
-                                        <option value="Guide">Guide</option>
-                                        <option value="Template">Template</option>
-                                        <option value="Checklist">Checklist</option>
-                                        <option value="Assessment">Assessment</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>File URL *</label>
-                                    <input type="url" class="form-control" name="file_url" required placeholder="https://example.com/resource.pdf">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea class="form-control" name="description" rows="3" placeholder="Brief description of the resource"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Tags</label>
-                            <input type="text" class="form-control" name="tags" placeholder="e.g., leadership, management, skills (comma separated)">
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="is_public" id="isPublic" checked>
-                                    <label class="form-check-label" for="isPublic">Public Resource</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select class="form-control" name="status">
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                    </select>
-                                </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="author">Author *</label>
+                                <input type="text" id="author" name="author" class="form-control" required>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Resource</button>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="resource_type">Resource Type *</label>
+                                <select id="resource_type" name="resource_type" class="form-control" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Book">Book</option>
+                                    <option value="Online Course">Online Course</option>
+                                    <option value="Video">Video</option>
+                                    <option value="Article">Article</option>
+                                    <option value="Webinar">Webinar</option>
+                                    <option value="Podcast">Podcast</option>
+                                    <option value="Document">Document</option>
+                                    <option value="Link">Link</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="file_url">Resource URL *</label>
+                                <input type="url" id="file_url" name="file_url" class="form-control" required placeholder="https://example.com/resource.pdf">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="publication_date">Publication Date</label>
+                                <input type="date" id="publication_date" name="publication_date" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="duration">Duration</label>
+                                <input type="text" id="duration" name="duration" class="form-control" placeholder="e.g., 2 hours, 300 pages">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3" placeholder="Brief description of the resource"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tags">Tags</label>
+                        <input type="text" id="tags" name="tags" class="form-control" placeholder="e.g., leadership, management, skills (comma separated)">
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal('resource')">Cancel</button>
+                        <button type="submit" class="btn btn-success">💾 Save Resource</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Edit Resource Modal -->
-    <div class="modal fade" id="editResourceModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Learning Resource</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="edit_resource">
-                        <input type="hidden" name="resource_id" id="edit_resource_id">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Title *</label>
-                                    <input type="text" class="form-control" name="title" id="edit_title" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Category *</label>
-                                    <select class="form-control" name="category" id="edit_category" required>
-                                        <option value="">Select Category</option>
-                                        <option value="Leadership Development">Leadership Development</option>
-                                        <option value="Technical Skills">Technical Skills</option>
-                                        <option value="Soft Skills">Soft Skills</option>
-                                        <option value="Compliance Training">Compliance Training</option>
-                                        <option value="Safety Training">Safety Training</option>
-                                        <option value="Customer Service">Customer Service</option>
-                                        <option value="Project Management">Project Management</option>
-                                        <option value="Communication Skills">Communication Skills</option>
-                                        <option value="Digital Literacy">Digital Literacy</option>
-                                        <option value="Administrative Skills">Administrative Skills</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Resource Type *</label>
-                                    <select class="form-control" name="resource_type" id="edit_resource_type" required>
-                                        <option value="">Select Type</option>
-                                        <option value="Document">Document</option>
-                                        <option value="Video">Video</option>
-                                        <option value="Presentation">Presentation</option>
-                                        <option value="Manual">Manual</option>
-                                        <option value="Guide">Guide</option>
-                                        <option value="Template">Template</option>
-                                        <option value="Checklist">Checklist</option>
-                                        <option value="Assessment">Assessment</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>File URL *</label>
-                                    <input type="url" class="form-control" name="file_url" id="edit_file_url" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea class="form-control" name="description" id="edit_description" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Tags</label>
-                            <input type="text" class="form-control" name="tags" id="edit_tags">
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="is_public" id="edit_is_public">
-                                    <label class="form-check-label" for="edit_is_public">Public Resource</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select class="form-control" name="status" id="edit_status">
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-info">Update Resource</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- Success/Error Message Modal -->
     <?php if ($message): ?>
@@ -457,61 +705,87 @@ try {
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     
     <script>
-        // Show message modal if there's a message
-        <?php if ($message): ?>
-        $(document).ready(function() {
-            $('#messageModal').modal('show');
-        });
-        <?php endif; ?>
-
-        // Search functionality
-        $('#resourceSearch').on('keyup', function() {
-            var value = $(this).val().toLowerCase();
-            $('table tbody tr').filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-            });
-        });
-
-        // Edit resource function
-        function editResource(resourceId) {
-            // Fetch resource data and populate the edit modal
-            $.ajax({
-                url: 'get_resource.php',
-                type: 'GET',
-                data: { resource_id: resourceId },
-                dataType: 'json',
-                success: function(resource) {
-                    $('#edit_resource_id').val(resource.resource_id);
-                    $('#edit_title').val(resource.title);
-                    $('#edit_category').val(resource.category);
-                    $('#edit_resource_type').val(resource.resource_type);
-                    $('#edit_file_url').val(resource.file_url);
-                    $('#edit_description').val(resource.description);
-                    $('#edit_tags').val(resource.tags);
-                    $('#edit_is_public').prop('checked', resource.is_public == 1);
-                    $('#edit_status').val(resource.status);
-                    
-                    $('#editResourceModal').modal('show');
-                },
-                error: function() {
-                    alert('Error fetching resource data');
-                }
-            });
+        // Modal functions
+        function openModal(type) {
+            if (type === 'resource') {
+                document.getElementById('resourceModal').style.display = 'block';
+                document.getElementById('resourceModalTitle').textContent = 'Add New Learning Resource';
+                document.getElementById('resource_action').value = 'add_resource';
+                document.getElementById('resourceForm').reset();
+            }
         }
 
-        // Delete resource function
-        function deleteResource(resourceId) {
-            if (confirm('Are you sure you want to delete this learning resource?')) {
+        function closeModal(type) {
+            if (type === 'resource') {
+                document.getElementById('resourceModal').style.display = 'none';
+            }
+        }
+
+        function editResource(id, title, author, resourceType, fileUrl, publicationDate, duration, description, tags) {
+            document.getElementById('resourceModal').style.display = 'block';
+            document.getElementById('resourceModalTitle').textContent = 'Edit Learning Resource';
+            document.getElementById('resource_action').value = 'update_resource';
+            document.getElementById('resource_id').value = id;
+            document.getElementById('title').value = title;
+            document.getElementById('author').value = author;
+            document.getElementById('resource_type').value = resourceType;
+            document.getElementById('file_url').value = fileUrl;
+            document.getElementById('publication_date').value = publicationDate;
+            document.getElementById('duration').value = duration;
+            document.getElementById('description').value = description;
+            document.getElementById('tags').value = tags;
+        }
+
+        function deleteResource(id) {
+            if (confirm('Are you sure you want to delete this resource?')) {
                 var form = document.createElement('form');
                 form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete_resource">
-                    <input type="hidden" name="resource_id" value="${resourceId}">
-                `;
+                form.innerHTML = '<input type="hidden" name="action" value="delete_resource"><input type="hidden" name="resource_id" value="' + id + '">';
                 document.body.appendChild(form);
                 form.submit();
             }
         }
+
+        // Search functionality
+        function searchResources() {
+            var input = document.getElementById('searchResources');
+            var filter = input.value.toLowerCase();
+            var table = document.getElementById('resourcesTable');
+            var tr = table.getElementsByTagName('tr');
+
+            for (var i = 1; i < tr.length; i++) {
+                var td = tr[i].getElementsByTagName('td');
+                var found = false;
+                for (var j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        var txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = found ? '' : 'none';
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            var modal = document.getElementById('resourceModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Show message modal if there's a message
+        <?php if ($message): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            alert('<?php echo addslashes($message); ?>');
+        });
+        <?php endif; ?>
     </script>
 </body>
 </html>
+
+
+

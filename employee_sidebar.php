@@ -63,13 +63,19 @@ if (!$is_logged_in || $user_role !== 'employee') {
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('employee_leave.php'); ?>" href="employee_leave.php">
-                <i class="fas fa-calendar-alt"></i> Leave Management
+            <a class="nav-link <?php echo isActiveMenu('leave_requests.php'); ?>" href="leave_requests.php">
+                <i class="fas fa-calendar-alt"></i> Leave Requests
             </a>
         </li>
-
+        
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('employee_attendance.php'); ?>" href="employee_attendance.php">
+            <a class="nav-link <?php echo isActiveMenu('leave_balances.php'); ?>" href="leave_balances.php">
+                <i class="fas fa-balance-scale"></i> Leave Balance
+            </a>
+        </li>
+        
+        <li class="nav-item">
+            <a class="nav-link <?php echo isActiveMenu('attendance.php'); ?>" href="attendance.php">
                 <i class="fas fa-calendar-check"></i> My Attendance
             </a>
         </li>

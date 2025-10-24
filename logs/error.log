@@ -1,0 +1,679 @@
+2025-10-05 16:05:33 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:05:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:05:47 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:06:00 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:09:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:11:26 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:11:36 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:36
+2025-10-05 16:13:45 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:27
+2025-10-05 16:13:54 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:43
+2025-10-05 16:14:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:14:24 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:27
+2025-10-05 16:16:50 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:16:56 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:17:05 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:17:15 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 16:17:15 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 16:17:15 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 16:17:38 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:17:38 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:30 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:30 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:38 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:40 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:19:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:20:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:23:21 Error: [2] require_once(config/api_keys.php): Failed to open stream: No such file or directory - C:\xampp\htdocs\HRMS_BSIS_02-test\holiday_actions.php:6
+2025-10-05 16:23:27 Error: [2] require_once(config/api_keys.php): Failed to open stream: No such file or directory - C:\xampp\htdocs\HRMS_BSIS_02-test\holiday_actions.php:6
+2025-10-05 16:23:28 Error: [2] require_once(config/api_keys.php): Failed to open stream: No such file or directory - C:\xampp\htdocs\HRMS_BSIS_02-test\holiday_actions.php:6
+2025-10-05 16:23:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:29:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:47:52 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:47:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:49:40 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:49:50 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 16:49:50 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 16:49:50 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 16:49:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:49:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:50:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:51:21 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:51:37 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 16:51:46 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 16:51:46 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 16:51:46 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 16:52:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 16:52:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:01:48 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:01:55 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 17:01:55 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 17:01:55 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 17:02:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:02:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:07:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:07:24 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:07:30 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:07:38 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:07:45 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 17:07:45 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 17:07:45 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 17:07:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:07:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:07:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:07:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:11:23 Error: [2] Undefined variable $host - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:11
+2025-10-05 17:11:23 Error: [2] Undefined variable $dbname - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:11
+2025-10-05 17:11:23 Error: [2] Undefined variable $username - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:11
+2025-10-05 17:11:23 Error: [2] Undefined variable $password - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:11
+2025-10-05 17:11:58 Error: [2] Undefined variable $host - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:11:58 Error: [2] Undefined variable $dbname - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:11:58 Error: [2] Undefined variable $username - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:11:58 Error: [2] Undefined variable $password - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:12:00 Error: [2] Undefined variable $host - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:12:00 Error: [2] Undefined variable $dbname - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:12:00 Error: [2] Undefined variable $username - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:12:00 Error: [2] Undefined variable $password - C:\xampp\htdocs\HRMS_BSIS_02-test\onboarding_tasks.php:12
+2025-10-05 17:19:44 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:19:44 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:20:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:20:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:20:45 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:20:52 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 17:20:52 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 17:20:52 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 17:20:57 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:21:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:295
+2025-10-05 17:24:49 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:24:58 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:25:07 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:25:14 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 17:25:14 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-05 17:25:14 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-05 17:25:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:25:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:25:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:25:47 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:27:34 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:28:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:29:19 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:31:42 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-05 17:31:49 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-05 17:31:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:31:57 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:32:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:32:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-05 17:32:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:09:11 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-12 08:12:48 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-12 08:12:48 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-12 08:12:48 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-12 08:13:10 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-12 08:13:19 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-12 08:13:26 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-12 08:13:26 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-12 08:13:26 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-12 08:13:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:13:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:19 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:14:44 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:15:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:15:36 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:15:55 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-12 08:16:04 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-12 08:16:04 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-12 08:16:04 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-12 08:16:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:16:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:21:20 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-12 08:21:28 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-12 08:21:28 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-12 08:21:28 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-12 08:21:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:21:40 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:21:52 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:24:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:24:54 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:26
+2025-10-12 08:25:02 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:56
+2025-10-12 08:25:02 Error: [2] Undefined array key "current_position" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:75
+2025-10-12 08:25:02 Error: [2] Undefined array key "current_company" - C:\xampp\htdocs\HRMS_BSIS_02-test\apply.php:76
+2025-10-12 08:25:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:25:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:25:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:26:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:26:26 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:304
+2025-10-12 08:31:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:316
+2025-10-12 08:33:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test\job_applications.php:316
+2025-10-24 04:21:32 Error: [2] mail(): Failed to connect to mailserver at &quot;localhost&quot; port 25, verify your &quot;SMTP&quot; and &quot;smtp_port&quot; setting in php.ini or use ini_set() - C:\xampp\htdocs\HRMS_BSIS_02-test2\email_sender.php:8
+2025-10-24 05:15:54 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:17:01 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:17:15 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:17:37 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:20:53 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:21:01 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:21:09 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:24:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 05:26:12 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:26:21 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:26:28 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:26:45 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:26:52 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:27:00 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:29:15 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:48:15 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:48:22 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:48:31 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:48:46 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:51:10 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:51:17 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:51:24 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:51:45 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:53:57 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:54:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 05:55:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 05:55:46 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:55:54 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:56:28 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:58:33 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 05:59:00 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 05:59:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 05:59:08 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 05:59:29 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 05:59:33 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 05:59:33 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:00:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:00:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:01:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:01:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:01:32 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:01:32 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:02:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:02:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:02:34 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:02:34 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:03:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:03:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:03:55 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 06:04:02 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 06:04:14 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 06:05:02 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:12:23 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 06:12:30 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 06:12:51 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 06:12:57 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:16:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:18:50 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:21:38 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:22:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:22:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:30 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:32 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:32 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:23:32 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:26:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:27:06 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 06:27:14 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 06:27:31 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 06:27:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:27:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:28:40 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:28:40 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:29:11 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:29:11 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:29:42 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:29:42 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:30:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:30:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:30:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:30:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:31:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:31:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:31:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:31:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:33:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:33:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:33:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:33:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:35:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:35:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:35:22 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:38:54 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 06:39:02 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 06:39:20 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 06:39:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:39:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:39:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:40:27 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 06:40:36 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 06:40:49 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 06:40:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:41:00 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:42:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:42:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:43:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:47:35 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 06:47:42 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 06:47:58 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 06:48:02 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:48:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:48:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:48:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:55:45 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:56:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:56:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:57:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:57:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:57:34 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:57:48 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:58:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:58:19 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:58:36 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:58:50 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:58:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:58:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:59:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:59:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:59:30 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:59:30 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:59:52 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 06:59:52 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:00:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:01:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:01:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:01:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:01:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:02:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:02:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:02:58 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:02:58 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:03:29 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:03:29 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:04:00 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:04:00 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:04:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:04:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:05:02 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:05:02 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:05:33 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:05:33 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:05:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:06:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:06:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:407
+2025-10-24 07:15:03 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:15:11 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:15:27 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:15:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:15:38 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:16:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:16:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:16:28 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:16:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:18:33 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:18:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:18:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:18:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:18:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:18:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:20:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:20:11 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:20:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:20:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:21:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:21:48 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:414
+2025-10-24 07:22:45 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:23:33 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:23:41 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:24:01 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:24:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:24:19 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:24:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:24:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:24:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:25:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:25:40 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:26:11 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:26:42 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:27:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:27:44 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:28:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:30:58 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:31:27 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:31:29 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:31:35 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:31:48 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:31:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:31:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:31:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:31:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:32:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:32:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:34:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:34:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:34:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:34:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:35:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:35:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:35:44 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:35:52 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:36:05 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:36:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:36:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:37:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:37:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:37:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:39:46 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:39:55 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:40:09 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:40:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:42:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:42:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:42:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:42:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:43:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:44:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:44:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:44:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:44:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:47:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:48:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:48:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:48:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:48:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:50:53 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:50:53 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:50:53 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:52:02 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:52:11 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:52:26 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:52:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:52:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:52:46 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:52:57 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:53:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:53:35 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:53:43 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:53:56 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:54:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:11 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:11 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:16 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:28 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:54:28 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:07 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 07:58:15 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 07:58:28 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 07:58:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:39 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 07:58:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:02:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:02:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:02:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:09:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:09:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:10:00 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:10:00 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:10:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:10:04 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:11:21 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:11:29 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:11:51 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:11:58 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:12:02 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:12:08 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:12:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:12:41 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:12:49 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:13:01 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:13:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:13:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:18:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:18:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:19:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:19:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:26:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:26:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:26:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:26:15 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:27:31 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:27:36 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:27:45 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:27:57 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:28:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:28:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:28:03 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:28:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:28:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:28:06 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:16 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:30:26 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:30:39 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:30:47 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:47 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:47 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:47 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:30:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:31:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:36:21 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:37:37 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:37:46 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:38:01 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:38:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:38:27 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:38:36 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:38:57 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:39:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:39:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:39:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:39:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:39:29 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:39:29 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:40:23 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:40:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:40:30 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:40:54 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:52:29 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:52:32 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:52:35 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:52:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:53:10 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:53:22 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:53:26 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:53:55 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:53:57 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:01 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:12 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:54:15 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:54:27 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:54:31 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:39 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:54:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:43 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:45 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:45 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:50 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:54:50 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:58:31 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 08:58:38 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 08:58:51 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 08:58:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:58:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:58:59 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:13 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:37 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:52 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 08:59:52 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:08:41 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 09:08:48 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 09:08:59 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 09:09:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:07 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:12 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:09:17 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:36:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:36:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:36:55 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:37:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:37:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:37:25 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:37:34 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\send_verification.php:19
+2025-10-24 09:37:42 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\verify_email.php:15
+2025-10-24 09:37:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:37:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:37:56 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:00 Error: [8] session_start(): Ignoring session_start() because a session is already active - C:\xampp\htdocs\HRMS_BSIS_02-test2\apply.php:86
+2025-10-24 09:38:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:05 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:09 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:38:14 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:27 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:41 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:48 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:48 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:39:48 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:40:18 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:40:49 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:40:49 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:40:49 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:41:20 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:41:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:41:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380
+2025-10-24 09:41:51 Error: [8192] json_decode(): Passing null to parameter #1 ($json) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02-test2\job_applications.php:380

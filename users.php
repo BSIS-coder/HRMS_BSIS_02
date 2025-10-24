@@ -8,10 +8,6 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header("Location: login.php");
     exit;
 }
-
-// Include database connection and helper functions
-require_once 'db.php';
-
 // Database connection
 $host = 'localhost';
 $dbname = 'hr_system';

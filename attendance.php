@@ -1,14 +1,14 @@
 <?php
 session_start();
 
-// Check if the user is logged in and has admin/hr role, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'hr')) {
+// Check if the user is logged in, if not then redirect to login page
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: login.php');
     exit;
 }
 
 // Include database connection
-require_once 'dp.php';
+require_once 'db.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,8 +55,8 @@ require_once 'dp.php';
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Attendance Overview</h5>
-                                <button class="btn btn-outline-primary btn-sm" id="refreshBtn">
-                                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                                <button class="btn btn-primary" data-toggle="modal" data-target="#addAttendanceModal">
+                                    <i class="fas fa-plus mr-2"></i>Add Attendance
                                 </button>
                             </div>
                             <div class="card-body">
@@ -69,58 +69,91 @@ require_once 'dp.php';
                                                 <th>Check In</th>
                                                 <th>Check Out</th>
                                                 <th>Hours Worked</th>
-                                                <th>Overtime Hours</th>
-                                                <th>Late Minutes</th>
                                                 <th>Status</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="attendanceTableBody">
-                                            <!-- Attendance data will be loaded here via AJAX -->
-                                        </tbody>
-                                        <script>
-                                            // Function to update clock in/out times dynamically
-                                            function updateAttendanceTimes() {
-                                                const rows = document.querySelectorAll('#attendanceTableBody tr');
-                                                rows.forEach(row => {
-                                                    const clockInCell = row.querySelector('td:nth-child(3)');
-                                                    const clockOutCell = row.querySelector('td:nth-child(4)');
+                                        <tbody>
+                                            <?php
+                                            try {
+                                                // Get employees with their attendance data
+                                                $stmt = $conn->query("
+                                                    SELECT 
+                                                        ep.employee_id,
+                                                        pi.first_name,
+                                                        pi.last_name,
+                                                        ep.employee_number,
+                                                        jr.department,
+                                                        a.attendance_date,
+                                                        a.clock_in,
+                                                        a.clock_out,
+                                                        a.working_hours,
+                                                        a.status
+                                                    FROM employee_profiles ep
+                                                    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+                                                    LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+                                                    LEFT JOIN attendance a ON ep.employee_id = a.employee_id 
+                                                        AND a.attendance_date = CURDATE()
+                                                    WHERE ep.employment_status IN ('Full-time', 'Part-time')
+                                                    ORDER BY pi.first_name, pi.last_name
+                                                    LIMIT 10
+                                                ");
+                                                $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                                                    if (clockInCell && clockInCell.textContent !== '-' && !clockInCell.querySelector('.live-time')) {
-                                                        const clockInTime = clockInCell.textContent;
-                                                        clockInCell.innerHTML = '<span class="live-time">' + clockInTime + '</span>';
-                                                    }
-
-                                                    if (clockOutCell && clockOutCell.textContent !== '-' && !clockOutCell.querySelector('.live-time')) {
-                                                        const clockOutTime = clockOutCell.textContent;
-                                                        clockOutCell.innerHTML = '<span class="live-time">' + clockOutTime + '</span>';
-                                                    }
-                                                });
-                                            }
-
-                                            // Update times when data is loaded
-                                            function loadAttendanceData() {
-                                                console.log('Loading attendance data...');
-                                                $.ajax({
-                                                    url: 'fetch_attendance_overview.php',
-                                                    type: 'GET',
-                                                    success: function(data) {
-                                                        console.log('Attendance data loaded successfully:', data);
-                                                        $('#attendanceTableBody').html(data);
-                                                        updateAttendanceTimes();
-                                                    },
-                                                    error: function(xhr, status, error) {
-                                                        console.error('AJAX Error:', {status: xhr.status, error: error});
-                                                        var errorMsg = 'Error loading attendance data.';
-                                                        if (xhr.status === 401) {
-                                                            errorMsg = 'Unauthorized access. Please log in as admin/HR.';
-                                                        } else if (xhr.status === 500) {
-                                                            errorMsg = 'Server error. Check PHP logs.';
+                                                if (empty($employees)) {
+                                                    echo '<tr><td colspan="7" class="text-center">No employee records found.</td></tr>';
+                                                } else {
+                                                    foreach ($employees as $employee) {
+                                                        $fullName = htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']);
+                                                        $department = htmlspecialchars($employee['department'] ?? 'N/A');
+                                                        $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode($fullName) . "&background=E91E63&color=fff&size=35";
+                                                        
+                                                        // Determine status and styling
+                                                        $status = $employee['status'] ?? 'Not Recorded';
+                                                        $statusClass = 'badge-secondary';
+                                                        $clockIn = $employee['clock_in'] ? date('h:i A', strtotime($employee['clock_in'])) : '-';
+                                                        $clockOut = $employee['clock_out'] ? date('h:i A', strtotime($employee['clock_out'])) : '-';
+                                                        $hours = $employee['working_hours'] ? $employee['working_hours'] . ' hours' : '0 hours';
+                                                        
+                                                        if ($status == 'Present') {
+                                                            $statusClass = 'badge-success';
+                                                        } elseif ($status == 'Absent') {
+                                                            $statusClass = 'badge-danger';
+                                                        } elseif ($status == 'Late') {
+                                                            $statusClass = 'badge-warning';
                                                         }
-                                                        $('#attendanceTableBody').html('<tr><td colspan="8" class="text-center text-danger">' + errorMsg + '</td></tr>');
+                                                        
+                                                        echo "<tr>
+                                                            <td>
+                                                                <div class='d-flex align-items-center'>
+                                                                    <img src='{$avatarUrl}' alt='Profile' class='profile-image mr-2'>
+                                                                    <div>
+                                                                        <h6 class='mb-0'>{$fullName}</h6>
+                                                                        <small class='text-muted'>{$department}</small>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>" . date('Y-m-d') . "</td>
+                                                            <td>{$clockIn}</td>
+                                                            <td>{$clockOut}</td>
+                                                            <td>{$hours}</td>
+                                                            <td><span class='attendance-status badge {$statusClass}'>{$status}</span></td>
+                                                            <td>
+                                                                <button class='btn btn-sm btn-outline-primary mr-2'>
+                                                                    <i class='fas fa-edit'></i>
+                                                                </button>
+                                                                <button class='btn btn-sm btn-outline-danger'>
+                                                                    <i class='fas fa-trash'></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>";
                                                     }
-                                                });
+                                                }
+                                            } catch (PDOException $e) {
+                                                echo '<tr><td colspan="7" class="text-center text-danger">Error loading attendance data: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
                                             }
-                                        </script>
+                                            ?>
+                                        </tbody>
                                     </table>
                                 </div>
                             </div>
@@ -142,36 +175,20 @@ require_once 'dp.php';
                                 $totalAbsent = 0;
 
                                 try {
-                                    // Get total employees matching the attendance overview filter
-                                    $stmt = $conn->query("SELECT COUNT(*) as count FROM employee_profiles WHERE employment_status IN ('Full-time', 'Part-time')
-                                        AND employee_id IN (
-                                            SELECT employee_id FROM employment_history
-                                            WHERE history_id IN (
-                                                SELECT MAX(history_id) FROM employment_history GROUP BY employee_id
-                                            ) AND employment_status = 'Active'
-                                        )");
+                                    // Get total employees
+                                    $stmt = $conn->query("SELECT COUNT(*) as count FROM employee_profiles WHERE employment_status IN ('Full-time', 'Part-time')");
                                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                                     $totalEmployees = $result['count'];
 
-                                    // Get today's attendance statistics for the same filtered employees
+                                    // Get today's attendance statistics
                                     $today = date('Y-m-d');
                                     $stmt = $conn->query("SELECT
-                                        SUM(CASE WHEN (a.status = 'Present' OR (a.status IS NULL AND a.clock_in IS NOT NULL)) THEN 1 ELSE 0 END) as present_count,
-                                        SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) as absent_count
-                                        FROM employee_profiles ep
-                                        LEFT JOIN attendance a ON ep.employee_id = a.employee_id AND a.attendance_date = '$today'
-                                        WHERE ep.employment_status IN ('Full-time', 'Part-time')
-                                        AND ep.employee_id IN (
-                                            SELECT employee_id FROM employment_history
-                                            WHERE history_id IN (
-                                                SELECT MAX(history_id) FROM employment_history GROUP BY employee_id
-                                            ) AND employment_status = 'Active'
-                                        )");
+                                        SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_count,
+                                        SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent_count
+                                        FROM attendance WHERE attendance_date = '$today'");
                                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                                     $totalPresent = $result['present_count'] ?? 0;
                                     $totalAbsent = $result['absent_count'] ?? 0;
-
-                                    error_log("Attendance stats: Total employees $totalEmployees, Present $totalPresent, Absent $totalAbsent");
 
                                 } catch (PDOException $e) {
                                     error_log("Error fetching attendance stats: " . $e->getMessage());
@@ -235,146 +252,44 @@ require_once 'dp.php';
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form id="attendanceForm">
+                    <form>
                         <div class="form-group">
                             <label for="employeeName">Employee Name</label>
-                            <input type="text" class="form-control" id="employeeName" name="employeeName" placeholder="Enter employee name" required>
+                            <input type="text" class="form-control" id="employeeName" placeholder="Enter employee name">
                         </div>
                         <div class="form-group">
                             <label for="attendanceDate">Date</label>
-                            <input type="date" class="form-control" id="attendanceDate" name="attendanceDate" required>
+                            <input type="date" class="form-control" id="attendanceDate">
                         </div>
                         <div class="form-group">
                             <label for="checkInTime">Check In Time</label>
-                            <input type="time" class="form-control" id="checkInTime" name="checkInTime" required>
+                            <input type="time" class="form-control" id="checkInTime">
                         </div>
                         <div class="form-group">
                             <label for="checkOutTime">Check Out Time</label>
-                            <input type="time" class="form-control" id="checkOutTime" name="checkOutTime">
+                            <input type="time" class="form-control" id="checkOutTime">
                         </div>
                         <div class="form-group">
                             <label for="attendanceStatus">Status</label>
-                            <select class="form-control" id="attendanceStatus" name="attendanceStatus" required>
+                            <select class="form-control" id="attendanceStatus">
                                 <option value="present">Present</option>
                                 <option value="absent">Absent</option>
                                 <option value="late">Late</option>
                                 <option value="early">Early Departure</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="overtimeHours">Overtime Hours</label>
-                            <input type="number" step="0.01" class="form-control" id="overtimeHours" name="overtimeHours" placeholder="0.00">
-                        </div>
-                        <div class="form-group">
-                            <label for="lateMinutes">Late Minutes</label>
-                            <input type="number" step="0.01" class="form-control" id="lateMinutes" name="lateMinutes" placeholder="0.00" readonly>
-                            <small class="form-text text-muted">Automatically calculated based on check-in time (8:00 AM start)</small>
-                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveAttendanceBtn">Save Attendance</button>
+                    <button type="button" class="btn btn-primary">Save Attendance</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            // Function to load attendance data
-            function loadAttendanceData() {
-                console.log('Loading attendance data...');
-                $.ajax({
-                    url: 'fetch_attendance_overview.php',
-                    type: 'GET',
-                    success: function(data) {
-                        console.log('Attendance data loaded successfully:', data);
-                        $('#attendanceTableBody').html(data);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error:', {status: xhr.status, error: error});
-                        var errorMsg = 'Error loading attendance data.';
-                        if (xhr.status === 401) {
-                            errorMsg = 'Unauthorized access. Please log in as admin/HR.';
-                        } else if (xhr.status === 500) {
-                            errorMsg = 'Server error. Check PHP logs.';
-                        }
-                        $('#attendanceTableBody').html('<tr><td colspan="8" class="text-center text-danger">' + errorMsg + '</td></tr>');
-                    }
-                });
-            }
-
-            // Load attendance data on page load
-            loadAttendanceData();
-
-            // Auto-refresh every 30 seconds
-            setInterval(function() {
-                console.log('Auto-refreshing attendance data...');
-                loadAttendanceData();
-            }, 30000);
-
-            // Function to calculate late minutes
-            function calculateLateMinutes() {
-                var checkInTime = $('#checkInTime').val();
-                if (checkInTime) {
-                    var startTime = '08:00'; // Standard start time
-                    var checkIn = new Date('1970-01-01T' + checkInTime + ':00');
-                    var start = new Date('1970-01-01T' + startTime + ':00');
-                    var diffMs = checkIn - start;
-                    var diffMins = diffMs / (1000 * 60);
-                    var lateMinutes = diffMins > 0 ? diffMins : 0;
-                    $('#lateMinutes').val(lateMinutes.toFixed(2));
-                } else {
-                    $('#lateMinutes').val('0.00');
-                }
-            }
-
-            // Calculate late minutes when check-in time changes
-            $('#checkInTime').on('change', function() {
-                calculateLateMinutes();
-            });
-
-            // Also calculate on modal show in case time is pre-filled
-            $('#addAttendanceModal').on('shown.bs.modal', function() {
-                calculateLateMinutes();
-            });
-
-            // Handle refresh button click
-            $('#refreshBtn').on('click', function() {
-                loadAttendanceData();
-            });
-
-            // Handle form submission
-            $('#saveAttendanceBtn').on('click', function() {
-                var formData = new FormData(document.getElementById('attendanceForm'));
-
-                $.ajax({
-                    url: 'save_attendance.php',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        var result = JSON.parse(response);
-                        if (result.success) {
-                            alert('Attendance saved successfully!');
-                            $('#addAttendanceModal').modal('hide');
-                            loadAttendanceData(); // Refresh the table data instead of reloading the page
-                        } else {
-                            alert('Error: ' + result.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Save attendance error:', {status: xhr.status, error: error});
-                        alert('An error occurred while saving attendance.');
-                    }
-                });
-            });
-        });
-    </script>
 </body>
 </html>

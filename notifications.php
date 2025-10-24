@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Include database connection
-require_once 'dp.php';
+require_once 'db.php';
 
 // Initialize notifications table if it doesn't exist
 function initializeNotificationsTable($conn) {

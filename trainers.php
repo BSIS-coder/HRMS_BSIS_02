@@ -11,11 +11,11 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'dp.php';
+require_once 'db.php';
 
 // Database connection
 $host = 'localhost';
-$dbname = 'CC_HR';
+$dbname = 'hr_system';
 $username = 'root';
 $password = '';
 

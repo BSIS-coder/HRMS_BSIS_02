@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'dp.php';
+require_once 'db.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -60,33 +60,14 @@ require_once 'dp.php';
                 $totalAbsent = 0;
 
                 try {
-                    // Get total active employees (only those with 'Active' status in latest employment_history)
-                    $stmt = $conn->query("
-                        SELECT COUNT(*) as count FROM employee_profiles
-                        WHERE employment_status IN ('Full-time', 'Part-time')
-                        AND employee_id IN (
-                            SELECT employee_id FROM employment_history
-                            WHERE history_id IN (
-                                SELECT MAX(history_id) FROM employment_history GROUP BY employee_id
-                            ) AND employment_status = 'Active'
-                        )
-                    ");
+                    // Get total employees
+                    $stmt = $conn->query("SELECT COUNT(*) as count FROM employee_profiles WHERE employment_status IN ('Full-time', 'Part-time')");
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                     $totalEmployees = $result['count'];
 
-                    // Get today's attendance summary (if available) for active employees only
+                    // Get today's attendance summary (if available)
                     $today = date('Y-m-d');
-                    $stmt = $conn->query("
-                        SELECT COUNT(*) as present FROM attendance a
-                        JOIN employee_profiles ep ON a.employee_id = ep.employee_id
-                        WHERE a.attendance_date = '$today' AND a.status = 'Present'
-                        AND ep.employee_id IN (
-                            SELECT employee_id FROM employment_history
-                            WHERE history_id IN (
-                                SELECT MAX(history_id) FROM employment_history GROUP BY employee_id
-                            ) AND employment_status = 'Active'
-                        )
-                    ");
+                    $stmt = $conn->query("SELECT COUNT(*) as present FROM attendance WHERE attendance_date = '$today' AND status = 'Present'");
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                     $totalPresent = $result['present'];
 
@@ -100,82 +81,25 @@ require_once 'dp.php';
                 $absentPercentage = 100 - $presentPercentage;
                 ?>
 
-                <?php
-                // Get on-time and late attendance counts
-                $totalOnTime = 0;
-                $totalLate = 0;
-
-                try {
-                    // Get on-time attendance (clock_in <= 08:00:00)
-                    $stmt = $conn->query("
-                        SELECT COUNT(*) as on_time FROM attendance a
-                        JOIN employee_profiles ep ON a.employee_id = ep.employee_id
-                        WHERE a.attendance_date = '$today' AND a.status = 'Present'
-                        AND TIME(a.clock_in) <= '08:00:00'
-                        AND ep.employee_id IN (
-                            SELECT employee_id FROM employment_history
-                            WHERE history_id IN (
-                                SELECT MAX(history_id) FROM employment_history GROUP BY employee_id
-                            ) AND employment_status = 'Active'
-                        )
-                    ");
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $totalOnTime = $result['on_time'];
-
-                    // Get late attendance (clock_in > 08:00:00)
-                    $stmt = $conn->query("
-                        SELECT COUNT(*) as late FROM attendance a
-                        JOIN employee_profiles ep ON a.employee_id = ep.employee_id
-                        WHERE a.attendance_date = '$today' AND a.status = 'Present'
-                        AND TIME(a.clock_in) > '08:00:00'
-                        AND ep.employee_id IN (
-                            SELECT employee_id FROM employment_history
-                            WHERE history_id IN (
-                                SELECT MAX(history_id) FROM employment_history GROUP BY employee_id
-                            ) AND employment_status = 'Active'
-                        )
-                    ");
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $totalLate = $result['late'];
-
-                } catch (PDOException $e) {
-                    error_log("Error fetching on-time/late stats: " . $e->getMessage());
-                }
-
-                $onTimePercentage = $totalPresent > 0 ? round(($totalOnTime / $totalPresent) * 100) : 0;
-                $latePercentage = $totalPresent > 0 ? round(($totalLate / $totalPresent) * 100) : 0;
-                ?>
-
                 <div class="row text-center mb-4">
-                    <div class="col-2">
+                    <div class="col-4">
                         <h4 class="text-primary"><?php echo $totalEmployees; ?></h4>
                         <small class="text-muted">Total Employees</small>
                     </div>
-                    <div class="col-2">
+                    <div class="col-4">
                         <h4 class="text-success"><?php echo $totalPresent; ?></h4>
                         <small class="text-muted">Present Today</small>
                     </div>
-                    <div class="col-2">
+                    <div class="col-4">
                         <h4 class="text-danger"><?php echo $totalAbsent; ?></h4>
                         <small class="text-muted">Absent Today</small>
-                    </div>
-                    <div class="col-3">
-                        <h4 class="text-info"><?php echo $totalOnTime; ?></h4>
-                        <small class="text-muted">On-Time Arrivals</small>
-                    </div>
-                    <div class="col-3">
-                        <h4 class="text-warning"><?php echo $totalLate; ?></h4>
-                        <small class="text-muted">Late Arrivals</small>
                     </div>
                 </div>
                 <div class="progress mb-2">
                     <div class="progress-bar bg-success" style="width: <?php echo $presentPercentage; ?>%">Present (<?php echo $presentPercentage; ?>%)</div>
                 </div>
-                <div class="progress mb-2">
-                    <div class="progress-bar bg-info" style="width: <?php echo $onTimePercentage; ?>%">On-Time (<?php echo $onTimePercentage; ?>% of Present)</div>
-                </div>
                 <div class="progress">
-                    <div class="progress-bar bg-warning" style="width: <?php echo $latePercentage; ?>%">Late (<?php echo $latePercentage; ?>% of Present)</div>
+                    <div class="progress-bar bg-danger" style="width: <?php echo $absentPercentage; ?>%">Absent (<?php echo $absentPercentage; ?>%)</div>
                 </div>
                             </div>
                         </div>
