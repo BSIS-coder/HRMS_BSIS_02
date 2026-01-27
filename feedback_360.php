@@ -10,6 +10,68 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // Include database connection
 require_once 'db_connect.php';
 
+// Function to create missing feedback tables
+function createFeedbackTables() {
+    global $conn;
+
+    $tables = [
+        'feedback_cycles' => "
+            CREATE TABLE IF NOT EXISTS `feedback_cycles` (
+              `cycle_id` int(11) NOT NULL AUTO_INCREMENT,
+              `cycle_name` varchar(255) NOT NULL,
+              `description` text,
+              `start_date` date NOT NULL,
+              `end_date` date NOT NULL,
+              `status` enum('Active','Draft','Completed','Cancelled') DEFAULT 'Draft',
+              `created_by` int(11) NOT NULL,
+              `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+              `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`cycle_id`),
+              KEY `created_by` (`created_by`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        ",
+        'feedback_requests' => "
+            CREATE TABLE IF NOT EXISTS `feedback_requests` (
+              `request_id` int(11) NOT NULL AUTO_INCREMENT,
+              `employee_id` int(11) NOT NULL,
+              `reviewer_id` int(11) NOT NULL,
+              `cycle_id` int(11) NOT NULL,
+              `relationship_type` enum('supervisor','peer','subordinate','self') NOT NULL,
+              `status` enum('Pending','Completed','Cancelled') DEFAULT 'Pending',
+              `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+              `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`request_id`),
+              KEY `employee_id` (`employee_id`),
+              KEY `reviewer_id` (`reviewer_id`),
+              KEY `cycle_id` (`cycle_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        ",
+        'feedback_responses' => "
+            CREATE TABLE IF NOT EXISTS `feedback_responses` (
+              `response_id` int(11) NOT NULL AUTO_INCREMENT,
+              `request_id` int(11) NOT NULL,
+              `reviewer_id` int(11) NOT NULL,
+              `responses` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+              `comments` text,
+              `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+              PRIMARY KEY (`response_id`),
+              KEY `request_id` (`request_id`),
+              KEY `reviewer_id` (`reviewer_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        "
+    ];
+
+    foreach ($tables as $table_name => $create_sql) {
+        $result = mysqli_query($conn, $create_sql);
+        if (!$result) {
+            error_log("Failed to create table $table_name: " . mysqli_error($conn));
+        }
+    }
+}
+
+// Create tables if they don't exist
+createFeedbackTables();
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -97,7 +159,12 @@ function requestFeedback($data) {
 // Feedback statistics
 function getFeedbackStats() {
     global $conn;
-    $stats = [];
+    $stats = [
+        'total_cycles' => 0,
+        'active_cycles' => 0,
+        'pending_requests' => 0,
+        'completed_feedback' => 0
+    ];
 
     $queries = [
         'total_cycles' => "SELECT COUNT(*) AS total FROM feedback_cycles",
@@ -107,9 +174,16 @@ function getFeedbackStats() {
     ];
 
     foreach ($queries as $key => $sql) {
-        $result = $conn->query($sql);
-        $row = $result ? $result->fetch_assoc() : ['total' => 0];
-        $stats[$key] = $row['total'];
+        try {
+            $result = $conn->query($sql);
+            if ($result) {
+                $row = $result->fetch_assoc();
+                $stats[$key] = $row['total'];
+            }
+        } catch (Exception $e) {
+            // Table doesn't exist yet, return 0
+            $stats[$key] = 0;
+        }
     }
 
     return $stats;
@@ -118,22 +192,27 @@ function getFeedbackStats() {
 // Recent feedback activities
 function getRecentFeedbackActivities() {
     global $conn;
-    $sql = "SELECT fr.request_id, e.first_name, e.last_name, fr.status, fr.created_at,
-                   fc.cycle_name, fr.relationship_type
-            FROM feedback_requests fr
-            JOIN employee_profiles ep ON fr.employee_id = ep.employee_id
-            JOIN personal_information e ON ep.personal_info_id = e.personal_info_id
-            JOIN feedback_cycles fc ON fr.cycle_id = fc.cycle_id
-            ORDER BY fr.created_at DESC LIMIT 10";
-    $result = $conn->query($sql);
+    try {
+        $sql = "SELECT fr.request_id, e.first_name, e.last_name, fr.status, fr.created_at,
+                       fc.cycle_name, fr.relationship_type
+                FROM feedback_requests fr
+                JOIN employee_profiles ep ON fr.employee_id = ep.employee_id
+                JOIN personal_information e ON ep.personal_info_id = e.personal_info_id
+                JOIN feedback_cycles fc ON fr.cycle_id = fc.cycle_id
+                ORDER BY fr.created_at DESC LIMIT 10";
+        $result = $conn->query($sql);
 
-    $activities = [];
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $activities[] = $row;
+        $activities = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $activities[] = $row;
+            }
         }
+        return $activities;
+    } catch (Exception $e) {
+        // Return empty array if tables don't exist
+        return [];
     }
-    return $activities;
 }
 
 // Employee list
