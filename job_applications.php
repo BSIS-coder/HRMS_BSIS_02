@@ -8,7 +8,6 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 require_once 'db_connect.php';
-require_once 'email_sender.php';
 require_once 'link_candidate_documents.php';
 
 // Create notification_letters table if not exists
@@ -59,17 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $subject = "Job Offer Approval Required - {$candidate['first_name']} {$candidate['last_name']}";
                 $message = "Dear Mayor,\n\nA job offer has been auto-generated and requires your approval:\n\nCandidate: {$candidate['first_name']} {$candidate['last_name']}\nPosition: {$candidate['job_title']}\nDepartment: {$candidate['department_name']}\nProposed Salary: $" . number_format($default_salary) . "\nStart Date: {$default_start_date}\nBenefits: {$default_benefits}\n\nNote: This offer can be modified before approval.\nPlease review at: http://localhost/HRMS_BSIS_02-test/job_offers.php\n\nBest regards,\nHR Department";
                 
-                // Send email to Mayor
-                $emailSender = new EmailSender();
-                $sent = $emailSender->sendEmail($mayor_email, $subject, $message);
-                
-                // Insert into notification_letters table
-                $status = $sent ? 'Sent' : 'Failed';
+                // Log notification (email sending removed)
+                $status = 'Logged';
                 $stmt = $conn->prepare("INSERT INTO notification_letters (type, recipient, subject, content, status, created_by, created_at, sent_at) VALUES ('Mayor Approval', ?, ?, ?, ?, ?, NOW(), NOW())");
                 $stmt->bind_param('ssssi', $mayor_email, $subject, $message, $status, $_SESSION['user_id']);
                 $stmt->execute();
                 
-                $success_message = "🤖 Auto-generated offer created and notification sent to Mayor! [TEST MODE: Email logged, not actually sent]";
+                $success_message = "🤖 Auto-generated offer created and logged for Mayor approval!";
                 break;
                 
             case 'mayor_approve':
