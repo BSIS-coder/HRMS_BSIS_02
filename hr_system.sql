@@ -696,10 +696,18 @@ CREATE TABLE job_openings (
     posting_date DATE NOT NULL,
     closing_date DATE,
     status ENUM('Draft', 'Open', 'On Hold', 'Closed', 'Cancelled') DEFAULT 'Draft',
+    ai_generated BOOLEAN DEFAULT FALSE COMMENT 'Flag if job was created by AI',
+    created_by INT DEFAULT NULL COMMENT 'User ID who created the job',
+    approval_status ENUM('Pending', 'Approved', 'Rejected') DEFAULT NULL COMMENT 'Approval status for AI-generated jobs',
+    approved_by INT DEFAULT NULL COMMENT 'User ID who approved/rejected the job',
+    approved_at DATETIME DEFAULT NULL COMMENT 'Timestamp of approval/rejection',
+    rejection_reason TEXT DEFAULT NULL COMMENT 'Reason if job was rejected',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (job_role_id) REFERENCES job_roles(job_role_id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE
+    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (approved_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- Create candidates table
@@ -1915,3 +1923,25 @@ INSERT INTO training_feedback (
  TRUE, TRUE, '2024-03-10', FALSE);
 
 
+
+
+-- ============================================
+-- AI JOB GENERATION & VACANCY LIMIT FEATURES
+-- ============================================
+
+-- Add AI-related columns to job_openings table
+ALTER TABLE job_openings 
+ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS approval_status ENUM('Pending', 'Approved', 'Rejected') DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS approved_by INT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS approved_at DATETIME DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS rejection_reason TEXT DEFAULT NULL;
+
+-- Add foreign key for approved_by
+ALTER TABLE job_openings 
+ADD CONSTRAINT fk_job_approved_by 
+FOREIGN KEY (approved_by) REFERENCES users(user_id) ON DELETE SET NULL;
+
+-- Add vacancy_limit column to departments table
+ALTER TABLE departments 
+ADD COLUMN IF NOT EXISTS vacancy_limit INT DEFAULT NULL COMMENT 'Maximum number of open job vacancies allowed for this department';

@@ -730,7 +730,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Real-time email duplicate checker with verification
+        // Real-time email duplicate checker
         function checkEmailDuplicate() {
             const email = document.querySelector('input[name="email"]').value.trim();
             
@@ -757,18 +757,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             `;
                         } else {
                             emailAlert.innerHTML = `
-                                <div class="alert alert-info">
-                                    <i class="fas fa-envelope mr-2"></i>
-                                    <strong>Email Available</strong><br>
-                                    <button type="button" class="btn btn-sm btn-primary mt-2" onclick="sendVerificationEmail('${email}')">
-                                        <i class="fas fa-paper-plane mr-1"></i>Send Verification Code
-                                    </button>
-                                    <div id="verificationSection" style="display: none;" class="mt-2">
-                                        <input type="text" id="verificationCode" class="form-control form-control-sm" placeholder="Enter verification code" maxlength="6">
-                                        <button type="button" class="btn btn-sm btn-success mt-1" onclick="verifyEmail('${email}')">
-                                            <i class="fas fa-check mr-1"></i>Verify
-                                        </button>
-                                    </div>
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    <strong>Email Available</strong>
                                 </div>
                             `;
                         }
@@ -777,58 +768,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 document.getElementById('emailAlert').innerHTML = '';
             }
-        }
-        
-        // Send verification email
-        function sendVerificationEmail(email) {
-            fetch('send_verification.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `email=${encodeURIComponent(email)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('verificationSection').style.display = 'block';
-                    // For testing - show the code (remove in production)
-                    if (data.debug_code) {
-                        alert(`Verification code sent! For testing, your code is: ${data.debug_code}`);
-                    } else {
-                        alert('Verification code sent to your email!');
-                    }
-                } else {
-                    alert('Failed to send verification code. Please try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error sending verification code. Please try again.');
-            });
-        }
-        
-        // Verify email code
-        function verifyEmail(email) {
-            const code = document.getElementById('verificationCode').value;
-            if (!code) {
-                alert('Please enter the verification code.');
-                return;
-            }
-            
-            fetch('verify_email.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                const emailAlert = document.getElementById('emailAlert');
-                if (data.success) {
-                    emailAlert.innerHTML = '<div class="alert alert-success"><i class="fas fa-check mr-2"></i>Email verified successfully!</div>';
-                    candidateDraftCreated = true;
-                } else {
-                    alert('Invalid verification code. Please try again.');
-                }
-            });
         }
         
         // Attach event listeners

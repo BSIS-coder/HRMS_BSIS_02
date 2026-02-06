@@ -494,9 +494,17 @@ $jobRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <span class="search-icon">🔍</span>
                                 <input type="text" id="searchInput" placeholder="Search employees by name, email, or employee number...">
                             </div>
-                            <button class="btn btn-primary" onclick="openModal('add')">
-                                ➕ Add New Employee
-                            </button>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="window.location.href='vacancy_management.php'">
+                                    <i class="fas fa-users-slash mr-1"></i>Vacancy Management
+                                </button>
+                                <button class="btn btn-primary" onclick="window.location.href='job_approval.php'">
+                                    ✅ Job Approval
+                                </button>
+                                <button class="btn btn-primary" onclick="openModal('add')">
+                                    ➕ Add New Employee
+                                </button>
+                            </div>
                         </div>
 
                         <div class="table-container">

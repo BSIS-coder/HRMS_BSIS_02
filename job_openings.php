@@ -53,10 +53,14 @@ $stmt = $conn->query("SELECT COUNT(*) as count FROM job_openings WHERE status = 
 $stats['open'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 $stmt = $conn->query("SELECT COUNT(*) as count FROM job_applications");
 $stats['applications'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+$stmt = $conn->query("SELECT COUNT(*) as count FROM job_openings WHERE ai_generated = TRUE AND approval_status = 'Pending'");
+$stats['pending_approval'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
 $job_openings_query = "SELECT jo.*, 
                        COALESCE(d.department_name, 'Unknown Department') as department_name, 
                        COALESCE(jr.title, 'Unknown Role') as role_title,
+                       COALESCE(u_creator.username, 'System') as creator_name,
+                       COALESCE(u_approver.username, NULL) as approver_name,
                        COUNT(ja.application_id) as total_applications,
                        SUM(CASE WHEN ja.status = 'Applied' THEN 1 ELSE 0 END) as pending_applications,
                        SUM(CASE WHEN ja.status = 'Interview' THEN 1 ELSE 0 END) as interview_stage,
@@ -64,6 +68,8 @@ $job_openings_query = "SELECT jo.*,
                        FROM job_openings jo 
                        LEFT JOIN departments d ON jo.department_id = d.department_id 
                        LEFT JOIN job_roles jr ON jo.job_role_id = jr.job_role_id 
+                       LEFT JOIN users u_creator ON jo.created_by = u_creator.user_id
+                       LEFT JOIN users u_approver ON jo.approved_by = u_approver.user_id
                        LEFT JOIN job_applications ja ON jo.job_opening_id = ja.job_opening_id
                        WHERE jo.status != 'Archived'
                        GROUP BY jo.job_opening_id
@@ -106,7 +112,7 @@ try {
                 <?php endif; ?>
                 
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="stats-card card">
                             <div class="card-body text-center">
                                 <div class="activity-icon bg-warning">
@@ -117,7 +123,7 @@ try {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="stats-card card">
                             <div class="card-body text-center">
                                 <div class="activity-icon bg-success">
@@ -128,7 +134,7 @@ try {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="stats-card card">
                             <div class="card-body text-center">
                                 <div class="activity-icon bg-info">
@@ -136,6 +142,17 @@ try {
                                 </div>
                                 <h3 class="stats-number"><?php echo $stats['applications']; ?></h3>
                                 <p class="stats-label">Total Applications</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card card">
+                            <div class="card-body text-center">
+                                <div class="activity-icon bg-danger">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <h3 class="stats-number"><?php echo $stats['pending_approval']; ?></h3>
+                                <p class="stats-label">Pending Approval</p>
                             </div>
                         </div>
                     </div>
@@ -147,7 +164,7 @@ try {
                         <div class="d-flex">
                             <input type="text" id="searchJobs" class="form-control mr-2" placeholder="🔍 Search jobs..." style="width: 200px;">
                             <button class="btn btn-secondary btn-sm mr-2" id="toggleClosed">👁️ Show Closed</button>
-                            <button class="btn btn-primary" data-toggle="modal" data-target="#addJobModal">✨ Create Job</button>
+                            <button class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">🤖 AI Generate Job</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -170,7 +187,26 @@ try {
                                     <?php if ($job_openings_result && $job_openings_result->rowCount() > 0): ?>
                                         <?php while($row = $job_openings_result->fetch(PDO::FETCH_ASSOC)): ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($row['title']); ?>
+                                                    <?php if ($row['ai_generated']): ?>
+                                                        <span class="badge badge-info ml-1" title="AI Generated">🤖 AI</span>
+                                                    <?php endif; ?>
+                                                    <?php if ($row['approval_status'] == 'Pending'): ?>
+                                                        <span class="badge badge-warning ml-1">⏳ Pending Approval</span>
+                                                    <?php elseif ($row['approval_status'] == 'Approved'): ?>
+                                                        <span class="badge badge-success ml-1">✅ Approved</span>
+                                                    <?php elseif ($row['approval_status'] == 'Rejected'): ?>
+                                                        <span class="badge badge-danger ml-1">❌ Rejected</span>
+                                                    <?php endif; ?>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-user"></i> Created by: <?php echo htmlspecialchars($row['creator_name']); ?>
+                                                        <?php if ($row['approver_name']): ?>
+                                                            | <i class="fas fa-check-circle"></i> By: <?php echo htmlspecialchars($row['approver_name']); ?>
+                                                        <?php endif; ?>
+                                                    </small>
+                                                </td>
                                                 <td><?php echo htmlspecialchars($row['department_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($row['role_title']); ?></td>
                                                 <td><?php echo $row['vacancy_count']; ?></td>
@@ -194,8 +230,13 @@ try {
                                                 </td>
                                                 <td>
                                                     <div class="d-flex flex-column" style="min-width: 120px;">
+                                                        <?php if ($row['approval_status'] == 'Pending' && in_array($_SESSION['role'], ['hr', 'admin'])): ?>
+                                                            <a href="edit_job.php?id=<?php echo $row['job_opening_id']; ?>" class="btn btn-warning btn-sm mb-1 text-left">
+                                                                <i class="fas fa-edit mr-1"></i>Edit
+                                                            </a>
+                                                        <?php endif; ?>
                                                         <a href="job_applications.php?job_id=<?php echo $row['job_opening_id']; ?>" class="btn btn-info btn-sm mb-1 text-left">👥 Applications</a>
-                                                        <?php if ($row['status'] == 'Draft'): ?>
+                                                        <?php if ($row['status'] == 'Draft' && ($row['approval_status'] == 'Approved' || !$row['ai_generated'])): ?>
                                                             <button type="button" class="btn btn-success btn-sm w-100 text-left" onclick="showPublishModal('<?php echo $row['job_opening_id']; ?>', '<?php echo htmlspecialchars($row['title']); ?>')">🚀 Publish</button>
                                                         <?php endif; ?>
                                                         <?php if ($row['status'] == 'Open'): ?>
@@ -222,229 +263,94 @@ try {
         </div>
     </div>
 
-    <div class="modal fade" id="addJobModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-xl" role="document">
+    <!-- AI Generate Job Modal -->
+    <div class="modal fade" id="aiGenerateModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white">
-                    <h4 class="modal-title mb-0"><i class="fas fa-plus-circle mr-2"></i>Create New Job Opening</h4>
+                    <h4 class="modal-title mb-0"><i class="fas fa-robot mr-2"></i>AI Generate Job Opening</h4>
                     <button type="button" class="close text-white" data-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form method="POST" id="jobForm">
+                <form id="aiJobForm">
                     <div class="modal-body p-4">
-                        <input type="hidden" name="action" value="create_opening">
+                        <div class="alert alert-info">
+                            <i class="fas fa-magic mr-2"></i><strong>AI-Powered Job Creation</strong><br>
+                            Provide basic information and our AI will generate a complete, professional job posting for you!
+                        </div>
                         
-                        <!-- Basic Information Section -->
-                        <div class="mb-4">
-                            <h5 class="text-primary mb-3"><i class="fas fa-info-circle mr-2"></i>Basic Information</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-building mr-1"></i>Department <span class="text-danger">*</span></label>
-                                        <select name="department_id" id="department_select" class="form-control form-control-lg border-primary" required>
-                                            <option value="">🏢 Choose Department</option>
-                                            <?php foreach($departments as $dept): ?>
-                                                <option value="<?php echo $dept['department_id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-user-tie mr-1"></i>Job Role <span class="text-danger">*</span></label>
-                                        <select name="job_role_id" id="job_role_select" class="form-control form-control-lg border-primary" required>
-                                            <option value="">👔 Select Job Role</option>
-                                            <?php foreach($job_roles as $role): ?>
-                                                <option value="<?php echo $role['job_role_id']; ?>" data-department="<?php echo $role['department']; ?>"><?php echo htmlspecialchars($role['title']); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
+                        <!-- Basic Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold"><i class="fas fa-building mr-1"></i>Department <span class="text-danger">*</span></label>
+                                    <select name="department_id" id="ai_department_select" class="form-control form-control-lg" required>
+                                        <option value="">🏢 Choose Department</option>
+                                        <?php foreach($departments as $dept): 
+                                            // Get current vacancy info
+                                            $stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN status = 'Open' THEN vacancy_count ELSE 0 END), 0) as current_vacancies FROM job_openings WHERE department_id = ?");
+                                            $stmt->execute([$dept['department_id']]);
+                                            $vacInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                                            $current = $vacInfo['current_vacancies'];
+                                            $limit = $dept['vacancy_limit'];
+                                            $available = $limit ? ($limit - $current) : 'Unlimited';
+                                        ?>
+                                            <option value="<?php echo $dept['department_id']; ?>" 
+                                                    data-name="<?php echo htmlspecialchars($dept['department_name']); ?>"
+                                                    data-limit="<?php echo $limit ?? ''; ?>"
+                                                    data-current="<?php echo $current; ?>"
+                                                    data-available="<?php echo is_numeric($available) ? $available : 999; ?>">
+                                                <?php echo htmlspecialchars($dept['department_name']); ?>
+                                                <?php if ($limit): ?>
+                                                    (<?php echo $current; ?>/<?php echo $limit; ?> used)
+                                                <?php endif; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small id="vacancyLimitInfo" class="form-text text-muted"></small>
                                 </div>
                             </div>
-                            
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark"><i class="fas fa-briefcase mr-1"></i>Job Title <span class="text-danger">*</span></label>
-                                <input type="text" name="title" class="form-control form-control-lg border-primary" placeholder="Enter a descriptive job title" required>
-                                <small class="text-muted">Make it clear and specific (e.g., "Senior Software Developer - Frontend")</small>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold"><i class="fas fa-user-tie mr-1"></i>Job Role <span class="text-danger">*</span></label>
+                                    <select name="job_role_id" id="ai_job_role_select" class="form-control form-control-lg" required>
+                                        <option value="">👔 Select Job Role</option>
+                                        <?php foreach($job_roles as $role): ?>
+                                            <option value="<?php echo $role['job_role_id']; ?>" data-department="<?php echo $role['department']; ?>"><?php echo htmlspecialchars($role['title']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Job Details Section -->
-                        <div class="mb-4">
-                            <h5 class="text-primary mb-3"><i class="fas fa-clipboard-list mr-2"></i>Job Details</h5>
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark"><i class="fas fa-align-left mr-1"></i>Job Description <span class="text-danger">*</span></label>
-                                <textarea name="description" class="form-control border-primary" rows="4" placeholder="Provide a comprehensive overview of the position, including key objectives and what the role entails..." required></textarea>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-check-circle mr-1"></i>Requirements <span class="text-danger">*</span></label>
-                                        <textarea name="requirements" class="form-control border-primary" rows="4" placeholder="• Bachelor's degree in relevant field&#10;• 2+ years of experience&#10;• Proficiency in specific skills&#10;• Strong communication abilities" required></textarea>
-                                        <small class="text-muted">List qualifications, skills, and experience needed</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-tasks mr-1"></i>Key Responsibilities <span class="text-danger">*</span></label>
-                                        <textarea name="responsibilities" class="form-control border-primary" rows="4" placeholder="• Manage daily operations&#10;• Collaborate with team members&#10;• Develop and implement strategies&#10;• Report to management" required></textarea>
-                                        <small class="text-muted">Outline main duties and expectations</small>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="font-weight-bold"><i class="fas fa-users mr-1"></i>Number of Vacancies <span class="text-danger">*</span></label>
+                                    <input type="number" name="vacancy_count" id="ai_vacancy_count" class="form-control form-control-lg" 
+                                           min="1" max="999" value="1" required>
+                                    <small class="form-text text-muted">How many positions do you want to fill?</small>
+                                    <div id="vacancyWarning" class="alert alert-warning mt-2" style="display:none;">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        <span id="vacancyWarningText"></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Employment Details Section -->
-                        <div class="mb-4">
-                            <h5 class="text-primary mb-3"><i class="fas fa-cogs mr-2"></i>Employment Details</h5>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-map-marker-alt mr-1"></i>Work Location <span class="text-danger">*</span></label>
-                                        <input type="text" name="location" class="form-control form-control-lg border-primary" value="Municipal Office" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-clock mr-1"></i>Employment Type <span class="text-danger">*</span></label>
-                                        <select name="employment_type" class="form-control form-control-lg border-primary" required>
-                                            <option value="">⏰ Select Type</option>
-                                            <option value="Full-time">🕘 Full-time</option>
-                                            <option value="Part-time">🕐 Part-time</option>
-                                            <option value="Contract">📝 Contract</option>
-                                            <option value="Temporary">⏳ Temporary</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-users mr-1"></i>Number of Positions <span class="text-danger">*</span></label>
-                                        <input type="number" name="vacancy_count" class="form-control form-control-lg border-primary" value="1" min="1" max="50" required>
-                                        <small class="text-muted">How many people to hire</small>
-                                    </div>
-                                </div>
-                            </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="ai_config_page.php" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-cog mr-1"></i>Edit AI Configuration
+                            </a>
                         </div>
-
-                        <!-- Compensation & Timeline Section -->
-                        <div class="mb-4">
-                            <h5 class="text-primary mb-3"><i class="fas fa-money-bill-wave mr-2"></i>Compensation & Timeline</h5>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-peso-sign mr-1"></i>Minimum Salary</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text bg-light">₱</span>
-                                            </div>
-                                            <input type="number" name="salary_min" class="form-control border-primary" step="1" min="0" placeholder="25000">
-                                        </div>
-                                        <small class="text-muted">Optional - leave blank if not disclosed</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark"><i class="fas fa-peso-sign mr-1"></i>Maximum Salary</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text bg-light">₱</span>
-                                            </div>
-                                            <input type="number" name="salary_max" class="form-control border-primary" step="1" min="0" placeholder="35000">
-                                        </div>
-                                        <small class="text-muted">Optional - leave blank if not disclosed</small>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- Document Requirements -->
-                        <div class="mb-4">
-                            <h5 class="text-primary mb-3"><i class="fas fa-file-alt mr-2"></i>Required Documents for Application</h5>
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle mr-1"></i><strong>Note:</strong> These documents will be required for future payment disbursement processing.
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="require_resume" name="require_resume" checked>
-                                        <label class="custom-control-label font-weight-bold" for="require_resume">
-                                            <i class="fas fa-file-text text-primary mr-2"></i>Resume/CV
-                                        </label>
-                                        <small class="d-block text-muted ml-4">Professional background and work experience</small>
-                                    </div>
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="require_cover_letter" name="require_cover_letter">
-                                        <label class="custom-control-label font-weight-bold" for="require_cover_letter">
-                                            <i class="fas fa-envelope text-success mr-2"></i>Cover Letter
-                                        </label>
-                                        <small class="d-block text-muted ml-4">Letter of intent and motivation</small>
-                                    </div>
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="require_certifications" name="require_certifications">
-                                        <label class="custom-control-label font-weight-bold" for="require_certifications">
-                                            <i class="fas fa-certificate text-warning mr-2"></i>Professional Certifications
-                                        </label>
-                                        <small class="d-block text-muted ml-4">Licenses, certificates, and professional credentials</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="require_ids" name="require_ids">
-                                        <label class="custom-control-label font-weight-bold" for="require_ids">
-                                            <i class="fas fa-id-card text-info mr-2"></i>Valid Government IDs
-                                        </label>
-                                        <small class="d-block text-muted ml-4">Required for identity verification and payroll setup</small>
-                                    </div>
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="require_portfolio" name="require_portfolio">
-                                        <label class="custom-control-label font-weight-bold" for="require_portfolio">
-                                            <i class="fas fa-briefcase text-secondary mr-2"></i>Work Portfolio
-                                        </label>
-                                        <small class="d-block text-muted ml-4">Samples of previous work and projects</small>
-                                    </div>
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="require_references" name="require_references">
-                                        <label class="custom-control-label font-weight-bold" for="require_references">
-                                            <i class="fas fa-users text-dark mr-2"></i>Character References
-                                        </label>
-                                        <small class="d-block text-muted ml-4">Professional and personal references</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-light p-3 rounded">
-                                <small class="text-muted">
-                                    <i class="fas fa-toggle-on mr-1"></i><strong>How to use:</strong> Toggle switches ON for documents that applicants must submit. 
-                                    Documents marked as required will be validated during the application process and used for future payment disbursement.
-                                </small>
-                            </div>
-                        </div>
-
-                        <!-- Publication Status -->
-                        <div class="mb-3">
-                            <h5 class="text-primary mb-3"><i class="fas fa-eye mr-2"></i>Publication Status</h5>
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark"><i class="fas fa-toggle-on mr-1"></i>Job Status <span class="text-danger">*</span></label>
-                                <select name="status" class="form-control form-control-lg border-primary" required>
-                                    <option value="">📋 Choose Status</option>
-                                    <option value="Draft">📝 Draft - Save for review later</option>
-                                    <option value="Open">🚀 Open - Publish and accept applications immediately</option>
-                                </select>
-                                <div class="mt-2">
-                                    <small class="text-info"><i class="fas fa-info-circle mr-1"></i><strong>Draft:</strong> Job will be saved but not visible to applicants</small><br>
-                                    <small class="text-success"><i class="fas fa-check-circle mr-1"></i><strong>Open:</strong> Job will be published immediately and accept applications</small>
-                                </div>
-                            </div>
-                        </div>
+                        
+                        <div id="aiGenerationStatus" class="alert" style="display:none;"></div>
                     </div>
-                    <div class="modal-footer bg-light p-3">
-                        <button type="button" class="btn btn-outline-secondary btn-lg px-4" data-dismiss="modal">
-                            <i class="fas fa-times mr-2"></i>Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary btn-lg px-4">
-                            <i class="fas fa-plus-circle mr-2"></i>Create Job Opening
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="generateBtn">
+                            <i class="fas fa-magic mr-2"></i>Generate with AI
                         </button>
                     </div>
                 </form>
@@ -574,6 +480,113 @@ try {
     }
     
     $(document).ready(function(){
+        // AI Job Generation Form
+        $('#aiJobForm').on('submit', function(e){
+            e.preventDefault();
+            
+            var $btn = $('#generateBtn');
+            var $status = $('#aiGenerationStatus');
+            
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Generating...');
+            $status.hide();
+            
+            $.ajax({
+                url: 'generate_job_ai.php',
+                method: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response){
+                    if(response.success){
+                        $status.removeClass('alert-danger').addClass('alert-success')
+                               .html('<i class="fas fa-check-circle mr-2"></i>' + response.message)
+                               .show();
+                        
+                        setTimeout(function(){
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        $status.removeClass('alert-success').addClass('alert-danger')
+                               .html('<i class="fas fa-exclamation-circle mr-2"></i>' + response.error)
+                               .show();
+                        $btn.prop('disabled', false).html('<i class="fas fa-magic mr-2"></i>Generate with AI');
+                    }
+                },
+                error: function(){
+                    $status.removeClass('alert-success').addClass('alert-danger')
+                           .html('<i class="fas fa-exclamation-circle mr-2"></i>Failed to generate job. Please try again.')
+                           .show();
+                    $btn.prop('disabled', false).html('<i class="fas fa-magic mr-2"></i>Generate with AI');
+                }
+            });
+        });
+        
+        // Department filter for AI modal
+        $('#ai_department_select').on('change', function(){
+            var selectedDept = $(this).find('option:selected').data('name');
+            var roleSelect = $('#ai_job_role_select');
+            
+            roleSelect.find('option').each(function(){
+                if($(this).val() === '') {
+                    $(this).show();
+                } else {
+                    var roleDept = $(this).data('department');
+                    if(!selectedDept || roleDept === selectedDept) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                }
+            });
+            
+            roleSelect.val('');
+            updateVacancyInfo();
+        });
+        
+        // Update vacancy info when department or vacancy count changes
+        $('#ai_vacancy_count').on('input', function() {
+            updateVacancyInfo();
+        });
+        
+        function updateVacancyInfo() {
+            var $deptSelect = $('#ai_department_select');
+            var $selected = $deptSelect.find('option:selected');
+            var limit = parseInt($selected.data('limit')) || null;
+            var current = parseInt($selected.data('current')) || 0;
+            var requested = parseInt($('#ai_vacancy_count').val()) || 0;
+            var $info = $('#vacancyLimitInfo');
+            var $warning = $('#vacancyWarning');
+            var $warningText = $('#vacancyWarningText');
+            var $generateBtn = $('#generateBtn');
+            
+            if (!$selected.val()) {
+                $info.text('');
+                $warning.hide();
+                return;
+            }
+            
+            if (limit === null) {
+                $info.html('<i class="fas fa-infinity mr-1"></i>No vacancy limit set for this department');
+                $warning.hide();
+                $generateBtn.prop('disabled', false);
+            } else {
+                var available = limit - current;
+                var newTotal = current + requested;
+                
+                $info.html('<i class="fas fa-info-circle mr-1"></i>Current: ' + current + ' | Limit: ' + limit + ' | Available: ' + available);
+                
+                if (newTotal > limit) {
+                    $warningText.text('Warning: Requesting ' + requested + ' vacancies would exceed the limit by ' + (newTotal - limit) + '. This job will need special approval.');
+                    $warning.show();
+                    // Don't disable, just warn - let approval process handle it
+                } else if (available <= 2 && available > 0) {
+                    $warningText.text('Notice: Only ' + available + ' vacancy slots remaining in this department.');
+                    $warning.removeClass('alert-danger').addClass('alert-warning').show();
+                } else {
+                    $warning.hide();
+                }
+            }
+        }
+        
         // Hide closed jobs by default
         $('tbody tr').each(function(){
             if($(this).find('.badge-danger').length > 0) {
