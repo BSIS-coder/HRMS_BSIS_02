@@ -7,8 +7,42 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
+// Check if user has permission (only admin and hr can view payroll transactions)
+if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'hr') {
+    header('Location: index.php');
+    exit;
+}
+
+// Determine access level for confidential data
+$can_view_confidential = ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'hr');
+
 // Include database connection
 require_once 'config.php';
+require_once 'dp.php'; // For audit logging
+
+// Function to calculate BIR income tax based on monthly salary
+function calculateBIRTax($monthly_salary) {
+    global $conn;
+
+    try {
+        $sql = "SELECT * FROM tax_brackets WHERE tax_type = 'Income Tax' ORDER BY min_salary ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        $brackets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $tax = 0;
+        foreach ($brackets as $bracket) {
+            if ($monthly_salary > $bracket['min_salary']) {
+                $taxable_amount = min($monthly_salary, $bracket['max_salary'] ?? $monthly_salary) - $bracket['min_salary'];
+                $tax += $bracket['fixed_amount'] + ($taxable_amount * $bracket['tax_rate']);
+            }
+        }
+
+        return round($tax, 2);
+    } catch (PDOException $e) {
+        return 0; // Return 0 if calculation fails
+    }
+}
 
 // Get filter parameters
 $cycle_id = $_GET['cycle_id'] ?? null;
@@ -49,14 +83,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 try {
                 // Get all processed transactions for this cycle
-                $trans_sql = "SELECT pt.*, ep.employee_number, pi.first_name, pi.last_name
+                $trans_sql = "SELECT pt.*, 
+                              COALESCE(ep.employee_number, CONCAT('EMP-', pt.employee_id)) as employee_number, 
+                              COALESCE(pi.first_name, 'Unknown') as first_name, 
+                              COALESCE(pi.last_name, '') as last_name
                               FROM payroll_transactions pt
-                              JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
-                              JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+                              LEFT JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
+                              LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
                               WHERE pt.payroll_cycle_id = ? AND pt.status = 'Processed'";
                     $trans_stmt = $conn->prepare($trans_sql);
                     $trans_stmt->execute([$cycle_id]);
                     $transactions = $trans_stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    error_log("Generating payslips for {$cycle_id}: Found " . count($transactions) . " transactions");
                     
                     $generated_count = 0;
                     
@@ -79,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 $payslip_url
                             ]);
                             
+                            error_log("Generated payslip for: " . $transaction['first_name'] . " " . $transaction['last_name']);
                             $generated_count++;
                         }
                     }
@@ -103,8 +143,7 @@ $sql = "SELECT
             jr.title as job_title, 
             d.department_name,
             ps.payslip_id, 
-            ps.status as payslip_status,
-            COALESCE(td.tax_deductions, 0) AS tax_deductions
+            ps.status as payslip_status
         FROM payroll_transactions pt
         JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
         JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
@@ -112,14 +151,6 @@ $sql = "SELECT
         LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
         LEFT JOIN departments d ON jr.department = d.department_name
         LEFT JOIN payslips ps ON pt.payroll_transaction_id = ps.payroll_transaction_id
-
-        /* ✅ Added: pull tax deduction totals from the tax_deductions table */
-        LEFT JOIN (
-            SELECT employee_id, SUM(tax_amount) AS tax_deductions
-            FROM tax_deductions
-            GROUP BY employee_id
-        ) td ON pt.employee_id = td.employee_id
-
         WHERE 1=1";
 
 $params = [];
@@ -147,44 +178,9 @@ try {
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-     // ✅ Add this: filter tax deductions that match the payroll cycle period
-    if ($cycle_id) {
-        $date_query = "SELECT pay_period_start, pay_period_end FROM payroll_cycles WHERE payroll_cycle_id = ?";
-        $date_stmt = $conn->prepare($date_query);
-        $date_stmt->execute([$cycle_id]);
-        $cycle_dates = $date_stmt->fetch(PDO::FETCH_ASSOC);
+    // Use the stored deduction values from payroll processing
+    // These are correctly halved for half-month cycles per the payroll_cycles.php logic
 
-        if ($cycle_dates) {
-            $pay_start = $cycle_dates['pay_period_start'];
-            $pay_end = $cycle_dates['pay_period_end'];
-
-            // Modify tax deduction totals dynamically for this cycle
-            foreach ($transactions as &$transaction) {
-                $tax_sql = "SELECT 
-                                COALESCE(SUM(
-                                    CASE 
-                                        WHEN tax_percentage IS NOT NULL THEN (tax_percentage / 100) * ?
-                                        ELSE tax_amount
-                                    END
-                                ), 0) AS total_tax
-                            FROM tax_deductions
-                            WHERE employee_id = ?
-                            AND effective_date BETWEEN ? AND ?";
-                $tax_stmt = $conn->prepare($tax_sql);
-                $tax_stmt->execute([
-                    $transaction['gross_pay'],
-                    $transaction['employee_id'],
-                    $pay_start,
-                    $pay_end
-                ]);
-                $tax_result = $tax_stmt->fetch(PDO::FETCH_ASSOC);
-                $transaction['tax_deductions'] = $tax_result['total_tax'];
-                $transaction['net_pay'] = $transaction['gross_pay'] - $transaction['tax_deductions'] - $transaction['statutory_deductions'] - $transaction['other_deductions'];
-            }
-        }
-    }
-
-} catch (PDOException $e) {
 } catch (PDOException $e) {
     $transactions = [];
     $error_message = "Error fetching transactions: " . $e->getMessage();
@@ -198,6 +194,20 @@ try {
 } catch (PDOException $e) {
     $cycles = [];
 }
+
+// Log confidential payroll data access
+logActivity("Payroll Transactions Viewed", "payroll_transactions", 0, [
+    'user_id' => $_SESSION['user_id'] ?? null,
+    'user_role' => $_SESSION['role'] ?? null,
+    'cycle_id' => $cycle_id,
+    'employee_search' => $employee_search,
+    'status_filter' => $status_filter,
+    'records_count' => count($transactions),
+    'total_gross' => array_sum(array_column($transactions, 'gross_pay')),
+    'total_net' => array_sum(array_column($transactions, 'net_pay')),
+    'total_tax' => array_sum(array_column($transactions, 'tax_deductions')),
+    'total_statutory' => array_sum(array_column($transactions, 'statutory_deductions'))
+]);
 
 // Calculate totals for current filtered results
 $total_gross = array_sum(array_column($transactions, 'gross_pay'));
@@ -411,38 +421,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                     </div>
                 <?php endif; ?>
 
-                <!-- Summary Cards -->
-                <?php if (!empty($transactions)): ?>
-                <div class="summary-card">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_gross, 2); ?></div>
-                                <div class="summary-label">Total Gross Pay</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_tax, 2); ?></div>
-                                <div class="summary-label">Total Tax Deductions</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_statutory, 2); ?></div>
-                                <div class="summary-label">Total Statutory Deductions</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_net, 2); ?></div>
-                                <div class="summary-label">Total Net Pay</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
+                <!-- Summary Cards - HIDDEN for confidentiality (view individual details instead) -->
                 <!-- Filters -->
                 <div class="filters-card">
                     <form method="get" class="row">
@@ -512,11 +491,6 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                         <th>Emp. #</th>
                                         <th>Department</th>
                                         <th>Cycle</th>
-                                        <th>Gross Pay</th>
-                                        <th>Tax Deductions</th>
-                                        <th>Statutory Deductions</th>
-                                        <th>Other Deductions</th>
-                                        <th>Net Pay</th>
                                         <th>Status</th>
                                         <th>Payslip</th>
                                         <th>Actions</th>
@@ -530,11 +504,6 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                                 <td><?php echo htmlspecialchars($transaction['employee_number']); ?></td>
                                                 <td><?php echo htmlspecialchars($transaction['department_name'] ?? 'N/A'); ?></td>
                                                 <td><?php echo htmlspecialchars($transaction['cycle_name']); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['gross_pay'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['tax_deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['statutory_deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['other_deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['net_pay'], 2); ?></td>
                                                 <td>
                                                     <?php 
                                                     $status = strtolower($transaction['status']);
@@ -557,7 +526,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                                     <div class="btn-group" role="group">
                                                         <button type="button" class="btn btn-sm btn-outline-info" 
                                                                 onclick="viewTransactionDetails(<?php echo htmlspecialchars(json_encode($transaction)); ?>)">
-                                                            <i class="fas fa-eye"></i>
+                                                            <i class="fas fa-eye"></i> View Details
                                                         </button>
                                                         
                                                         <?php if ($transaction['status'] != 'Cancelled'): ?>
@@ -602,7 +571,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="12" class="text-center">No payroll transactions found.</td>
+                                            <td colspan="7" class="text-center">No payroll transactions found.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
