@@ -64,8 +64,7 @@ require_once 'dp.php'; // database connection
       <h1 class="section-title">Performance Reviews</h1>
       <div>
         <button id="refreshBtn" class="btn btn-outline-secondary me-2"><i class="fas fa-sync"></i> Refresh</button>
-        <!-- <button id="exportBtn" class="btn btn-outline-primary me-2"><i class="fas fa-file-export"></i> Export</button>
-        <button id="printBtn" class="btn btn-outline-info"><i class="fas fa-print"></i> Print</button> -->
+        <button id="exportBtn" class="btn btn-outline-primary me-2"><i class="fas fa-file-export"></i> Export</button>
       </div>
     </div>
 
@@ -164,7 +163,7 @@ require_once 'dp.php'; // database connection
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Employee Review Details</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div id="detailHeader" class="mb-3">
@@ -181,10 +180,7 @@ require_once 'dp.php'; // database connection
             </table>
           </div>
 
-          <div class="mt-3">
-            <label class="form-label">Manager Comments</label>
-            <div id="detailManagerComments" class="border p-2">-</div>
-          </div>
+          <!-- Manager Comments section removed -->
         </div>
         <div class="modal-footer">
           <button id="editEvalBtn" type="button" class="btn btn-warning">Edit Evaluation</button>
@@ -200,7 +196,7 @@ require_once 'dp.php'; // database connection
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Edit Employee Evaluation</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div id="editHeader" class="mb-3">
@@ -265,7 +261,6 @@ function loadCycles() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadCycles();
-  loadDepartments();
   const cycleSel = document.getElementById('cycleSelect');
   cycleSel.addEventListener('change', () => {
     console.log('Selected Cycle ID:', cycleSel.value);
@@ -276,26 +271,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // ---------- Load Departments ----------
 function loadDepartments(){
   fetch('get_departments.php')
-    .then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    })
+    .then(r => r.json())
     .then(data => {
       const sel = elem('deptFilter');
       sel.innerHTML = '<option value="">-- All Departments --</option>';
       if (Array.isArray(data) && data.length > 0){
         data.forEach(d => {
-          const dept = d.department || '';
-          if (dept) {
-            sel.innerHTML += `<option value="${dept}">${dept}</option>`;
-          }
+          sel.innerHTML += `<option value="${d.department}">${d.department}</option>`;
         });
       }
     })
-    .catch(err => {
-      console.error('loadDepartments error', err);
-      elem('deptFilter').innerHTML = '<option value="">-- All Departments --</option>';
-    });
+    .catch(err => console.error('loadDepartments error', err));
 }
 
   // ---------- Load Competencies ----------
@@ -476,7 +462,7 @@ function viewDetails(empId){
         tbody.appendChild(tr);
       });
 
-      elem('detailManagerComments').textContent = data.review.manager_comments ?? '-';
+      // Manager comments removed from modal; no element to update
       new bootstrap.Modal(document.getElementById('detailModal')).show();
     }).catch(err=>{ console.error('detail error', err); alert('Failed to load details'); });
 }
@@ -548,16 +534,72 @@ function openEditModal(empId){
 }
 
 // ---------- Finalize ----------
-// (moved to DOMContentLoaded)
+elem('finalizeBtn').addEventListener('click', ()=>{
+  if(!currentCycleId) return alert('Select a cycle first');
+  if(!confirm('Finalize this cycle? This will lock further edits.')) return;
+  fetch('finalize_cycle.php', { 
+    method:'POST', 
+    headers:{'Content-Type':'application/x-www-form-urlencoded'}, 
+    body:`cycle_id=${encodeURIComponent(currentCycleId)}`
+  })
+    .then(r=>r.json())
+    .then(d=>{
+      alert(d.message || (d.success ? 'Cycle finalized' : 'Could not finalize'));
+      loadCycles(); loadReviews(currentCycleId);
+    }).catch(err=>console.error(err));
+});
 
 // ---------- Export ----------
-// (moved to DOMContentLoaded)
+elem('exportBtn').addEventListener('click', async () => {
+  // Prefer the tracked `currentCycleId`, but fall back to the select value if needed
+  let cycleId = currentCycleId || elem('cycleSelect').value;
+  if (!cycleId) return alert('Select a cycle to export');
+  const url = `export_review_report.php?cycle_id=${encodeURIComponent(cycleId)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const txt = await res.text();
+      alert(txt || 'Failed to export');
+      return;
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    let filename = 'Performance_Reviews.xls';
+    const m = cd.match(/filename\*?=(?:UTF-8''|"?)?([^;\n"]+)/i);
+    if (m && m[1]) filename = decodeURIComponent(m[1].replace(/"/g, ''));
 
-// ---------- Print ----------
-// (moved to DOMContentLoaded)
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+  } catch (err) {
+    console.error('Export error', err);
+    alert('Failed to export reviews');
+  }
+});
+
+// Print button removed: print functionality intentionally disabled here
 
 // ---------- Refresh ----------
-// (moved to DOMContentLoaded)
+elem('refreshBtn').addEventListener('click', ()=>{
+  // Unselect the cycle dropdown
+  elem('cycleSelect').value = '';
+  currentCycleId = null;
+  isShowingCompleted = false;
+  elem('reviewStatusSelect').value = 'pending';
+  elem('competenciesTbody').innerHTML = '<tr><td colspan="7" class="text-center">Select a review cycle to load data</td></tr>';
+  elem('finalizeBtn').disabled = true;
+  // Reset stats
+  elem('avgRating').textContent = '-';
+  elem('completedPct').textContent = '-';
+  elem('pendingCount').textContent = '-';
+  elem('employeesReviewed').textContent = '-';
+  // Reload cycles to refresh options
+  loadCycles();
+});
 
 // ---------- Utilities ----------
 function escapeHtml(s){ if(s===null||s===undefined) return ''; return String(s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
@@ -582,10 +624,88 @@ function deleteEmployeeCompetencies(employeeId){
 }
 
 // ---------- Edit Evaluation Modal ----------
-// (moved to DOMContentLoaded)
+elem('editEvalBtn').addEventListener('click', ()=>{
+  if(!currentEmployeeId || !currentCycleId) return alert('No employee selected');
+  elem('editCompetencies').innerHTML = 'Loading...';
+  fetch(`get_employee_review_details.php?employee_id=${currentEmployeeId}&cycle_id=${currentCycleId}`)
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data || !data.review){
+        elem('editCompetencies').innerHTML = 'No details found';
+        return;
+      }
+      const rev = data.review;
+      elem('editEmployee').textContent = rev.employee_name;
+      elem('editMeta').textContent = `${rev.dept || ''} • ${rev.role || ''} • Avg: ${rev.avg_rating !== null ? rev.avg_rating.toFixed(2) : '-'} `;
+
+      const container = elem('editCompetencies');
+      container.innerHTML = '';
+      (rev.competencies || []).forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'mb-3 border p-3';
+        div.innerHTML = `
+          <label class="form-label fw-bold">${escapeHtml(c.name)}</label>
+          <div class="row">
+            <div class="col-md-3">
+              <label class="form-label">Rating</label>
+              <select class="form-select competency-rating" data-competency-id="${c.competency_id}">
+                <option value="" ${!c.rating ? 'selected' : ''}>Select Rating</option>
+                <option value="1" ${c.rating == 1 ? 'selected' : ''}>1 - Poor</option>
+                <option value="2" ${c.rating == 2 ? 'selected' : ''}>2 - Below Average</option>
+                <option value="3" ${c.rating == 3 ? 'selected' : ''}>3 - Average</option>
+                <option value="4" ${c.rating == 4 ? 'selected' : ''}>4 - Good</option>
+                <option value="5" ${c.rating == 5 ? 'selected' : ''}>5 - Excellent</option>
+              </select>
+            </div>
+            <div class="col-md-9">
+              <label class="form-label">Comments</label>
+              <textarea class="form-control competency-comments" rows="2">${escapeHtml(c.comments ?? '')}</textarea>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      new bootstrap.Modal(document.getElementById('editModal')).show();
+    }).catch(err=>{ console.error('edit load error', err); alert('Failed to load edit data'); });
+});
 
 // ---------- Save Edit ----------
-// (moved to DOMContentLoaded)
+elem('saveEditBtn').addEventListener('click', ()=>{
+  if(!currentEmployeeId || !currentCycleId) return alert('No employee selected');
+  const competencies = [];
+  document.querySelectorAll('#editCompetencies > div').forEach(div => {
+    const ratingSel = div.querySelector('.competency-rating');
+    const commentsTa = div.querySelector('.competency-comments');
+    if(ratingSel && commentsTa){
+      competencies.push({
+        competency_id: ratingSel.dataset.competencyId,
+        rating: ratingSel.value,
+        comments: commentsTa.value.trim()
+      });
+    }
+  });
+
+  if(competencies.length === 0) return alert('No competencies to save');
+
+  fetch('update_employee_evaluation.php', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `employee_id=${encodeURIComponent(currentEmployeeId)}&cycle_id=${encodeURIComponent(currentCycleId)}&competencies=${encodeURIComponent(JSON.stringify(competencies))}`
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert(data.message || (data.success ? 'Saved successfully' : 'Failed to save'));
+    if(data.success){
+      bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+      loadCompetencies(currentCycleId); // Refresh the table
+    }
+  })
+  .catch(err => {
+    console.error('save error', err);
+    alert('Failed to save');
+  });
+});
 
   // ---------- Events ----------
   // ---------- Init ----------
@@ -630,155 +750,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCompetencies(currentCycleId);
       }
     }
-  });
-
-  // ✅ Finalize Button
-  elem('finalizeBtn').addEventListener('click', ()=>{
-    if(!currentCycleId) return alert('Select a cycle first');
-    if(!confirm('Finalize this cycle? This will lock further edits and prevent any modifications.')) return;
-    
-    // Disable button during request
-    elem('finalizeBtn').disabled = true;
-    elem('finalizeBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizing...';
-    
-    fetch('finalize_cycle.php', { 
-      method:'POST', 
-      headers:{'Content-Type':'application/x-www-form-urlencoded'}, 
-      body:`cycle_id=${encodeURIComponent(currentCycleId)}`
-    })
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        if (data.success) {
-          alert(data.message || 'Cycle finalized successfully!');
-          // Reload the page after successful finalization
-          setTimeout(() => {
-            location.reload();
-          }, 500);
-        } else {
-          alert('Error: ' + (data.message || 'Could not finalize cycle'));
-          elem('finalizeBtn').disabled = false;
-          elem('finalizeBtn').innerHTML = '<i class="fas fa-check"></i> Finalize Cycle';
-        }
-      })
-      .catch(err => {
-        console.error('finalize error', err);
-        alert('Failed to finalize cycle: ' + err.message);
-        elem('finalizeBtn').disabled = false;
-        elem('finalizeBtn').innerHTML = '<i class="fas fa-check"></i> Finalize Cycle';
-      });
-  });
-
-  // ✅ Export Button
-  elem('exportBtn').addEventListener('click', ()=>{
-    if(!currentCycleId) return alert('Select a cycle to export');
-    window.open(`export_review_report.php?cycle_id=${encodeURIComponent(currentCycleId)}`,'_blank');
-  });
-
-  // ✅ Print Button
-  elem('printBtn').addEventListener('click', ()=>{
-    window.print();
-  });
-
-  // ✅ Refresh Button
-  elem('refreshBtn').addEventListener('click', ()=>{
-    elem('cycleSelect').value = '';
-    currentCycleId = null;
-    isShowingCompleted = false;
-    elem('reviewStatusSelect').value = 'pending';
-    elem('competenciesTbody').innerHTML = '<tr><td colspan="7" class="text-center">Select a review cycle to load data</td></tr>';
-    elem('finalizeBtn').disabled = true;
-    elem('avgRating').textContent = '-';
-    elem('completedPct').textContent = '-';
-    elem('pendingCount').textContent = '-';
-    elem('employeesReviewed').textContent = '-';
-    loadCycles();
-  });
-
-  // ✅ Edit Evaluation Modal
-  elem('editEvalBtn').addEventListener('click', ()=>{
-    if(!currentEmployeeId || !currentCycleId) return alert('No employee selected');
-    elem('editCompetencies').innerHTML = 'Loading...';
-    fetch(`get_employee_review_details.php?employee_id=${currentEmployeeId}&cycle_id=${currentCycleId}`)
-      .then(r=>r.json())
-      .then(data=>{
-        if(!data || !data.review){
-          elem('editCompetencies').innerHTML = 'No details found';
-          return;
-        }
-        const rev = data.review;
-        elem('editEmployee').textContent = rev.employee_name;
-        elem('editMeta').textContent = `${rev.dept || ''} • ${rev.role || ''} • Avg: ${rev.avg_rating !== null ? rev.avg_rating.toFixed(2) : '-'} `;
-
-        const container = elem('editCompetencies');
-        container.innerHTML = '';
-        (rev.competencies || []).forEach(c => {
-          const div = document.createElement('div');
-          div.className = 'mb-3 border p-3';
-          div.innerHTML = `
-            <label class="form-label fw-bold">${escapeHtml(c.name)}</label>
-            <div class="row">
-              <div class="col-md-3">
-                <label class="form-label">Rating</label>
-                <select class="form-select competency-rating" data-competency-id="${c.competency_id}">
-                  <option value="" ${!c.rating ? 'selected' : ''}>Select Rating</option>
-                  <option value="1" ${c.rating == 1 ? 'selected' : ''}>1 - Poor</option>
-                  <option value="2" ${c.rating == 2 ? 'selected' : ''}>2 - Below Average</option>
-                  <option value="3" ${c.rating == 3 ? 'selected' : ''}>3 - Average</option>
-                  <option value="4" ${c.rating == 4 ? 'selected' : ''}>4 - Good</option>
-                  <option value="5" ${c.rating == 5 ? 'selected' : ''}>5 - Excellent</option>
-                </select>
-              </div>
-              <div class="col-md-9">
-                <label class="form-label">Comments</label>
-                <textarea class="form-control competency-comments" rows="2">${escapeHtml(c.comments ?? '')}</textarea>
-              </div>
-            </div>
-          `;
-          container.appendChild(div);
-        });
-
-        new bootstrap.Modal(document.getElementById('editModal')).show();
-      }).catch(err=>{ console.error('edit load error', err); alert('Failed to load edit data'); });
-  });
-
-  // ✅ Save Edit Button
-  elem('saveEditBtn').addEventListener('click', ()=>{
-    if(!currentEmployeeId || !currentCycleId) return alert('No employee selected');
-    const competencies = [];
-    document.querySelectorAll('#editCompetencies > div').forEach(div => {
-      const ratingSel = div.querySelector('.competency-rating');
-      const commentsTa = div.querySelector('.competency-comments');
-      if(ratingSel && commentsTa){
-        competencies.push({
-          competency_id: ratingSel.dataset.competencyId,
-          rating: ratingSel.value,
-          comments: commentsTa.value.trim()
-        });
-      }
-    });
-
-    if(competencies.length === 0) return alert('No competencies to save');
-
-    fetch('update_employee_evaluation.php', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: `employee_id=${encodeURIComponent(currentEmployeeId)}&cycle_id=${encodeURIComponent(currentCycleId)}&competencies=${encodeURIComponent(JSON.stringify(competencies))}`
-    })
-    .then(r => r.json())
-    .then(data => {
-      alert(data.message || (data.success ? 'Saved successfully' : 'Failed to save'));
-      if(data.success){
-        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-        loadCompetencies(currentCycleId); // Refresh the table
-      }
-    })
-    .catch(err => {
-      console.error('save error', err);
-      alert('Failed to save');
-    });
   });
 });
 

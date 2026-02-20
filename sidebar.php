@@ -230,11 +230,6 @@ $sidebar_stats = getSidebarStats();
                             <i class="fas fa-comments"></i> Performance Reviews
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('feedback_360.php'); ?>" href="feedback_360.php">
-                            <i class="fas fa-comment-dots"></i> Feedback 360
-                        </a>
-                    </li>
                     
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('goal_updates.php'); ?>" href="goal_updates.php">
@@ -246,12 +241,7 @@ $sidebar_stats = getSidebarStats();
                             <i class="fas fa-chart-bar"></i> Performance Metrics
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('ai_performance_interface.php'); ?>" href="ai_performance_interface.php">
-                            <i class="fas fa-brain"></i> AI Performance Tools
-                            <span class="badge badge-danger ml-2">NEW</span>
-                        </a>
-                    </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('development_plans.php'); ?>" href="development_plans.php">
                             <i class="fas fa-project-diagram"></i> Development Plans
