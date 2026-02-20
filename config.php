@@ -1,16 +1,10 @@
 <?php
 
-
-$nost = getenv('DB_HOST') ?? 'localhost';
-$name = getenv('DB_NAME') ?? 'hr_system';
-$user = getenv('DB_USER') ?? 'root';
-$pass = getenv('DB_PASS') ?? '';
-
 // Database configuration
-define('DB_HOST', $host);
-define('DB_NAME', $name);
-define('DB_USER', $user);
-define('DB_PASS', $pass);
+define('DB_HOST', getenv('DB_HOST') ?? 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?? 'hr_system');
+define('DB_USER', getenv('DB_USER') ?? 'root');
+define('DB_PASS', getenv('DB_PASS') ?? '');
 
 // Error reporting
 error_reporting(E_ALL);
