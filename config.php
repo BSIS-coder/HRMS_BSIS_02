@@ -1,8 +1,10 @@
 <?php
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+// Database configuration
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'hr_system');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+
 
 // Error reporting
 error_reporting(E_ALL);
@@ -173,4 +175,5 @@ function customExceptionHandler($exception) {
 
 set_exception_handler("customExceptionHandler");
 ?>
+
 
