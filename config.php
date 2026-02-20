@@ -34,7 +34,7 @@ try {
 } catch (PDOException $e) {
     // Log error and show generic message
     error_log("Connection failed: " . $e->getMessage());
-    die("Connection failed. Please try again later.");
+    die("Connection failed. Please try again later. ". $host );
 }
 
 // Application settings
