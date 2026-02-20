@@ -1,8 +1,29 @@
 <?php
-session_start();
+/**
+ * PUBLIC HOLIDAYS MANAGEMENT PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 7322 (Philippine Holidays Law)
+ *   - Defines Regular Holidays (national holidays)
+ *   - Special Non-Working Days (special occasions)
+ *   - Special Holidays and Commemorative Days
+ *   - Governs compensation for work on holidays
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Holiday policies may contain employee personal data
+ *   - Ensure secure storage and restricted access to holiday schedules
+ *   - Only authorized personnel (HR/admin) should manage holidays
+ *   - Any holiday preference data must comply with privacy requirements
+ *   - Protect employee information in audit logs and history
+ * 
+ * Compliance Note: All holidays must comply with RA 7322 requirements.
+ * Holiday types (National, Regional, Special) are managed per law.
+ * All holiday-related data must be protected under RA 10173.
+ */
 
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -76,15 +97,30 @@ require_once 'dp.php';
             <div class="main-content">
                 <h2 class="section-title">Public Holidays Management</h2>
                 
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 7322</strong> - Philippine Holidays Law: Governs all regular, special non-working, and special holidays recognition and compensation.</li>
+                                <li><strong>RA 10173</strong> - Data Privacy Act: Holiday schedules must be stored securely with restricted access to authorized personnel.</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0"><i class="fas fa-calendar-day mr-2"></i>Public Holidays List</h5>
                                     <div>
-                                        <button class="btn btn-secondary mr-2" id="migrateHolidaysBtn" onclick="migrateHolidayTypes()">
-                                            <i class="fas fa-cogs mr-2"></i>Migrate Holiday Types
-                                        </button>
                                         <button class="btn btn-info mr-2" id="syncHolidaysBtn" onclick="syncHolidays()">
                                             <i class="fas fa-sync-alt mr-2"></i>Sync from API
                                         </button>
@@ -678,41 +714,7 @@ require_once 'dp.php';
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
-    function migrateHolidayTypes() {
-        const migrateBtn = $('#migrateHolidaysBtn');
-        const originalText = migrateBtn.html();
 
-        // Show loading state
-        migrateBtn.prop('disabled', true);
-        migrateBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>Migrating...');
-
-        $.ajax({
-            url: 'migrate_holiday_types.php', // This script will perform the migration
-            type: 'POST',
-            data: { action: 'migrate_types' },
-            dataType: 'json',
-            success: function(response) {
-                migrateBtn.prop('disabled', false);
-                migrateBtn.html(originalText);
-
-                if (response.success) {
-                    showAlert(response.message, 'success');
-                    loadHolidays(); // Reload the holidays list to show updated types
-                } else {
-                    if (response.message.includes('column does not exist')) {
-                        showAlert('<b>Database Schema Error:</b> The table is missing a required column. Please run the `add_columns.php` script to update your database, then try again.', 'danger');
-                    } else {
-                        showAlert('Migration failed: ' + response.message, 'danger');
-                    }
-                }
-            },
-            error: function() {
-                migrateBtn.prop('disabled', false);
-                migrateBtn.html(originalText);
-                showAlert('Error connecting to server. Please try again.', 'danger');
-            }
-        });
-    }
     </script>
 </body>
 </html>

@@ -96,11 +96,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitLeaveRequest'])
 
                 $success = "Leave request submitted successfully!";
 
+                // Clear the form data from session to prevent duplicate submission on refresh
+                unset($_SESSION['leave_form_submitted']);
+
+                // Redirect to prevent form resubmission on refresh (PRG pattern)
+                header('Location: employee_leave.php?success=1');
+                exit;
+
             } catch (PDOException $e) {
                 $error = "Error submitting leave request: " . $e->getMessage();
             }
         }
     }
+}
+
+// Check for success message from redirect (PRG pattern)
+if (isset($_GET['success']) && $_GET['success'] == 1) {
+    $success = "Leave request submitted successfully!";
 }
 
 // Fetch leave balances for the employee
@@ -161,6 +173,20 @@ if ($employee_id && function_exists('getLeaveTypesForEmployee')) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="employee_style.css">
     <style>
+        /* Fix topnav visibility for this page only */
+        .top-navbar {
+            margin-left: 250px !important;
+            width: calc(100% - 250px) !important;
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            z-index: 1020;
+        }
+        .main-content {
+            margin-top: 90px;
+            margin-left: 250px;
+            padding: 30px 40px 40px 40px;
+        }
         .section-title {
             color: var(--primary-color);
             margin-bottom: 30px;
@@ -222,7 +248,7 @@ if ($employee_id && function_exists('getLeaveTypesForEmployee')) {
 </head>
 <body class="employee-page">
     <div class="container-fluid">
-        <?php include 'employee_navigation.php'; ?>
+        <?php include 'navigation.php'; ?>
         <div class="row">
             <?php include 'employee_sidebar.php'; ?>
             <div class="main-content">
@@ -314,14 +340,10 @@ if ($employee_id && function_exists('getLeaveTypesForEmployee')) {
                                                     <td><?php echo htmlspecialchars($request['total_days']); ?> days</td>
                                                     <td><?php echo htmlspecialchars($request['reason']); ?></td>
                                                     <td><span class="status-badge badge-<?php echo strtolower($request['status']); ?>"><?php echo htmlspecialchars($request['status']); ?></span></td>
-<<<<<<< HEAD
-                                                    <td><?php if ($request['document_path']): ?><a href="#" class="btn btn-sm btn-info view-document" data-path="<?php echo htmlspecialchars($request['document_path']); ?>" data-type="<?php echo strtolower(pathinfo($request['document_path'], PATHINFO_EXTENSION)) === 'pdf' ? 'pdf' : 'image'; ?>"><i class="fas fa-eye mr-1"></i>View</a><?php endif; ?></td>
-=======
                                                     <td><?php if ($request['document_path']): ?>
                                                         <button class="btn btn-sm btn-outline-primary mr-1" onclick="viewDocument('<?php echo htmlspecialchars($request['document_path']); ?>', '<?php echo htmlspecialchars($request['leave_type_name']); ?>', '<?php echo htmlspecialchars($request['start_date']); ?> to <?php echo htmlspecialchars($request['end_date']); ?>')"><i class="fas fa-eye"></i> View</button>
                                                         <a href="<?php echo htmlspecialchars($request['document_path']); ?>" download class="btn btn-sm btn-outline-secondary"><i class="fas fa-download"></i> Download</a>
                                                     <?php endif; ?></td>
->>>>>>> 48f0fd909401d87fc7e82ce488dfd81cd0dfc6fa
                                                     <td><?php echo htmlspecialchars(date('M d, Y', strtotime($request['applied_on']))); ?></td>
                                                 </tr>
                                                 <?php endforeach; ?>
@@ -391,11 +413,7 @@ if ($employee_id && function_exists('getLeaveTypesForEmployee')) {
     </div>
 
     <!-- Document Viewer Modal -->
-<<<<<<< HEAD
-    <div class="modal fade" id="documentViewerModal" tabindex="-1" role="dialog" aria-labelledby="documentViewerModalLabel" aria-hidden="true">
-=======
     <div id="documentViewerModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="documentViewerModalLabel" aria-hidden="true">
->>>>>>> 48f0fd909401d87fc7e82ce488dfd81cd0dfc6fa
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -411,43 +429,17 @@ if ($employee_id && function_exists('getLeaveTypesForEmployee')) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-<<<<<<< HEAD
-=======
                     <a id="downloadDocumentBtn" href="#" target="_blank" class="btn btn-primary">Download Document</a>
->>>>>>> 48f0fd909401d87fc7e82ce488dfd81cd0dfc6fa
                 </div>
             </div>
         </div>
     </div>
 
-<<<<<<< HEAD
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-=======
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
->>>>>>> 48f0fd909401d87fc7e82ce488dfd81cd0dfc6fa
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
-<<<<<<< HEAD
-        $(document).ready(function() {
-            $('.view-document').on('click', function(e) {
-                e.preventDefault();
-                var documentPath = $(this).data('path');
-                var documentType = $(this).data('type');
-
-                $('#documentViewerContent').empty();
-
-                if (documentType === 'pdf') {
-                    $('#documentViewerContent').html('<iframe src="' + documentPath + '" width="100%" height="600px" style="border: none;"></iframe>');
-                } else if (documentType === 'image') {
-                    $('#documentViewerContent').html('<img src="' + documentPath + '" class="img-fluid" alt="Document">');
-                }
-
-                $('#documentViewerModal').modal('show');
-            });
-        });
-=======
         function viewDocument(documentPath, leaveType, dates) {
             var fileExtension = documentPath.split('.').pop().toLowerCase();
             var content = '';
@@ -469,7 +461,6 @@ if ($employee_id && function_exists('getLeaveTypesForEmployee')) {
             $('#documentViewerContent').html(content);
             $('#documentViewerModal').modal('show');
         }
->>>>>>> 48f0fd909401d87fc7e82ce488dfd81cd0dfc6fa
     </script>
 </body>
 </html>

@@ -1,8 +1,36 @@
 <?php
-session_start();
+/**
+ * EMPLOYEE SHIFTS ASSIGNMENT PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 6727 (Implementing Rules and Regulations of the Wage Order)
+ *   - Enforces maximum 8-hour regular work day
+ *   - Overtime regulations and compensation requirements
+ *   - IsOvertime flag indicates work beyond 8 hours
+ *   - Overtime compensation at 1.25x (first 4 hours) and 1.5x (after 4 hours) rates
+ *   - Rest day requirements and compensation (2x pay)
+ *   - No continuous work beyond legal limits
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Employee shift assignments contain PERSONAL INFORMATION
+ *   - Work schedule reveals employee work history and patterns
+ *   - Only authorized personnel should access shift assignments
+ *   - Employees have right to access their own shift assignments
+ *   - Protect overtime tracking data - reveals workload/compensation
+ *   - Secure employee_id and assignment history
+ *   - Maintain detailed audit logs for shift assignment changes
+ *   - Do not share shift data with unauthorized third parties
+ *   - Encrypt shift assignment data in transit and at rest
+ * 
+ * Compliance Note: Track overtime assignments carefully. Excessive continuous
+ * overtime may violate labor laws. Ensure overtime compensation is accurately
+ * calculated in payroll system. Rest days must be enforced per wage order.
+ * All shift assignments are personal data protected under RA 10173.
+ */
 
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -102,6 +130,33 @@ $shifts = getShifts();
         <div class="row">
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
+                <h2 class="section-title">Employee Shifts Management</h2>
+
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 6727</strong> - Wage Order: Maximum 8-hour regular work day. Overtime tracked and regulated with mandatory compensation (1.25x-1.5x rates).</li>
+                                <li><strong>RA 10173</strong> - Data Privacy Act: <strong>Employee shift assignments are PERSONAL INFORMATION</strong></li>
+                            </ul>
+                            <strong>Data Privacy Notice:</strong>
+                            <ul class="mb-2">
+                                <li>Employee shift assignments reveal work schedules and patterns - access restricted to authorized management/HR</li>
+                                <li>Overtime assignments indicate workload - tracked for compensation calculation and labor compliance</li>
+                                <li>Only authorized managers and HR can assign/modify employee shifts</li>
+                                <li>All assignment changes are logged and audited for security and compliance</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <h2 class="section-title">Employee Shifts Management</h2>
 
                 <?php if (isset($error)): ?>

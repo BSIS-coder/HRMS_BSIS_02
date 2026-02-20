@@ -1,8 +1,35 @@
 <?php
-session_start();
+/**
+ * ATTENDANCE MANAGEMENT PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 6727 (Implementing Rules and Regulations of the Wage Order)
+ *   - Covers mandatory 8-hour work day compliance
+ *   - Overtime regulations and compensation
+ *   - Standard working hours (08:00 AM start time as implemented)
+ * 
+ * - RA 8799 (Securities Regulation Code of the Philippines)
+ *   - Section 117.2: Employee benefits provisions
+ *   - Work-related benefits and compensation
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - This page processes employee Personal Information (names, attendance times)
+ *   - Data must be collected only for lawful purposes (attendance tracking)
+ *   - Employee consent required or lawful basis must exist
+ *   - Implement security controls to protect attendance data
+ *   - Only authorized HR/admin personnel should access this data
+ *   - Employees have right to access and correct their attendance records
+ *   - Report any data breaches to NPC (National Privacy Commission)
+ * 
+ * Compliance Note: Late minutes are tracked to ensure accurate overtime
+ * calculation and adherence to wage order requirements.
+ * All attendance data is personal information and must be handled
+ * in accordance with RA 10173 data privacy obligations.
+ */
 
-// Check if the user is logged in and has admin/hr role, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'hr')) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -50,6 +77,25 @@ require_once 'dp.php';
             <div class="main-content">
                 <h2 class="section-title">Attendance Management</h2>
                 
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 6727</strong> - Wage Order: Enforces 8-hour work day (08:00 AM standard). Overtime tracked and regulated.</li>
+                                <li><strong>RA 8799</strong> - Employee benefits and compensation provisions apply.</li>
+                                <li><strong>RA 10173</strong> - Data Privacy Act: Only authorized HR/Admin personnel can access this information.</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">

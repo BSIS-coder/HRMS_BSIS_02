@@ -11,8 +11,107 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION
 require_once 'dp.php';
 
 // Get employee information
-$employee_id = $_SESSION['user_id'];
+$user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
+
+// Fetch employee_id from users table
+try {
+    $sql = "SELECT employee_id FROM users WHERE user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$user_id]);
+    $employee_id = $stmt->fetchColumn();
+    if (!$employee_id) {
+        $error = "Employee profile not found. Please contact administrator.";
+        $employee_id = null;
+    }
+} catch (PDOException $e) {
+    $error = "Database error: " . $e->getMessage();
+    $employee_id = null;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitLeaveRequest'])) {
+    if (!$employee_id) {
+        $error = "Cannot submit leave request without a valid employee profile.";
+    } else {
+        // Handle new leave request submission
+        $leaveTypeId = $_POST['leaveTypeId'];
+        $startDate = $_POST['startDate'];
+        $endDate = $_POST['endDate'];
+        $reason = $_POST['reason'];
+
+        // Calculate duration in days
+        $duration = (strtotime($endDate) - strtotime($startDate)) / (60 * 60 * 24) + 1;
+
+        $documentPath = null;
+        if (isset($_FILES['document']) && $_FILES['document']['error'] == 0) {
+            $fileName = $_FILES['document']['name'];
+            $fileTmpName = $_FILES['document']['tmp_name'];
+            $fileSize = $_FILES['document']['size'];
+            $fileType = $_FILES['document']['type'];
+
+            $allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            if (in_array($fileType, $allowedTypes) && $fileSize < 5000000) {
+                $newFileName = uniqid() . '_' . $fileName;
+                $uploadPath = 'uploads/leave_documents/' . $newFileName;
+                if (move_uploaded_file($fileTmpName, $uploadPath)) {
+                    $documentPath = $uploadPath;
+                }
+            }
+        }
+
+        try {
+            $sql = "INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, total_days, reason, document_path, status, applied_on)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$employee_id, $leaveTypeId, $startDate, $endDate, $duration, $reason, $documentPath]);
+            $leave_id = $conn->lastInsertId();
+            error_log("Employee index: About to log activity for leave_id $leave_id");
+            logActivity("Leave Request Submitted", "leave_requests", $leave_id, [
+                'leave_type_id' => $leaveTypeId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'total_days' => $duration,
+                'reason' => $reason
+            ]);
+
+            // If a document was uploaded, add it to document_management
+            if ($documentPath) {
+                try {
+                    $documentName = "Leave Request Document - " . date('M d, Y', strtotime($startDate)) . " to " . date('M d, Y', strtotime($endDate));
+                    $docSql = "INSERT INTO document_management (employee_id, document_type, document_name, file_path, document_status, notes, created_at)
+                               VALUES (?, 'Leave Document', ?, ?, 'Active', ?, NOW())";
+                    $docStmt = $conn->prepare($docSql);
+                    $docStmt->execute([$employee_id, $documentName, $documentPath, "Leave request document for " . $reason]);
+                    error_log("Employee index: Document added to document_management for leave_id $leave_id");
+                } catch (PDOException $e) {
+                    error_log("Employee index: Error adding document to document_management: " . $e->getMessage());
+                    // Don't fail the leave request if document insertion fails
+                }
+            }
+
+            $success = "Leave request submitted successfully!";
+            unset($_SESSION['leave_form_submitted']);
+            header('Location: employee_index.php?success=1');
+            exit;
+        } catch (PDOException $e) {
+            $error = "Error submitting leave request: " . $e->getMessage();
+        }
+    }
+}
+
+// Check for success message from redirect (PRG pattern)
+if (isset($_GET['success']) && $_GET['success'] == 1) {
+    $success = "Leave request submitted successfully!";
+}
+
+// Fetch leave types for the form
+if (function_exists('getLeaveTypesForEmployee') && $employee_id) {
+    $leaveTypes = getLeaveTypesForEmployee($employee_id);
+} elseif (function_exists('getLeaveTypes')) {
+    $leaveTypes = getLeaveTypes();
+} else {
+    $leaveTypes = [];
+}
 
 // Debug information
 $current_role = $_SESSION['role'] ?? 'none';
@@ -229,11 +328,141 @@ $current_page = basename($_SERVER['PHP_SELF']);
             font-size: 2rem;
             margin: 0 auto 20px;
         }
+
+        /* Form Styling */
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+
+        .form-control, .form-control-file {
+            border: 1.5px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background-color: #fafbfc;
+        }
+
+        .form-control:focus, .form-control-file:focus {
+            border-color: #E91E63;
+            box-shadow: 0 0 0 0.2rem rgba(233, 30, 99, 0.15);
+            background-color: white;
+        }
+
+        .form-control::placeholder {
+            color: #adb5bd;
+            font-size: 0.9rem;
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23495057' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 35px;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+            border: none;
+            border-radius: 8px 8px 0 0;
+            padding: 20px 25px;
+        }
+
+        .modal-header .modal-title {
+            color: white;
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+
+        .modal-header .close {
+            color: white;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-header .close:hover {
+            opacity: 1;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e0e0e0;
+            padding: 15px 25px;
+        }
+
+        .btn {
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(233, 30, 99, 0.3);
+            color: white;
+        }
+
+        .row .col-md-6 .form-group {
+            margin-bottom: 0;
+        }
+
+        .modal-body .row {
+            margin-left: -10px;
+            margin-right: -10px;
+        }
+
+        .modal-body .col-md-6 {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
-<body class="employee-page">
+<body>
     <div class="container-fluid">
-        <?php include 'employee_navigation.php'; ?>
+        <?php include 'navigation.php'; ?>
         <div class="row">
             <?php include 'employee_sidebar.php'; ?>
             <div class="main-content">
@@ -242,6 +471,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <h2><i class="fas fa-user-circle mr-3"></i>Welcome, <?php echo ucfirst(explode('.', $username)[0]); ?>!</h2>
                     <p>Here's your personal HR dashboard with all the information you need</p>
                 </div>
+
+                <?php if (isset($success)): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle mr-2"></i><?php echo $success; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                <?php elseif (isset($error)): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle mr-2"></i><?php echo $error; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Quick Actions -->
                 <div class="quick-actions">
@@ -457,34 +702,43 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form method="POST" action="employee_index.php" enctype="multipart/form-data">
                         <div class="form-group">
-                            <label for="leaveType">Leave Type</label>
-                            <select class="form-control" id="leaveType" required>
+                            <label for="leaveTypeId">Leave Type</label>
+                            <select class="form-control" id="leaveTypeId" name="leaveTypeId" required>
                                 <option value="">Select leave type</option>
-                                <option value="annual">Annual Leave</option>
-                                <option value="sick">Sick Leave</option>
-                                <option value="personal">Personal Leave</option>
-                                <option value="maternity">Maternity Leave</option>
+                                <?php foreach ($leaveTypes as $leaveType): ?>
+                                    <option value="<?php echo $leaveType['leave_type_id']; ?>"><?php echo htmlspecialchars($leaveType['leave_type_name']); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="startDate">Start Date</label>
-                            <input type="date" class="form-control" id="startDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="endDate">End Date</label>
-                            <input type="date" class="form-control" id="endDate" required>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="startDate">Start Date</label>
+                                    <input type="date" class="form-control" id="startDate" name="startDate" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="endDate">End Date</label>
+                                    <input type="date" class="form-control" id="endDate" name="endDate" required>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="reason">Reason</label>
-                            <textarea class="form-control" id="reason" rows="3" placeholder="Please provide a reason for your leave request"></textarea>
+                            <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Enter reason for leave" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="document">Document (optional)</label>
+                            <input type="file" class="form-control" id="document" name="document" accept=".pdf,.jpg,.png">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" name="submitLeaveRequest" class="btn btn-primary">Submit Request</button>
                         </div>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary">Submit Request</button>
                 </div>
             </div>
         </div>

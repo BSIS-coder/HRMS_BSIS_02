@@ -680,7 +680,7 @@ if (isset($_POST['action'])) {
 </head>
 <body>
     <div class="container-fluid">
-        <?php include 'employee_navigation.php'; ?>
+        <?php include 'navigation.php'; ?>
         <div class="row">
             <?php include 'employee_sidebar.php'; ?>
             <div class="main-content col-md-10">

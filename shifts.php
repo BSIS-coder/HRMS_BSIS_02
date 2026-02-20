@@ -1,8 +1,32 @@
 <?php
-session_start();
+/**
+ * SHIFTS MANAGEMENT PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 6727 (Implementing Rules and Regulations of the Wage Order)
+ *   - Mandates 8-hour work day (as implemented in shift scheduling)
+ *   - Overtime regulations beyond 8 hours per day
+ *   - Shift duration limitations
+ *   - Rest day and meal period requirements
+ *   - Compensation for night shift work (night differential)
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Shift schedules contain employee personal information
+ *   - Working hours and shift assignments reveal employee work patterns
+ *   - Secure shift schedule data with appropriate access controls
+ *   - Only authorized management/HR should access shift configurations
+ *   - Employees have right to know their shift assignments
+ *   - Protect shift schedule audit trails and modification history
+ * 
+ * Compliance Note: Shifts should not exceed 8 hours regular work day.
+ * Any scheduling beyond 8 hours constitutes overtime with mandatory compensation.
+ * Night shifts (typically 10 PM - 6 AM) require night differential pay per wage order.
+ * All shift data must be protected as personal information under RA 10173.
+ */
 
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -122,6 +146,31 @@ $shifts = getShifts();
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
                 <h2 class="section-title">Shifts Management</h2>
+                
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 6727</strong> - Wage Order: 8-hour work day standard. Overtime beyond 8 hours regulated and compensated.</li>
+                                <li><strong>RA 10173</strong> - Data Privacy Act: Shift schedules contain personal work pattern information.</li>
+                            </ul>
+                            <strong>Data Privacy Notice:</strong>
+                            <ul class="mb-0">
+                                <li>Shift configurations affect employee work schedules - access restricted to authorized management/HR only</li>
+                                <li>Night shift designations are tracked for night differential compensation calculation</li>
+                                <li>All shift configuration modifications are logged for audit purposes</li>
+                                <li>Protect shift schedule data with appropriate access controls and encryption</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 
                 <?php if (isset($error)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">

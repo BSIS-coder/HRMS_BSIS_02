@@ -18,6 +18,20 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $employee_id = null; // Initialize to prevent undefined variable errors
 
+// Generate CSRF token for attendance forms
+if (!isset($_SESSION['attendance_csrf_token'])) {
+    $_SESSION['attendance_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['attendance_csrf_token'];
+
+// Verify session security - check if this is a fresh session and log contains expected login info
+$session_id = session_id();
+if (!isset($_SESSION['login_verified'])) {
+    // First time accessing this page in this session - verify the user is still the same
+    error_log("Session verification for user_id: $user_id, session: $session_id, IP: {$_SERVER['REMOTE_ADDR']}");
+    $_SESSION['login_verified'] = true;
+}
+
 // Get employee_id from users table (primary source based on schema)
 try {
     $stmt = $conn->prepare("SELECT employee_id FROM users WHERE user_id = ?");
@@ -25,10 +39,10 @@ try {
     $user_employee = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user_employee && $user_employee['employee_id']) {
         $employee_id = $user_employee['employee_id'];
-        error_log("Found employee_id $employee_id for user_id $user_id from users table");
+        error_log("Attendance access - Found employee_id $employee_id for user_id $user_id from users table, session: $session_id");
     } else {
         $_SESSION['error'] = "Employee profile not found. Please contact HR.";
-        error_log("No employee_id found for user_id: $user_id in users table");
+        error_log("Attendance access - No employee_id found for user_id: $user_id in users table");
         $employee_id = null;
     }
 } catch (PDOException $e) {
@@ -37,16 +51,50 @@ try {
     $employee_id = null;
 }
 
+// Function to get employee's shift for today
+function getEmployeeShiftForDate($employee_id, $date) {
+    global $conn;
+    try {
+        $sql = "SELECT s.shift_id, s.shift_name, s.start_time, s.end_time
+                FROM employee_shifts es
+                JOIN shifts s ON es.shift_id = s.shift_id
+                WHERE es.employee_id = ? AND es.assigned_date <= ? AND es.status = 'Active'
+                ORDER BY es.assigned_date DESC
+                LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$employee_id, $date]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error getting employee shift: " . $e->getMessage());
+        return null;
+    }
+}
+
+// Function to validate if time is within shift range
+function isTimeWithinShiftRange($time, $shift_start, $shift_end) {
+    // Convert all times to minutes for easier comparison
+    $timeInMinutes = (int)substr($time, 11, 2) * 60 + (int)substr($time, 14, 2);
+    $startInMinutes = (int)substr($shift_start, 0, 2) * 60 + (int)substr($shift_start, 3, 2);
+    $endInMinutes = (int)substr($shift_end, 0, 2) * 60 + (int)substr($shift_end, 3, 2);
+    
+    return $timeInMinutes >= $startInMinutes && $timeInMinutes <= $endInMinutes;
+}
+
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $redirect = true;
-
-    if (!$employee_id) {
+    
+    // Validate CSRF token
+    $providedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['attendance_csrf_token'] ?? '', $providedToken)) {
+        error_log("CSRF token validation failed: user_id=$user_id, session=" . session_id());
+        $_SESSION['error'] = "Security validation failed. Please try again.";
+        $redirect = false;
+    } elseif (!$employee_id) {
         $_SESSION['error'] = "Cannot process attendance without a valid employee profile.";
         $redirect = false;
     } else {
         if (isset($_POST['clock_in'])) {
             // Clock in
-            try {
         $today = date('Y-m-d');
         $clientTimeStr = $_POST['time'] ?? null;
         $nowDt = date('Y-m-d H:i:s');
@@ -58,12 +106,50 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 // use default
             }
         }
-        $sql = "INSERT INTO attendance (employee_id, attendance_date, clock_in, status) VALUES (?, ?, ?, 'Present')
-                        ON DUPLICATE KEY UPDATE clock_in = VALUES(clock_in), status = 'Present'";
-                $stmt = $conn->prepare($sql);
-                $result = $stmt->execute([$employee_id, $today, $nowDt]);
+        
+        // Get employee's shift for today
+        $employeeShift = getEmployeeShiftForDate($employee_id, $today);
+        
+        // Validate if clock-in time is within shift range
+        if (!$employeeShift) {
+            $message = "No active shift found for today. Please contact HR to assign a shift.";
+            $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+            if ($isAjax) {
+                echo json_encode(['success' => false, 'message' => $message]);
+                exit;
+            } else {
+                $_SESSION['error'] = $message;
+                $redirect = false;
+            }
+        } elseif (!isTimeWithinShiftRange($nowDt, $employeeShift['start_time'], $employeeShift['end_time'])) {
+            $shiftStartFormatted = date('h:i A', strtotime($employeeShift['start_time']));
+            $shiftEndFormatted = date('h:i A', strtotime($employeeShift['end_time']));
+            $message = "You can only clock in between {$shiftStartFormatted} and {$shiftEndFormatted}. Your shift ({$employeeShift['shift_name']}): {$shiftStartFormatted} - {$shiftEndFormatted}";
+            $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+            if ($isAjax) {
+                echo json_encode(['success' => false, 'message' => $message]);
+                exit;
+            } else {
+                $_SESSION['error'] = $message;
+                $redirect = false;
+            }
+        } else {
+            // Time is within shift range, proceed with clock-in
+            // Double-check that we have a valid employee_id before processing
+            if (!$employee_id || !is_numeric($employee_id) || $employee_id <= 0) {
+                $_SESSION['error'] = "Invalid employee ID. Session may have expired.";
+                error_log("Clock-in rejected: Invalid employee_id ($employee_id) for user_id $user_id");
+                $redirect = false;
+            } else {
+                try {
+                $sql = "INSERT INTO attendance (employee_id, attendance_date, clock_in, status) VALUES (?, ?, ?, 'Present')
+                                ON DUPLICATE KEY UPDATE clock_in = VALUES(clock_in), status = 'Present'";
+                        $stmt = $conn->prepare($sql);
+                        $result = $stmt->execute([$employee_id, $today, $nowDt]);
+                        
+                        error_log("Clock-in recorded: user_id=$user_id, employee_id=$employee_id, username=$username, time=$nowDt, session=" . session_id());
 
-                $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+                    $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
                 $message = '';
                 if ($result) {
                     // Verify insertion
@@ -110,21 +196,22 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 ];
                 logActivity('Employee clocked in', 'attendance', null, $details);
                 */
-            } catch (PDOException $e) {
-                $errorMsg = "Error clocking in: " . $e->getMessage();
-                error_log("Clock-in PDO error: " . $e->getMessage());
-                $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
-                if ($isAjax) {
-                    echo json_encode(['success' => false, 'message' => $errorMsg]);
-                    exit;
-                } else {
-                    $_SESSION['error'] = $errorMsg;
-                    $redirect = false;
+                } catch (PDOException $e) {
+                    $errorMsg = "Error clocking in: " . $e->getMessage();
+                    error_log("Clock-in PDO error: " . $e->getMessage());
+                    $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+                    if ($isAjax) {
+                        echo json_encode(['success' => false, 'message' => $errorMsg]);
+                        exit;
+                    } else {
+                        $_SESSION['error'] = $errorMsg;
+                        $redirect = false;
+                    }
                 }
             }
+        }
         } elseif (isset($_POST['clock_out'])) {
             // Clock out
-            try {
         $today = date('Y-m-d');
         $clientTimeStr = $_POST['time'] ?? null;
         $nowDt = date('Y-m-d H:i:s');
@@ -136,21 +223,57 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 // use default
             }
         }
-        $sql = "UPDATE attendance SET clock_out = ?, working_hours = TIMESTAMPDIFF(HOUR, clock_in, ?) WHERE employee_id = ? AND attendance_date = ?";
-                $stmt = $conn->prepare($sql);
-                $result = $stmt->execute([$nowDt, $nowDt, $employee_id, $today]);
+        
+        // Get employee's shift for today
+        $employeeShift = getEmployeeShiftForDate($employee_id, $today);
+        
+        // Validate if clock-out time is within shift range
+        if (!$employeeShift) {
+            $message = "No active shift found for today. Cannot process clock-out.";
+            $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+            if ($isAjax) {
+                echo json_encode(['success' => false, 'message' => $message]);
+                exit;
+            } else {
+                $_SESSION['error'] = $message;
+                $redirect = false;
+            }
+        } elseif (!isTimeWithinShiftRange($nowDt, $employeeShift['start_time'], $employeeShift['end_time'])) {
+            $shiftStartFormatted = date('h:i A', strtotime($employeeShift['start_time']));
+            $shiftEndFormatted = date('h:i A', strtotime($employeeShift['end_time']));
+            $message = "You can only clock out between {$shiftStartFormatted} and {$shiftEndFormatted}. Your shift ({$employeeShift['shift_name']}): {$shiftStartFormatted} - {$shiftEndFormatted}";
+            $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+            if ($isAjax) {
+                echo json_encode(['success' => false, 'message' => $message]);
+                exit;
+            } else {
+                $_SESSION['error'] = $message;
+                $redirect = false;
+            }
+        } else {
+            // Time is within shift range, proceed with clock-out
+            // Double-check that we have a valid employee_id before processing
+            if (!$employee_id || !is_numeric($employee_id) || $employee_id <= 0) {
+                $_SESSION['error'] = "Invalid employee ID. Session may have expired.";
+                error_log("Clock-out rejected: Invalid employee_id ($employee_id) for user_id $user_id");
+                $redirect = false;
+            } else {
+                try {
+                $sql = "UPDATE attendance SET clock_out = ?, working_hours = TIMESTAMPDIFF(HOUR, clock_in, ?) WHERE employee_id = ? AND attendance_date = ?";
+                        $stmt = $conn->prepare($sql);
+                        $result = $stmt->execute([$nowDt, $nowDt, $employee_id, $today]);
 
-                $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
-                $message = '';
-                if ($result) {
-                    $affected = $stmt->rowCount();
-                    $message = "Clocked out successfully at " . date('h:i A', strtotime($nowDt)) . " (Rows updated: $affected)";
-                    error_log("Clock-out: Employee $employee_id, Date $today, Clock-out $nowDt, Rows affected: $affected");
-                } else {
-                    $message = "Clock-out execution failed.";
-                    $result = false;
-                    error_log("Clock-out execute failed: Employee $employee_id, Date $today");
-                }
+                        $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+                        $message = '';
+                        if ($result) {
+                            $affected = $stmt->rowCount();
+                            $message = "Clocked out successfully at " . date('h:i A', strtotime($nowDt)) . " (Rows updated: $affected)";
+                            error_log("Clock-out recorded: user_id=$user_id, employee_id=$employee_id, username=$username, time=$nowDt, rows_affected=$affected, session=" . session_id());
+                        } else {
+                            $message = "Clock-out execution failed.";
+                            $result = false;
+                            error_log("Clock-out execute failed: user_id=$user_id, employee_id=$employee_id, username=$username, Date $today");
+                        }
 
                 if ($isAjax) {
                     if ($result) {
@@ -177,18 +300,20 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 ];
                 logActivity('Employee clocked out', 'attendance', null, $details);
                 */
-            } catch (PDOException $e) {
-                $errorMsg = "Error clocking out: " . $e->getMessage();
-                error_log("Clock-out PDO error: " . $e->getMessage());
-                $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
-                if ($isAjax) {
-                    echo json_encode(['success' => false, 'message' => $errorMsg]);
-                    exit;
-                } else {
-                    $_SESSION['error'] = $errorMsg;
-                    $redirect = false;
+                } catch (PDOException $e) {
+                    $errorMsg = "Error clocking out: " . $e->getMessage();
+                    error_log("Clock-out PDO error: " . $e->getMessage());
+                    $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
+                    if ($isAjax) {
+                        echo json_encode(['success' => false, 'message' => $errorMsg]);
+                        exit;
+                    } else {
+                        $_SESSION['error'] = $errorMsg;
+                        $redirect = false;
+                    }
                 }
             }
+        }
         }
     }
 
@@ -263,6 +388,7 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
     <title>Attendance - Employee Portal</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="employee_style.css">
     <style>
         .section-title {
@@ -354,12 +480,49 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
     </style>
 </head>
 <body class="employee-page">
+    <!-- Hidden CSRF token for JavaScript access -->
+    <input type="hidden" id="csrf-token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+    
     <div class="container-fluid">
-        <?php include 'employee_navigation.php'; ?>
+        <?php include 'navigation.php'; ?>
         <div class="row">
             <?php include 'employee_sidebar.php'; ?>
             <div class="main-content">
                 <h2 class="section-title"><i class="fas fa-clock mr-2"></i>Attendance Management</h2>
+
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Your Attendance Rights Under Philippine Law</h5>
+                            <hr>
+                            <strong>Applicable Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 6727</strong> - Wage Order: You are entitled to an 8-hour work day standard. Your clock-in baseline is 08:00 AM.</li>
+                                <li><strong>RA 8799</strong> - Employee benefits and compensation for overtime work</li>
+                            </ul>
+                            <strong>Your Attendance & Data Privacy Rights (RA 10173):</strong>
+                            <ul class="mb-2">
+                                <li>Your attendance records are personal information protected by the Data Privacy Act</li>
+                                <li>Only authorized HR personnel can access your attendance data</li>
+                                <li>You have the right to access your own attendance records and clock-in/out times</li>
+                                <li>You have the right to request correction of any attendance errors (e.g., incorrect clock-in times)</li>
+                                <li>Late arrivals and work schedules are considered confidential personal information</li>
+                                <li>You will be notified before any disciplinary action based on attendance data</li>
+                                <li>You will be compensated accordingly for overtime hours (at 1.25x-1.5x rates per RA 6727)</li>
+                            </ul>
+                            <strong>Important Notes:</strong>
+                            <ul class="mb-0">
+                                <li>Ensure you clock in/out accurately to maintain correct attendance records</li>
+                                <li>If you notice any discrepancies in your attendance, report to HR immediately</li>
+                                <li>Your working hours are monitored to ensure compliance with the 8-hour work day standard</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <?php if (isset($_SESSION['success'])): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -546,7 +709,7 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'clock_out=1&time=' + encodeURIComponent(localTime) + '&ajax=1'
+                body: 'clock_out=1&time=' + encodeURIComponent(localTime) + '&ajax=1&csrf_token=' + encodeURIComponent(document.getElementById('csrf-token').value)
             })
             .then(response => response.json())
             .then(data => {
@@ -589,7 +752,7 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'clock_in=1&time=' + encodeURIComponent(localTime) + '&ajax=1'
+                body: 'clock_in=1&time=' + encodeURIComponent(localTime) + '&ajax=1&csrf_token=' + encodeURIComponent(document.getElementById('csrf-token').value)
             })
             .then(response => response.json())
             .then(data => {

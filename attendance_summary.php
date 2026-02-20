@@ -1,8 +1,42 @@
 <?php
-session_start();
+/**
+ * ATTENDANCE SUMMARY PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 6727 (Implementing Rules and Regulations of the Wage Order)
+ *   - Establishes 8-hour work day standard (clock-in baseline 08:00 AM)
+ *   - On-time vs. Late tracking for wage compliance
+ *   - Attendance records as basis for overtime and compensation calculation
+ *   - Absent = no compensation (minus payment if unpaid leave)
+ *   - Late minutes tracked for potential salary deductions
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Attendance summary contains PERSONAL INFORMATION
+ *   - Aggregate attendance data reveals employee work patterns and productivity
+ *   - Restrict summary access to authorized supervisory/HR personnel only
+ *   - Do not share attendance percentages with unauthorized viewers
+ *   - Protect employee identity in attendance reports
+ *   - Maintain confidentiality of late arrival/absence information
+ *   - Implement access controls limiting visibility to direct supervisors/HR
+ *   - Keep audit trail of who accessed attendance summaries
+ *   - Present/Absent percentages cannot be shared publicly
+ *   - Ensure employee consent before using data for disciplinary action
+ * 
+ * Compliance Note: On-time baseline is set at 08:00 AM per wage order.
+ * Attendance data is critical for:
+ * - Validating 8-hour work day compliance
+ * - Calculating overtime compensation
+ * - Determining leave deductions
+ * - Monitoring excessive late arrivals
+ * 
+ * Present/Absent percentages help identify patterns that may indicate
+ * labor law violations or need for HR intervention.
+ * All attendance summary data is personal information protected under RA 10173.
+ */
 
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -46,8 +80,35 @@ require_once 'dp.php';
             <div class="main-content">
                 <h2 class="section-title">Attendance Summary</h2>
                 
+                <!-- Compliance Information -->
                 <div class="row mb-4">
                     <div class="col-md-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 6727</strong> - Wage Order: 8-hour work day baseline (08:00 AM). On-time vs. Late tracking for wage compliance and overtime calculation.</li>
+                                <li><strong>RA 10173</strong> - Data Privacy Act: <strong>Attendance data is PERSONAL INFORMATION</strong></li>
+                            </ul>
+                            <strong>Data Privacy Notice:</strong>
+                            <ul class="mb-2">
+                                <li>Attendance summary shows aggregate employee attendance patterns - access restricted to authorized HR/supervisory personnel</li>
+                                <li>Individual employee attendance percentages are confidential - cannot be shared publicly</li>
+                                <li>Late arrival information is protected personal data subject to confidentiality requirements</li>
+                                <li>All access to this summary is logged and audited for security and compliance</li>
+                                <li>Use attendance data only for legitimate HR purposes (payroll, compliance, performance management)</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                <h2 class="section-title">Attendance Summary</h2>
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Attendance Overview</h5>

@@ -472,6 +472,11 @@ function ensureEmployeeLeaveBalances() {
                 error_log("Skipping Paternity Leave for non-male employee: {$balance['employee_id']} (Gender: $employeeGender)");
             }
             
+            if ($leaveTypeName === 'Menstrual Disorder Leave' && $employeeGender !== 'Female') {
+                $shouldCreate = false;
+                error_log("Skipping Menstrual Disorder Leave for non-female employee: {$balance['employee_id']} (Gender: $employeeGender)");
+            }
+            
             if ($shouldCreate) {
                 $insertSql = "INSERT INTO leave_balances (employee_id, leave_type_id, year, total_leaves, leaves_taken, leaves_pending, leaves_remaining) 
                              VALUES (?, ?, ?, ?, 0, 0, ?)";
@@ -520,10 +525,21 @@ function cleanupGenderViolations() {
         $stmt->execute();
         $paternityRemoved = $stmt->rowCount();
         
-        $totalRemoved = $maternityRemoved + $paternityRemoved;
+        // Remove menstrual disorder leave records for non-female employees
+        $sql = "DELETE lb FROM leave_balances lb
+                JOIN employee_profiles ep ON lb.employee_id = ep.employee_id
+                JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+                JOIN leave_types lt ON lb.leave_type_id = lt.leave_type_id
+                WHERE lt.leave_type_name = 'Menstrual Disorder Leave' AND pi.gender != 'Female'";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        $menstrualRemoved = $stmt->rowCount();
+        
+        $totalRemoved = $maternityRemoved + $paternityRemoved + $menstrualRemoved;
         
         if ($totalRemoved > 0) {
-            error_log("Cleaned up $totalRemoved gender-violating leave balance records ($maternityRemoved maternity, $paternityRemoved paternity)");
+            error_log("Cleaned up $totalRemoved gender-violating leave balance records ($maternityRemoved maternity, $paternityRemoved paternity, $menstrualRemoved menstrual disorder)");
         }
         
         return $totalRemoved;
@@ -567,6 +583,13 @@ function validateLeaveRequestByGender($employee_id, $leave_type_id) {
             return [
                 'valid' => false, 
                 'message' => 'Paternity leave is only available for male employees. Your gender is recorded as: ' . $employeeGender
+            ];
+        }
+        
+        if ($leaveTypeName === 'Menstrual Disorder Leave' && $employeeGender !== 'Female') {
+            return [
+                'valid' => false, 
+                'message' => 'Menstrual disorder leave is only available for female employees. Your gender is recorded as: ' . $employeeGender
             ];
         }
         
@@ -615,6 +638,10 @@ function getLeaveTypesForEmployee($employee_id) {
             }
 
             if ($leaveTypeName === 'Paternity Leave' && $employeeGender !== 'Male') {
+                $shouldInclude = false;
+            }
+
+            if ($leaveTypeName === 'Menstrual Disorder Leave' && $employeeGender !== 'Female') {
                 $shouldInclude = false;
             }
 

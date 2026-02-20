@@ -722,6 +722,43 @@ INSERT INTO `employee_competencies` (`employee_id`, `competency_id`, `cycle_id`,
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `candidate_onboarding`
+--
+
+CREATE TABLE `candidate_onboarding` (
+  `candidate_onboarding_id` int(11) NOT NULL AUTO_INCREMENT,
+  `candidate_id` int(11) NOT NULL,
+  `application_id` int(11) DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `expected_completion_date` date NOT NULL,
+  `status` enum('Pending','In Progress','Completed','Cancelled') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`candidate_onboarding_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `candidate_onboarding_tasks`
+--
+
+CREATE TABLE `candidate_onboarding_tasks` (
+  `candidate_task_id` int(11) NOT NULL AUTO_INCREMENT,
+  `candidate_onboarding_id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `due_date` date NOT NULL,
+  `status` enum('Not Started','In Progress','Completed','Cancelled') DEFAULT 'Not Started',
+  `completion_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`candidate_task_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `employee_onboarding`
 --
 
@@ -1311,6 +1348,23 @@ CREATE TABLE `job_offers` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `offer_letters`
+--
+
+CREATE TABLE `offer_letters` (
+  `letter_id` int(11) NOT NULL,
+  `offer_id` int(11) NOT NULL,
+  `application_id` int(11) NOT NULL,
+  `letter_content` text NOT NULL,
+  `status` enum('Draft','Sent','Accepted','Declined') DEFAULT 'Draft',
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `sent_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `job_openings`
 --
 
@@ -1529,11 +1583,13 @@ CREATE TABLE `leave_types` (
 --
 
 INSERT INTO `leave_types` (`leave_type_id`, `leave_type_name`, `description`, `paid`, `default_days`, `carry_forward`, `max_carry_forward_days`, `created_at`, `updated_at`) VALUES
-(1, 'Vacation Leave', 'Annual vacation leave', 1, 15.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
-(2, 'Sick Leave', 'Medical leave for illness', 1, 10.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
-(3, 'Maternity Leave', 'Leave for new mothers', 1, 60.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
-(4, 'Paternity Leave', 'Leave for new fathers', 1, 7.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
-(5, 'Emergency Leave', 'Unplanned emergency leave', 0, 5.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35');
+(1, 'Vacation Leave', 'Annual vacation leave (RA 10911: 15 days minimum)', 1, 15.00, 1, 5.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(2, 'Sick Leave', 'Medical leave for illness (RA 10911: 15 days minimum)', 1, 15.00, 1, 5.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(3, 'Maternity Leave', 'Leave for new mothers (RA 11210: 120 days)', 1, 120.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(4, 'Paternity Leave', 'Leave for new fathers (RA 11165: 7-14 days; 14 for solo parents)', 1, 7.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(5, 'Emergency Leave', 'Unplanned emergency leave', 0, 5.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(6, 'Solo Parent Leave', 'Additional leave for solo parents (RA 9403: 5 days)', 1, 5.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(7, 'Menstrual Disorder Leave', 'Leave for menstrual disorder symptoms (RA 11058: up to 3 days annually)', 1, 3.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35');
 
 -- --------------------------------------------------------
 
@@ -2490,6 +2546,14 @@ ALTER TABLE `job_offers`
   ADD KEY `candidate_id` (`candidate_id`);
 
 --
+-- Indexes for table `offer_letters`
+--
+ALTER TABLE `offer_letters`
+  ADD PRIMARY KEY (`letter_id`),
+  ADD UNIQUE KEY `unique_offer` (`offer_id`),
+  ADD KEY `application_id` (`application_id`);
+
+--
 -- Indexes for table `job_openings`
 --
 ALTER TABLE `job_openings`
@@ -2980,6 +3044,12 @@ ALTER TABLE `job_offers`
   MODIFY `offer_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `offer_letters`
+--
+ALTER TABLE `offer_letters`
+  MODIFY `letter_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `job_openings`
 --
 ALTER TABLE `job_openings`
@@ -3423,6 +3493,13 @@ ALTER TABLE `job_offers`
   ADD CONSTRAINT `job_offers_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `job_applications` (`application_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `job_offers_ibfk_2` FOREIGN KEY (`job_opening_id`) REFERENCES `job_openings` (`job_opening_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `job_offers_ibfk_3` FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`candidate_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `offer_letters`
+--
+ALTER TABLE `offer_letters`
+  ADD CONSTRAINT `offer_letters_ibfk_1` FOREIGN KEY (`offer_id`) REFERENCES `job_offers` (`offer_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `offer_letters_ibfk_2` FOREIGN KEY (`application_id`) REFERENCES `job_applications` (`application_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `job_openings`

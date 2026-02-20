@@ -81,7 +81,7 @@ if (!$is_logged_in || $user_role !== 'employee') {
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('performance_reviews.php'); ?>" href="performance_reviews.php">
+            <a class="nav-link <?php echo isActiveMenu('my_performance_reviews.php'); ?>" href="my_performance_reviews.php">
                 <i class="fas fa-chart-line"></i> Performance Reviews
             </a>
         </li>

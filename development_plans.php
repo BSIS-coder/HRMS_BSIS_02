@@ -86,9 +86,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Get all development plans with employee information
-$plans_query = "SELECT dp.*, CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-                ep.employee_number, jr.title as job_title
+// Handle AJAX request for fetching plan data
+if (isset($_GET['action']) && $_GET['action'] == 'get_plan' && isset($_GET['plan_id'])) {
+    $plan_id = $_GET['plan_id'];
+    $stmt = $conn->prepare("SELECT * FROM development_plans WHERE plan_id = ?");
+    $stmt->bind_param("i", $plan_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $plan = $result->fetch_assoc();
+    $stmt->close();
+    echo json_encode($plan);
+    exit;
+}
+
+// Get all development plans with employee information and activity counts
+$plans_query = "SELECT dp.*, 
+                CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+                ep.employee_number, 
+                jr.title as job_title,
+                (SELECT COUNT(*) FROM development_activities WHERE plan_id = dp.plan_id) as activity_count,
+                (SELECT COUNT(*) FROM development_activities WHERE plan_id = dp.plan_id AND status = 'Completed') as completed_activities
                 FROM development_plans dp
                 JOIN employee_profiles ep ON dp.employee_id = ep.employee_id
                 JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
@@ -126,46 +143,38 @@ $employees_result = $conn->query($employees_query);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Custom styles for development plans page */
         .plan-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: none;
             border-radius: 15px;
             overflow: hidden;
         }
-
         .plan-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-
         .plan-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
             color: white;
             padding: 20px;
         }
-
         .plan-status {
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
         }
-
         .status-active { background-color: #d4edda; color: #155724; }
         .status-completed { background-color: #d4edda; color: #155724; }
         .status-on-hold { background-color: #fff3cd; color: #856404; }
         .status-cancelled { background-color: #f8d7da; color: #721c24; }
-
         .plan-actions {
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-
         .plan-card:hover .plan-actions {
             opacity: 1;
         }
-
         .add-plan-btn {
             position: fixed;
             bottom: 30px;
@@ -173,35 +182,19 @@ $employees_result = $conn->query($employees_query);
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
             border: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transition: all 0.3s ease;
         }
-
         .add-plan-btn:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
-
-        .plan-stats {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-        }
-
-        .stats-icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
-        }
-
         .plan-timeline {
             position: relative;
             padding-left: 30px;
         }
-
         .plan-timeline::before {
             content: '';
             position: absolute;
@@ -211,12 +204,10 @@ $employees_result = $conn->query($employees_query);
             width: 2px;
             background: #e9ecef;
         }
-
         .timeline-item {
             position: relative;
             margin-bottom: 20px;
         }
-
         .timeline-item::before {
             content: '';
             position: absolute;
@@ -225,9 +216,9 @@ $employees_result = $conn->query($employees_query);
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #667eea;
+            background: #C2185B;
             border: 3px solid white;
-            box-shadow: 0 0 0 2px #667eea;
+            box-shadow: 0 0 0 2px #C2185B;
         }
     </style>
 </head>
@@ -243,46 +234,9 @@ $employees_result = $conn->query($employees_query);
                         Development Plans
                     </h2>
                     <div class="btn-group">
-                        <button class="btn btn-outline-primary">
-                            <i class="fas fa-filter mr-2"></i>Filter
-                        </button>
-                        <button class="btn btn-outline-secondary">
-                            <i class="fas fa-sort mr-2"></i>Sort
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Development Plans Statistics -->
-                <div class="plan-stats">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $stats['completed_plans'] ?? 0; ?></h3>
-                            <p class="mb-0">Completed</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $stats['total_plans'] ?? 0; ?></h3>
-                            <p class="mb-0">Total Plans</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-play-circle"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $stats['active_plans'] ?? 0; ?></h3>
-                            <p class="mb-0">Active</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-pause-circle"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $stats['on_hold_plans'] ?? 0; ?></h3>
-                            <p class="mb-0">On Hold</p>
-                        </div>
+                        <a href="development_activities.php" class="btn btn-outline-primary">
+                            <i class="fas fa-tasks mr-2"></i>View Activities
+                        </a>
                     </div>
                 </div>
 
@@ -302,7 +256,7 @@ $employees_result = $conn->query($employees_query);
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <p class="text-muted mb-3"><?php echo htmlspecialchars($plan['description'] ?: 'No description'); ?></p>
+                                    <p class="text-muted mb-3"><?php echo htmlspecialchars($plan['plan_description'] ?: 'No description'); ?></p>
 
                                     <div class="row text-center mb-3">
                                         <div class="col-6">
@@ -315,7 +269,19 @@ $employees_result = $conn->query($employees_query);
                                         </div>
                                     </div>
 
+                                    <!-- Activity Summary -->
+                                    <div class="mb-3 text-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-tasks mr-1"></i>
+                                            <?php echo $plan['activity_count']; ?> Activities 
+                                            (<?php echo $plan['completed_activities']; ?> completed)
+                                        </small>
+                                    </div>
+
                                     <div class="plan-actions text-center">
+                                        <a href="development_activities.php?plan_id=<?php echo $plan['plan_id']; ?>" class="btn btn-sm btn-outline-info mr-2" title="View Activities">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
                                         <button class="btn btn-sm btn-outline-primary mr-2" onclick="editPlan(<?php echo $plan['plan_id']; ?>)">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -349,7 +315,6 @@ $employees_result = $conn->query($employees_query);
                     <div class="card-body">
                         <div class="plan-timeline">
                             <?php
-                            // Get recent plans updates
                             $recent_updates_query = "SELECT dp.*, CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
                                                     ep.employee_number
                                                     FROM development_plans dp
@@ -410,69 +375,53 @@ $employees_result = $conn->query($employees_query);
                         <input type="hidden" name="action" id="planAction" value="add_plan">
                         <input type="hidden" name="plan_id" id="planId">
 
-                        <!-- Tabs -->
-                        <ul class="nav nav-tabs" id="planTabs" role="tablist">
-                            <li class="nav-item">
-                                <a class="nav-link active" id="basic-tab" data-toggle="tab" href="#basic" role="tab" aria-controls="basic" aria-selected="true">Basic Information</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="dates-tab" data-toggle="tab" href="#dates" role="tab" aria-controls="dates" aria-selected="false">Dates & Status</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab" aria-controls="description" aria-selected="false">Description</a>
-                            </li>
-                        </ul>
-                        <div class="tab-content" id="planTabContent">
-                            <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
-                                <div class="form-group mt-3">
-                                    <label for="employee_id">Employee</label>
-                                    <select class="form-control" name="employee_id" id="employee_id" required>
-                                        <option value="">Select Employee</option>
-                                        <?php while ($employee = $employees_result->fetch_assoc()): ?>
-                                            <option value="<?php echo $employee['employee_id']; ?>">
-                                                <?php echo htmlspecialchars($employee['employee_name']); ?> (<?php echo htmlspecialchars($employee['employee_number']); ?>)
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                </div>
+                        <div class="form-group">
+                            <label for="employee_id">Employee</label>
+                            <select class="form-control" name="employee_id" id="employee_id" required>
+                                <option value="">Select Employee</option>
+                                <?php 
+                                $employees_result->data_seek(0);
+                                while ($employee = $employees_result->fetch_assoc()): ?>
+                                    <option value="<?php echo $employee['employee_id']; ?>">
+                                        <?php echo htmlspecialchars($employee['employee_name']); ?> (<?php echo htmlspecialchars($employee['employee_number']); ?>)
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
 
-                                <div class="form-group">
-                                    <label for="plan_name">Plan Name</label>
-                                    <input type="text" class="form-control" name="plan_name" id="plan_name" required>
-                                </div>
-                            </div>
-                            <div class="tab-pane fade" id="dates" role="tabpanel" aria-labelledby="dates-tab">
-                                <div class="row mt-3">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="start_date">Start Date</label>
-                                            <input type="date" class="form-control" name="start_date" id="start_date" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="end_date">End Date</label>
-                                            <input type="date" class="form-control" name="end_date" id="end_date" required>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="form-group">
+                            <label for="plan_name">Plan Name</label>
+                            <input type="text" class="form-control" name="plan_name" id="plan_name" required>
+                        </div>
 
+                        <div class="row">
+                            <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="status">Status</label>
-                                    <select class="form-control" name="status" id="plan_status" required>
-                                        <option value="Active">Active</option>
-                                        <option value="On Hold">On Hold</option>
-                                        <option value="Completed">Completed</option>
-                                        <option value="Cancelled">Cancelled</option>
-                                    </select>
+                                    <label for="start_date">Start Date</label>
+                                    <input type="date" class="form-control" name="start_date" id="start_date" required>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="description" role="tabpanel" aria-labelledby="description-tab">
-                                <div class="form-group mt-3">
-                                    <label for="description">Description</label>
-                                    <textarea class="form-control" name="description" id="plan_description" rows="4"></textarea>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="end_date">End Date</label>
+                                    <input type="date" class="form-control" name="end_date" id="end_date" required>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control" name="status" id="plan_status" required>
+                                <option value="Active">Active</option>
+                                <option value="On Hold">On Hold</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea class="form-control" name="description" id="plan_description" rows="4"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -484,7 +433,7 @@ $employees_result = $conn->query($employees_query);
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
@@ -496,20 +445,37 @@ $employees_result = $conn->query($employees_query);
             $('#planModalLabel').text('Add New Development Plan');
             $('#planAction').val('add_plan');
             $('#planForm')[0].reset();
+            $('#planId').val('');
             $('#planModal').modal('show');
         }
 
         function editPlan(planId) {
-            // Fetch plan data via AJAX (simplified, assuming data is available)
             $('#planModalLabel').text('Edit Development Plan');
             $('#planAction').val('edit_plan');
             $('#planId').val(planId);
-            // Populate form fields - in a real app, fetch data
-            $('#planModal').modal('show');
+            
+            // Fetch plan data via AJAX
+            $.ajax({
+                url: 'development_plans.php?action=get_plan&plan_id=' + planId,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#employee_id').val(data.employee_id);
+                    $('#plan_name').val(data.plan_name);
+                    $('#start_date').val(data.start_date);
+                    $('#end_date').val(data.end_date);
+                    $('#plan_status').val(data.status);
+                    $('#plan_description').val(data.plan_description);
+                    $('#planModal').modal('show');
+                },
+                error: function() {
+                    alert('Error fetching plan data');
+                }
+            });
         }
 
         function deletePlan(planId) {
-            if (confirm('Are you sure you want to delete this development plan? This action cannot be undone.')) {
+            if (confirm('Are you sure you want to delete this development plan? This will also delete all associated activities. This action cannot be undone.')) {
                 var form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = '<input type="hidden" name="action" value="delete_plan"><input type="hidden" name="plan_id" value="' + planId + '">';

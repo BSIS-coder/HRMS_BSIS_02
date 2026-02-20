@@ -65,7 +65,6 @@ require_once 'dp.php'; // database connection
       <div>
         <button id="refreshBtn" class="btn btn-outline-secondary me-2"><i class="fas fa-sync"></i> Refresh</button>
         <button id="exportBtn" class="btn btn-outline-primary me-2"><i class="fas fa-file-export"></i> Export</button>
-        <button id="printBtn" class="btn btn-outline-info"><i class="fas fa-print"></i> Print</button>
       </div>
     </div>
 
@@ -181,10 +180,7 @@ require_once 'dp.php'; // database connection
             </table>
           </div>
 
-          <div class="mt-3">
-            <label class="form-label">Manager Comments</label>
-            <div id="detailManagerComments" class="border p-2">-</div>
-          </div>
+          <!-- Manager Comments section removed -->
         </div>
         <div class="modal-footer">
           <button id="editEvalBtn" type="button" class="btn btn-warning">Edit Evaluation</button>
@@ -466,7 +462,7 @@ function viewDetails(empId){
         tbody.appendChild(tr);
       });
 
-      elem('detailManagerComments').textContent = data.review.manager_comments ?? '-';
+      // Manager comments removed from modal; no element to update
       new bootstrap.Modal(document.getElementById('detailModal')).show();
     }).catch(err=>{ console.error('detail error', err); alert('Failed to load details'); });
 }
@@ -554,15 +550,38 @@ elem('finalizeBtn').addEventListener('click', ()=>{
 });
 
 // ---------- Export ----------
-elem('exportBtn').addEventListener('click', ()=>{
-  if(!currentCycleId) return alert('Select a cycle to export');
-  window.open(`export_review_report.php?cycle_id=${encodeURIComponent(currentCycleId)}`,'_blank');
+elem('exportBtn').addEventListener('click', async () => {
+  // Prefer the tracked `currentCycleId`, but fall back to the select value if needed
+  let cycleId = currentCycleId || elem('cycleSelect').value;
+  if (!cycleId) return alert('Select a cycle to export');
+  const url = `export_review_report.php?cycle_id=${encodeURIComponent(cycleId)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const txt = await res.text();
+      alert(txt || 'Failed to export');
+      return;
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    let filename = 'Performance_Reviews.xls';
+    const m = cd.match(/filename\*?=(?:UTF-8''|"?)?([^;\n"]+)/i);
+    if (m && m[1]) filename = decodeURIComponent(m[1].replace(/"/g, ''));
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+  } catch (err) {
+    console.error('Export error', err);
+    alert('Failed to export reviews');
+  }
 });
 
-// ---------- Print ----------
-elem('printBtn').addEventListener('click', ()=>{
-  window.print();
-});
+// Print button removed: print functionality intentionally disabled here
 
 // ---------- Refresh ----------
 elem('refreshBtn').addEventListener('click', ()=>{
@@ -787,6 +806,9 @@ function markAsComplete(employeeId) {
 </script>
 
 <!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

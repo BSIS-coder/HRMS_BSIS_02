@@ -11,9 +11,11 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // Include database connection
 require_once 'config.php';
 
-if (isset($_GET['employee_id'])) {
-    $employee_id = $_GET['employee_id'];
+// Get employee_id from request parameters (supports both GET and POST)
+$employee_id = isset($_GET['employee_id']) ? $_GET['employee_id'] : (isset($_POST['employee_id']) ? $_POST['employee_id'] : null);
 
+// Validate employee_id
+if ($employee_id) {
     try {
         $sql = "SELECT
             ep.employee_id,

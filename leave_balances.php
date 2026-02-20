@@ -1,8 +1,48 @@
 <?php
-session_start();
+/**
+ * LEAVE BALANCES TRACKING PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 10911 (Paid Leave Bill of 2016)
+ *   - Vacation leave balance: 15 days minimum per year
+ *   - Sick leave balance: 15 days minimum per year
+ *   - Carry-forward rules and conversions
+ *   - Pro-rata computation for partial years
+ * 
+ * - RA 11210 (Expanded Maternity Leave Law of 2018)
+ *   - Maternity leave balance: 120 days
+ *   - Solo parent female entitlements
+ *   - Gender-based leave provisions (female employees only)
+ * 
+ * - RA 11165 (Paternity Leave Bill of 2018)
+ *   - Paternity leave balance: 7-14 days
+ *   - Solo parent male entitlements
+ *   - Gender-based leave provisions (male employees)
+ * 
+ * - RA 9403 (Leave Benefits for Solo Parents)
+ *   - Additional 5-day solo parent leave allocation
+ *   - Certification and benefit computation
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Leave balance data contains SENSITIVE PERSONAL INFORMATION
+ *   - Maternity/Paternity balances reveal health/family status (sensitive)
+ *   - Solo parent status is sensitive personal data
+ *   - Only access leave balances with legitimate HR business purpose
+ *   - Restrict view to authorized personnel (not visible to other employees)
+ *   - Encrypt leave balance data in database and during transmission
+ *   - Maintain audit logs for all leave balance queries/modifications
+ *   - Gender-based leave data must be handled confidentially
+ *   - Do not disclose employee leave balances without consent
+ * 
+ * Compliance Note: Gender-violating leave balance records should be prevented.
+ * Balance computations must account for statutory minimums and pro-rata adjustments.
+ * Gender restrictions on maternity/paternity leaves are legally mandated.
+ * All leave balance information is sensitive personal data under RA 10173.
+ */
 
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -39,6 +79,26 @@ $leaveTypesData = getLeaveTypes();
 $defaultDays = [];
 foreach ($leaveTypesData as $lt) {
     $defaultDays[$lt['leave_type_name']] = (float)($lt['default_days'] ?? 0);
+}
+
+// Build per-employee leave balance map for all leave types (current year)
+$employeeLeaveMap = [];
+try {
+    $sql = "SELECT employee_id, leave_type_id, leaves_remaining 
+            FROM leave_balances 
+            WHERE year = YEAR(CURDATE())";
+    $stmt = $conn->query($sql);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as $row) {
+        $empId = $row['employee_id'];
+        $typeId = $row['leave_type_id'];
+        if (!isset($employeeLeaveMap[$empId])) {
+            $employeeLeaveMap[$empId] = [];
+        }
+        $employeeLeaveMap[$empId][$typeId] = (float)$row['leaves_remaining'];
+    }
+} catch (PDOException $e) {
+    $employeeLeaveMap = [];
 }
 
 // Calculate actual totals from database data
@@ -153,6 +213,36 @@ $specialLeaveTotal = [
             <div class="main-content">
                 <h2 class="section-title">Leave Balances</h2>
                 
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-shield-alt mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 10911</strong> - 15 days vacation + 15 days sick leave minimum</li>
+                                <li><strong>RA 11210</strong> - Maternity Leave: 120 days for female employees</li>
+                                <li><strong>RA 11165</strong> - Paternity Leave: 7-14 days for male employees</li>
+                                <li><strong>RA 9403</strong> - Solo Parent: Additional 5 days</li>
+                                <li><strong>RA 10173 (CRITICAL)</strong> - Data Privacy Act: <strong>Leave balances are SENSITIVE PERSONAL INFORMATION</strong></li>
+                            </ul>
+                            <strong style="color: #d32f2f;">⚠️ SENSITIVE DATA HANDLING:</strong>
+                            <ul class="mb-2">
+                                <li>Maternity/Paternity leave balances reveal health/family status - CONFIDENTIAL</li>
+                                <li>Solo parent status is sensitive personal data - access restricted to authorized HR only</li>
+                                <li>Gender-based leave balances are protected information</li>
+                                <li>Restrict visibility to authorized HR personnel only</li>
+                                <li>Maintain comprehensive audit logs for all balance queries and modifications</li>
+                                <li>Do not share individual leave balances without legitimate business purpose</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">
@@ -166,10 +256,9 @@ $specialLeaveTotal = [
                                             <tr>
                                                 <th>Employee</th>
                                                 <th>Department</th>
-                                                <th>Vacation Leave</th>
-                                                <th>Sick Leave</th>
-                                                <th>Maternity Leave</th>
-                                                <th>Paternity Leave</th>
+                                                <?php foreach ($leaveTypesData as $lt): ?>
+                                                    <th><?= htmlspecialchars($lt['leave_type_name']); ?></th>
+                                                <?php endforeach; ?>
                                                 <th>Total Balance</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -177,6 +266,11 @@ $specialLeaveTotal = [
                                         <tbody>
                                             <?php if (!empty($leaveBalances)): ?>
                                                 <?php foreach ($leaveBalances as $employee): ?>
+                                                    <?php
+                                                        $empId = $employee['employee_id'];
+                                                        $gender = $employee['gender'] ?? '';
+                                                        $totalBalance = 0;
+                                                    ?>
                                                     <tr>
                                                         <td>
                                                             <div class="d-flex align-items-center">
@@ -189,28 +283,55 @@ $specialLeaveTotal = [
                                                             </div>
                                                         </td>
                                                         <td><?= htmlspecialchars($employee['department_name'] ?? 'N/A') ?></td>
+                                                        <?php foreach ($leaveTypesData as $lt): ?>
+                                                            <?php
+                                                                $leaveTypeId = $lt['leave_type_id'];
+                                                                $leaveTypeName = $lt['leave_type_name'];
+
+                                                                // Handle gender-restricted leave types as N/A where appropriate
+                                                                $isNotApplicable = false;
+                                                                if ($leaveTypeName === 'Maternity Leave' && $gender !== 'Female') {
+                                                                    $isNotApplicable = true;
+                                                                }
+                                                                if ($leaveTypeName === 'Paternity Leave' && $gender !== 'Male') {
+                                                                    $isNotApplicable = true;
+                                                                }
+                                                                if ($leaveTypeName === 'Menstrual Disorder Leave' && $gender !== 'Female') {
+                                                                    $isNotApplicable = true;
+                                                                }
+
+                                                                if ($isNotApplicable) {
+                                                                    $badgeClass = 'badge-secondary';
+                                                                    $displayValue = 'N/A';
+                                                                } else {
+                                                                    $remaining = $employeeLeaveMap[$empId][$leaveTypeId] ?? ($lt['default_days'] ?? 0);
+                                                                    $totalBalance += (float)$remaining;
+
+                                                                    // Choose badge color based on known leave types
+                                                                    $badgeClass = 'badge-secondary';
+                                                                    if ($leaveTypeName === 'Vacation Leave') {
+                                                                        $badgeClass = 'badge-primary';
+                                                                    } elseif ($leaveTypeName === 'Sick Leave') {
+                                                                        $badgeClass = 'badge-success';
+                                                                    } elseif ($leaveTypeName === 'Maternity Leave') {
+                                                                        $badgeClass = 'badge-info';
+                                                                    } elseif ($leaveTypeName === 'Paternity Leave') {
+                                                                        $badgeClass = 'badge-warning';
+                                                                    }
+
+                                                                    $displayValue = (int)$remaining . ' days';
+                                                                }
+                                                            ?>
+                                                            <td>
+                                                                <?php if ($displayValue === 'N/A'): ?>
+                                                                    <span class="badge badge-secondary" title="Not applicable for <?= htmlspecialchars($gender); ?> employees">N/A</span>
+                                                                <?php else: ?>
+                                                                    <span class="badge <?= $badgeClass ?>"><?= $displayValue; ?></span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                        <?php endforeach; ?>
                                                         <td>
-                                                            <span class="badge badge-primary"><?= (int)($employee['vacation_leave'] ?? 0) ?> days</span>
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge badge-success"><?= (int)($employee['sick_leave'] ?? 0) ?> days</span>
-                                                        </td>
-                                                        <td>
-                                                            <?php if ($employee['gender'] === 'Female'): ?>
-                                                                <span class="badge badge-info"><?= (int)($employee['maternity_leave'] ?? 0) ?> days</span>
-                                                            <?php else: ?>
-                                                                <span class="badge badge-secondary" title="Not applicable for <?= $employee['gender'] ?> employees">N/A</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <?php if ($employee['gender'] === 'Male'): ?>
-                                                                <span class="badge badge-warning"><?= (int)($employee['paternity_leave'] ?? 0) ?> days</span>
-                                                            <?php else: ?>
-                                                                <span class="badge badge-secondary" title="Not applicable for <?= $employee['gender'] ?> employees">N/A</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <strong><?= (int)($employee['total_balance'] ?? 0) ?> days</strong>
+                                                            <strong><?= (int)$totalBalance ?> days</strong>
                                                         </td>
                                                         <td>
                                                             <button class="btn btn-sm btn-outline-primary">
@@ -256,18 +377,6 @@ $specialLeaveTotal = [
                                 </div>
                                 <h5>Sick Leave</h5>
                                 <h3 class="text-success"><?= (int)$sickLeaveTotal['total_remaining'] ?>/<?= (int)$sickLeaveTotal['total_allocated'] ?> days</h3>
-                                <small class="text-muted">Average utilization</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card balance-card">
-                            <div class="card-body text-center">
-                                <div class="progress-circle mb-3" style="--percentage: <?= $specialLeaveTotal['utilization_percentage'] ?>%">
-                                    <span class="progress-text"><?= $specialLeaveTotal['utilization_percentage'] ?>%</span>
-                                </div>
-                                <h5>Special Leave</h5>
-                                <h3 class="text-info"><?= (int)$specialLeaveTotal['total_remaining'] ?>/<?= (int)$specialLeaveTotal['total_allocated'] ?> days</h3>
                                 <small class="text-muted">Average utilization</small>
                             </div>
                         </div>

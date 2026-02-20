@@ -74,11 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     // Verify password
                     if (password_verify($password, $user['password'])) {
+                        // Regenerate session ID for security (prevent session fixation)
+                        session_regenerate_id(true);
+                        
                         // Store data in session variables
                         $_SESSION['loggedin'] = true;
                         $_SESSION['user_id'] = $user['user_id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['role'] = $user['role'];
+                        $_SESSION['login_time'] = time();
+                        $_SESSION['login_ip'] = $_SERVER['REMOTE_ADDR'];
+                        
+                        error_log("User {$user['username']} logged in from IP {$_SERVER['REMOTE_ADDR']} with session ID " . session_id());
                         
                         $authenticated = true;
                         
@@ -101,11 +108,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (!$authenticated) {
             foreach ($demo_users as $user) {
                 if ($username === $user['username'] && $password === $user['password']) {
+                    // Regenerate session ID for security (prevent session fixation)
+                    session_regenerate_id(true);
+                    
                     // Store data in session variables
                     $_SESSION['loggedin'] = true;
                     $_SESSION['user_id'] = $user['user_id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['role'] = $user['role'];
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['login_ip'] = $_SERVER['REMOTE_ADDR'];
+                    
+                    error_log("Demo user {$user['username']} logged in from IP {$_SERVER['REMOTE_ADDR']} with session ID " . session_id());
                     
                     $authenticated = true;
                     

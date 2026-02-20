@@ -13,42 +13,40 @@ $messageType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
-            case 'add_applicant':
+            case 'add_task':
                 try {
-                    $task_type = 'Administrative';
-                    $stmt = $conn->prepare("INSERT INTO onboarding_tasks (task_name, description, department_id, task_type) VALUES (?, ?, ?, ?)");
-                    $stmt->bind_param('ssis', $_POST['task_name'], $_POST['task_description'], $_POST['department_id'], $task_type);
+                    $task_name = $_POST['task_name'] ?? '';
+                    $description = $_POST['task_description'] ?? '';
+                    $task_type = $_POST['task_type'] ?? 'Administrative';
+                    $department_id = $_POST['department_id'] ?? null;
+                    
+                    // If department is empty, set to NULL
+                    if (empty($department_id)) {
+                        $department_id = null;
+                    }
+                    
+                    $stmt = $conn->prepare("INSERT INTO onboarding_tasks (task_name, description, task_type, department_id) VALUES (?, ?, ?, ?)");
+                    $stmt->bind_param('sssi', $task_name, $description, $task_type, $department_id);
                     $stmt->execute();
-                    $message = "Task added successfully!";
+                    
+                    $message = "✅ Task created successfully!";
                     $messageType = "success";
                 } catch (Exception $e) {
-                    $message = "Error adding task: " . $e->getMessage();
-                    $messageType = "error";
-                }
-                break;
-            
-            case 'add_employee':
-                try {
-                    $stmt = $conn->prepare("INSERT INTO onboarding_tasks (task_name, description, task_type) VALUES (?, ?, 'Training')");
-                    $stmt->bind_param('ss', $_POST['task_name'], $_POST['task_description']);
-                    $stmt->execute();
-                    $message = "Task added successfully!";
-                    $messageType = "success";
-                } catch (Exception $e) {
-                    $message = "Error adding task: " . $e->getMessage();
+                    $message = "❌ Error adding task: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
             
             case 'delete_task':
                 try {
-                    $stmt = $conn->prepare("DELETE FROM onboarding_tasks WHERE task_id=?");
+                    $stmt = $conn->prepare("DELETE FROM onboarding_tasks WHERE task_id = ?");
                     $stmt->bind_param('i', $_POST['task_id']);
                     $stmt->execute();
-                    $message = "Task deleted successfully!";
+                    
+                    $message = "✅ Task deleted successfully!";
                     $messageType = "success";
                 } catch (Exception $e) {
-                    $message = "Error deleting task: " . $e->getMessage();
+                    $message = "❌ Error deleting task: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
@@ -56,13 +54,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch tasks with department info
-$result = $conn->query("SELECT ot.*, d.department_name FROM onboarding_tasks ot LEFT JOIN departments d ON ot.department_id = d.department_id WHERE ot.department_id IS NOT NULL ORDER BY d.department_name, ot.task_id DESC");
-$applicantTasks = $result->fetch_all(MYSQLI_ASSOC);
+// Fetch all tasks
+$result = $conn->query("SELECT ot.*, d.department_name 
+                       FROM onboarding_tasks ot 
+                       LEFT JOIN departments d ON ot.department_id = d.department_id 
+                       ORDER BY 
+                           CASE WHEN ot.department_id IS NOT NULL THEN 0 ELSE 1 END,
+                           d.department_name ASC,
+                           ot.task_name ASC");
+$all_tasks = $result->fetch_all(MYSQLI_ASSOC);
 
-// Fetch general tasks (no department)
-$result = $conn->query("SELECT * FROM onboarding_tasks WHERE department_id IS NULL ORDER BY task_id DESC");
-$employeeTasks = $result->fetch_all(MYSQLI_ASSOC);
+// Separate into department-specific and general tasks
+$dept_tasks = [];
+$general_tasks = [];
+foreach ($all_tasks as $task) {
+    if ($task['department_id'] !== null) {
+        $dept_tasks[] = $task;
+    } else {
+        $general_tasks[] = $task;
+    }
+}
 
 // Fetch all departments
 $result = $conn->query("SELECT department_id, department_name FROM departments ORDER BY department_name");
@@ -88,11 +99,8 @@ $departments = $result->fetch_all(MYSQLI_ASSOC);
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="section-title">⚙️ Onboarding Task Management</h2>
                     <div>
-                        <a href="onboarding.php" class="btn btn-primary">
-                            <i class="fas fa-user-plus"></i> Applicant Onboarding
-                        </a>
-                        <a href="employee_onboarding.php" class="btn btn-success ml-2">
-                            <i class="fas fa-user-tie"></i> Employee Onboarding
+                        <a href="onboarding.php" class="btn btn-success ml-2">
+                            <i class="fas fa-arrow-left"></i> Back to Onboarding
                         </a>
                     </div>
                 </div>
@@ -104,164 +112,155 @@ $departments = $result->fetch_all(MYSQLI_ASSOC);
                     </div>
                 <?php endif; ?>
 
+                <!-- Add New Task Card -->
+                <div class="card mb-4" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <div class="card-header bg-success text-white" style="border-radius: 15px 15px 0 0;">
+                        <h5 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Create New Onboarding Task</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="add_task">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="task_name"><strong>Task Name:</strong></label>
+                                        <input type="text" id="task_name" name="task_name" class="form-control" placeholder="e.g., Complete HR Orientation" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="task_type"><strong>Task Type:</strong></label>
+                                        <select id="task_type" name="task_type" class="form-control">
+                                            <option value="Administrative">Administrative</option>
+                                            <option value="Training">Training</option>
+                                            <option value="Technical">Technical</option>
+                                            <option value="Security">Security</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="department_id"><strong>Department (Optional):</strong></label>
+                                        <select id="department_id" name="department_id" class="form-control">
+                                            <option value="">-- General Task (All Departments) --</option>
+                                            <?php foreach ($departments as $dept): ?>
+                                                <option value="<?php echo $dept['department_id']; ?>">
+                                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small class="form-text text-muted">Leave empty to apply to all new hires</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="task_description"><strong>Description:</strong></label>
+                                        <input type="text" id="task_description" name="task_description" class="form-control" placeholder="Brief description of the task" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg" style="width: 100%;">
+                                <i class="fas fa-save mr-2"></i>Create Task
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="row">
-                    <!-- Applicant Tasks Card -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(233, 30, 99, 0.1);">
-                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #E91E63 0%, #F06292 100%); border-radius: 15px 15px 0 0;">
-                                <h5 class="mb-0"><i class="fas fa-user-plus mr-2"></i>Applicant Onboarding Tasks</h5>
-                                <button class="btn btn-light btn-sm" data-toggle="modal" data-target="#addApplicantTaskModal">
-                                    <i class="fas fa-plus mr-1"></i>Add Task
-                                </button>
+                    <!-- Department-Specific Tasks -->
+                    <div class="col-lg-6">
+                        <div class="card" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(233, 30, 99, 0.1); border-left: 5px solid #E91E63;">
+                            <div class="card-header" style="background: linear-gradient(135deg, #E91E63 0%, #F06292 100%); border-radius: 15px 15px 0 0; color: white;">
+                                <h5 class="mb-0"><i class="fas fa-sitemap mr-2"></i>Department-Specific Tasks</h5>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Task</th>
-                                                <th>Department</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($applicantTasks as $task): ?>
-                                            <tr>
-                                                <td>
-                                                    <strong><?php echo htmlspecialchars($task['task_name']); ?></strong>
-                                                    <br><small class="text-muted"><?php echo htmlspecialchars($task['description']); ?></small>
-                                                </td>
-                                                <td><span class="badge badge-secondary"><?php echo htmlspecialchars($task['department_name']); ?></span></td>
-                                                <td>
-                                                    <form method="POST" style="display: inline;">
+                                <?php if (!empty($dept_tasks)): ?>
+                                    <div class="list-group">
+                                        <?php foreach ($dept_tasks as $task): ?>
+                                            <div class="list-group-item">
+                                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <?php echo htmlspecialchars($task['task_name']); ?>
+                                                            <span class="badge badge-primary ml-2"><?php echo htmlspecialchars($task['task_type']); ?></span>
+                                                        </h6>
+                                                        <p class="mb-1 text-muted small"><?php echo htmlspecialchars($task['description']); ?></p>
+                                                        <small class="text-info"><i class="fas fa-building"></i> <?php echo htmlspecialchars($task['department_name']); ?></small>
+                                                    </div>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this task?');">
                                                         <input type="hidden" name="action" value="delete_task">
                                                         <input type="hidden" name="task_id" value="<?php echo $task['task_id']; ?>">
-                                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">
+                                                        <button type="submit" class="btn btn-danger btn-sm ml-2">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
-                                                </td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <p>No department-specific tasks yet</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Employee Tasks Card -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(233, 30, 99, 0.1);">
-                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #E91E63 0%, #F06292 100%); border-radius: 15px 15px 0 0;">
-                                <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Employee Onboarding Tasks</h5>
-                                <button class="btn btn-light btn-sm" data-toggle="modal" data-target="#addEmployeeTaskModal">
-                                    <i class="fas fa-plus mr-1"></i>Add Task
-                                </button>
+                    <!-- General Tasks -->
+                    <div class="col-lg-6">
+                        <div class="card" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(76, 175, 80, 0.1); border-left: 5px solid #4CAF50;">
+                            <div class="card-header" style="background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); border-radius: 15px 15px 0 0; color: white;">
+                                <h5 class="mb-0"><i class="fas fa-globe mr-2"></i>General Tasks (All Departments)</h5>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Task</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($employeeTasks as $task): ?>
-                                            <tr>
-                                                <td>
-                                                    <strong><?php echo htmlspecialchars($task['task_name']); ?></strong>
-                                                    <br><small class="text-muted"><?php echo htmlspecialchars($task['description']); ?></small>
-                                                </td>
-                                                <td>
-                                                    <form method="POST" style="display: inline;">
+                                <?php if (!empty($general_tasks)): ?>
+                                    <div class="list-group">
+                                        <?php foreach ($general_tasks as $task): ?>
+                                            <div class="list-group-item">
+                                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <?php echo htmlspecialchars($task['task_name']); ?>
+                                                            <span class="badge badge-success ml-2"><?php echo htmlspecialchars($task['task_type']); ?></span>
+                                                        </h6>
+                                                        <p class="mb-1 text-muted small"><?php echo htmlspecialchars($task['description']); ?></p>
+                                                        <small class="text-success"><i class="fas fa-check-circle"></i> Applies to all departments</small>
+                                                    </div>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this task?');">
                                                         <input type="hidden" name="action" value="delete_task">
                                                         <input type="hidden" name="task_id" value="<?php echo $task['task_id']; ?>">
-                                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">
+                                                        <button type="submit" class="btn btn-danger btn-sm ml-2">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
-                                                </td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <p>No general tasks yet</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Add Applicant Task Modal -->
-    <div class="modal fade" id="addApplicantTaskModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Add Applicant Task</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle"></i> <strong>Information:</strong> 
+                    <ul class="mb-0 mt-2">
+                        <li>Department-specific tasks will be assigned only to applicants from that department</li>
+                        <li>General tasks will be assigned to all new hires regardless of department</li>
+                        <li>Tasks are automatically assigned when you use the "Assign" button on the Applicant Onboarding page</li>
+                    </ul>
                 </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add_applicant">
-                        <div class="form-group">
-                            <label>Task Name:</label>
-                            <input type="text" name="task_name" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Description:</label>
-                            <textarea name="task_description" class="form-control" rows="3" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Department:</label>
-                            <select name="department_id" class="form-control" required>
-                                <option value="">Select Department</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?php echo $dept['department_id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <small class="text-muted">These tasks will be assigned to applicants from the selected department.</small>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Add Task</button>
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Employee Task Modal -->
-    <div class="modal fade" id="addEmployeeTaskModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Add Employee Task</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add_employee">
-                        <div class="form-group">
-                            <label>Task Name:</label>
-                            <input type="text" name="task_name" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Description:</label>
-                            <textarea name="task_description" class="form-control" rows="3" required></textarea>
-                        </div>
-                        <small class="text-muted">These tasks will be assigned to all employees regardless of department.</small>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Add Task</button>
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>

@@ -1,8 +1,53 @@
 <?php
-session_start();
+/**
+ * LEAVE REQUESTS MANAGEMENT PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 10911 (Paid Leave Bill of 2016)
+ *   - Vacation and sick leave request processing
+ *   - Leave application and approval workflows
+ *   - Leave computation and benefits
+ * 
+ * - RA 11210 (Expanded Maternity Leave Law of 2018)
+ *   - Maternity leave request handling
+ *   - 120-day entitlement management
+ *   - Solo parent maternity provisions
+ * 
+ * - RA 11165 (Paternity Leave Bill of 2018)
+ *   - Paternity leave requests (7-14 days)
+ *   - Solo parent father entitlements
+ * 
+ * - RA 9403 (Leave Benefits for Solo Parents)
+ *   - Solo parent certification and additional leave allocation
+ *   - 5-day additional leave integration
+ * 
+ * - RA 11058 (Sick Leave Benefits for Women with Menstrual Disorder)
+ *   - Medical certification requirements for menstrual disorder leave
+ *   - Gender-specific leave provisions
+ * 
+ * - RA 10754 (Typhoon Victims' Benefits and Assistance Act)
+ *   - Emergency and disaster leave provisions
+ *   - Calamity-related leave requests
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Leave requests contain HIGHLY SENSITIVE PERSONAL INFORMATION
+ *   - Health/medical data (maternity, menstrual disorder, sick leave) is SENSITIVE PI
+ *   - Medical documents uploaded are protected information - secure storage mandatory
+ *   - Restrict access to authorized HR/supervisory personnel only
+ *   - Employee consent required before processing leave requests
+ *   - Implement encryption for data transmission and storage
+ *   - Audit logs must be maintained for all access to sensitive leave data
+ *   - Medical information has heightened confidentiality requirements
+ *   - Employees have right to access/correct their leave request details
+ * 
+ * Compliance Note: Leave balances and gender restrictions must comply with statutory
+ * requirements. Document verification may be required per applicable RA.
+ * All medical and health-related leave information must be handled as SENSITIVE PI.
+ */
 
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+session_start();
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
@@ -33,14 +78,23 @@ function getLeaveRequests() {
             $requestId = $_POST['requestId'];
 
             try {
-                // Get employee_id for this leave request
-                $empStmt = $conn->prepare("SELECT employee_id FROM leave_requests WHERE leave_id = ?");
+                // Get employee_id and end_date for this leave request
+                $empStmt = $conn->prepare("SELECT employee_id, end_date, document_path FROM leave_requests WHERE leave_id = ?");
                 $empStmt->execute([$requestId]);
-                $employee_id = $empStmt->fetchColumn();
+                $row = $empStmt->fetch(PDO::FETCH_ASSOC);
+                $employee_id = $row['employee_id'];
+                $end_date = $row['end_date'];
+                $document_path = $row['document_path'];
 
                 $sql = "UPDATE leave_requests SET status = 'Approved' WHERE leave_id = ?";
                 $stmt = $conn->prepare($sql);
                 $stmt->execute([$requestId]);
+
+                // Update document expiry date if document exists
+                if ($document_path) {
+                    $docStmt = $conn->prepare("UPDATE document_management SET expiry_date = ?, document_status = 'Active' WHERE file_path = ? AND employee_id = ? AND document_type = 'Leave Document'");
+                    $docStmt->execute([$end_date, $document_path, $employee_id]);
+                }
 
                 // Update employee status based on leave approval
                 if ($employee_id) {
@@ -61,14 +115,22 @@ function getLeaveRequests() {
             $requestId = $_POST['requestId'];
 
             try {
-                // Get employee_id for this leave request
-                $empStmt = $conn->prepare("SELECT employee_id FROM leave_requests WHERE leave_id = ?");
+                // Get employee_id and document_path for this leave request
+                $empStmt = $conn->prepare("SELECT employee_id, document_path FROM leave_requests WHERE leave_id = ?");
                 $empStmt->execute([$requestId]);
-                $employee_id = $empStmt->fetchColumn();
+                $row = $empStmt->fetch(PDO::FETCH_ASSOC);
+                $employee_id = $row['employee_id'];
+                $document_path = $row['document_path'];
 
                 $sql = "UPDATE leave_requests SET status = 'Rejected' WHERE leave_id = ?";
                 $stmt = $conn->prepare($sql);
                 $stmt->execute([$requestId]);
+
+                // Expire document immediately if exists
+                if ($document_path) {
+                    $docStmt = $conn->prepare("UPDATE document_management SET expiry_date = CURDATE(), document_status = 'Expired' WHERE file_path = ? AND employee_id = ? AND document_type = 'Leave Document'");
+                    $docStmt->execute([$document_path, $employee_id]);
+                }
 
                 // Update employee status based on leave rejection
                 if ($employee_id) {
@@ -87,6 +149,10 @@ function getLeaveRequests() {
             exit;
         } elseif (isset($_POST['submitLeaveRequest'])) {
             // Handle new leave request submission
+            error_log("=== LEAVE REQUEST SUBMISSION STARTED (ADMIN/HR) ===");
+            error_log("POST data: " . json_encode($_POST));
+            error_log("FILES data: " . json_encode($_FILES));
+            
             $employeeId = $_POST['employeeId'];
             $leaveTypeId = $_POST['leaveTypeId'];
             $startDate = $_POST['startDate'];
@@ -97,30 +163,58 @@ function getLeaveRequests() {
         $duration = (strtotime($endDate) - strtotime($startDate)) / (60 * 60 * 24) + 1;
 
         $documentPath = null;
-        if (isset($_FILES['document']) && $_FILES['document']['error'] == 0) {
-            $fileName = $_FILES['document']['name'];
-            $fileTmpName = $_FILES['document']['tmp_name'];
-            $fileSize = $_FILES['document']['size'];
-            $fileType = $_FILES['document']['type'];
+        error_log("Checking for document upload...");
+        
+        if (isset($_FILES['document'])) {
+            error_log("Document file found in FILES array");
+            error_log("File error code: " . $_FILES['document']['error']);
+            
+            if ($_FILES['document']['error'] == 0) {
+                $fileName = $_FILES['document']['name'];
+                $fileTmpName = $_FILES['document']['tmp_name'];
+                $fileSize = $_FILES['document']['size'];
+                $fileType = $_FILES['document']['type'];
+                $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
-            $allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-            if (in_array($fileType, $allowedTypes) && $fileSize < 5000000) {
-                $uploadDir = 'uploads/leave_documents/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0755, true);
+                error_log("File details - Name: $fileName, Size: $fileSize, Type: $fileType, Extension: $fileExtension");
+
+                // Allow common MIME types and also check file extension as backup
+                $allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                
+                if ((in_array($fileType, $allowedTypes) || in_array($fileExtension, $allowedExtensions)) && $fileSize < 5000000) {
+                    error_log("File validation passed");
+                    $uploadDir = __DIR__ . '/uploads/leave_documents/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                        error_log("Created upload directory: $uploadDir");
+                    }
+                    $newFileName = uniqid() . '_' . $fileName;
+                    $uploadPath = $uploadDir . $newFileName;
+                    error_log("Attempting to move file from $fileTmpName to $uploadPath");
+                    if (move_uploaded_file($fileTmpName, $uploadPath)) {
+                        $documentPath = 'uploads/leave_documents/' . $newFileName;
+                        error_log("SUCCESS: Document uploaded to: $documentPath");
+                    } else {
+                        error_log("FAILED: Could not move file from $fileTmpName to $uploadPath");
+                    }
+                } else {
+                    error_log("File validation FAILED - Type: $fileType, Extension: $fileExtension, Size: $fileSize bytes");
                 }
-                $newFileName = uniqid() . '_' . $fileName;
-                $uploadPath = $uploadDir . $newFileName;
-                if (move_uploaded_file($fileTmpName, $uploadPath)) {
-                    $documentPath = $uploadPath;
-                }
+            } else {
+                error_log("File upload error code: " . $_FILES['document']['error']);
             }
+        } else {
+            error_log("No document file in FILES array");
         }
+
+        error_log("Document path after upload check: " . ($documentPath ? $documentPath : "NULL"));
 
         try {
             $sql = "INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, total_days, reason, document_path, status, applied_on)
                     VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())";
             $stmt = $conn->prepare($sql);
+            error_log("Executing insert with document_path: " . ($documentPath ? $documentPath : "NULL"));
             $stmt->execute([$employeeId, $leaveTypeId, $startDate, $endDate, $duration, $reason, $documentPath]);
             error_log("Logging activity: New leave request submitted by employee ID $employeeId");
             logActivity("New leave request submitted by employee ID $employeeId", "leave_requests");
@@ -235,6 +329,33 @@ $rejectedPercentage = $totalRequests > 0 ? ($rejectedRequests / $totalRequests) 
             <div class="main-content">
                 <h2 class="section-title">Leave Requests Management</h2>
                 
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-shield-alt mr-2"></i>HIGHLY SENSITIVE DATA - Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 10911, 11210, 11165, 9403, 11058, 10754</strong> - Leave entitlements and regulations</li>
+                                <li><strong>RA 10173 (CRITICAL)</strong> - Data Privacy Act: <strong>This page processes HIGHLY SENSITIVE PERSONAL INFORMATION</strong></li>
+                            </ul>
+                            <strong style="color: #d32f2f;">⚠️ CRITICAL - SENSITIVE DATA WARNING:</strong>
+                            <ul class="mb-0">
+                                <li>Medical documents uploaded are SENSITIVE PERSONAL INFORMATION - encrypted storage mandatory</li>
+                                <li>Maternity/Paternity/Sick leave requests reveal health status - CONFIDENTIAL</li>
+                                <li>Solo parent applications contain family status information - CONFIDENTIAL</li>
+                                <li>Menstrual disorder certifications are health records - STRICTLY CONFIDENTIAL</li>
+                                <li>Restrict access to authorized HR personnel only</li>
+                                <li>Maintain comprehensive audit logs for all access and modifications</li>
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">
@@ -262,12 +383,14 @@ $rejectedPercentage = $totalRequests > 0 ? ($rejectedRequests / $totalRequests) 
                                                 <td><?php echo htmlspecialchars($request['employee_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($request['leave_type_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($request['start_date']) . ' - ' . htmlspecialchars($request['end_date']); ?></td>
-                                                <td><?php echo htmlspecialchars($request['total_days']); ?></td>
+                                                <td><?php echo intval($request['total_days']); ?> days</td>
                                                 <td><?php echo htmlspecialchars($request['reason']); ?></td>
                                                 <td><span class="status-badge badge-<?php echo strtolower($request['status']); ?>"><?php echo htmlspecialchars($request['status']); ?></span></td>
                                                 <td><?php if ($request['document_path']): ?>
                                                     <button class="btn btn-sm btn-outline-primary mr-1" onclick="viewDocument('<?php echo htmlspecialchars($request['document_path']); ?>', '<?php echo htmlspecialchars($request['employee_name']); ?>', '<?php echo htmlspecialchars($request['leave_type_name']); ?>', '<?php echo htmlspecialchars($request['start_date']); ?> to <?php echo htmlspecialchars($request['end_date']); ?>')"><i class="fas fa-eye"></i> View</button>
                                                     <a href="<?php echo htmlspecialchars($request['document_path']); ?>" download class="btn btn-sm btn-outline-secondary"><i class="fas fa-download"></i> Download</a>
+                                                <?php else: ?>
+                                                    <span class="text-muted">No document</span>
                                                 <?php endif; ?></td>
                                                 <td>
                                                     <?php if ($request['status'] == 'Pending'): ?>
@@ -468,6 +591,9 @@ $rejectedPercentage = $totalRequests > 0 ? ($rejectedRequests / $totalRequests) 
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <a id="downloadDocumentBtn" href="#" download class="btn btn-primary">
+                        <i class="fas fa-download mr-2"></i>Download
+                    </a>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -515,10 +641,11 @@ $rejectedPercentage = $totalRequests > 0 ? ($rejectedRequests / $totalRequests) 
 
             if (fileExtension === 'pdf') {
                 content = '<iframe src="view_document.php?file=' + encodeURIComponent(documentPath) + '" width="100%" height="600px" style="border: none;"></iframe>';
-            } else if (fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png') {
+            } else if (fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png' || fileExtension === 'gif') {
                 content = '<img src="view_document.php?file=' + encodeURIComponent(documentPath) + '" class="img-fluid" alt="Document Image" style="max-width: 100%; max-height: 600px;">';
             } else {
-                content = '<div class="alert alert-warning">Unsupported file type. <a href="' + documentPath + '" target="_blank">Click here to download and view the file</a></div>';
+                // For all other file types, try to display in iframe
+                content = '<iframe src="' + documentPath + '" width="100%" height="600px" style="border: none;"></iframe>';
             }
 
             $('#documentViewerContent').html(content);

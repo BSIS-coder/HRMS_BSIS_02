@@ -1,45 +1,111 @@
 <?php
+session_start();
+
+// Require authentication
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+require_once 'dp.php'; // database connection
+
 header('Content-Type: application/json');
-require_once 'dp.php';
 
 try {
-    $employee_id = filter_input(INPUT_POST, 'employee_id', FILTER_VALIDATE_INT);
-    $cycle_id = filter_input(INPUT_POST, 'cycle_id', FILTER_VALIDATE_INT);
-    $competencies = json_decode($_POST['competencies'] ?? '[]', true);
+    $employee_id = $_POST['employee_id'] ?? null;
+    $cycle_id = $_POST['cycle_id'] ?? null;
+    $competencies_json = $_POST['competencies'] ?? null;
 
-    if (!$employee_id || !$cycle_id || !is_array($competencies)) {
-        echo json_encode(['success' => false, 'message' => 'Invalid input.']);
+    if (!$employee_id || !$cycle_id || !$competencies_json) {
+        echo json_encode(['success' => false, 'message' => 'Missing required data']);
         exit;
     }
 
-    $conn->beginTransaction();
-
-    // Delete existing competencies for this employee and cycle
-    $deleteSql = "DELETE FROM employee_competencies WHERE employee_id = :employee_id AND cycle_id = :cycle_id";
-    $deleteStmt = $conn->prepare($deleteSql);
-    $deleteStmt->execute([':employee_id' => $employee_id, ':cycle_id' => $cycle_id]);
-
-    // Insert new competencies
-    foreach ($competencies as $comp) {
-        $competency_id = (int) $comp['competency_id'];
-        $rating = (int) $comp['rating'];
-        $comments = trim($comp['comments'] ?? '');
-
-        $insertSql = "INSERT INTO employee_competencies (employee_id, competency_id, cycle_id, rating, assessment_date, comments, updated_at)
-                      VALUES (:employee_id, :competency_id, :cycle_id, :rating, CURDATE(), :comments, CURRENT_TIMESTAMP)";
-        $insertStmt = $conn->prepare($insertSql);
-        $insertStmt->execute([
-            ':employee_id' => $employee_id,
-            ':competency_id' => $competency_id,
-            ':cycle_id' => $cycle_id,
-            ':rating' => $rating,
-            ':comments' => $comments
-        ]);
+    // Decode the competencies JSON
+    $competencies = json_decode($competencies_json, true);
+    
+    if (!is_array($competencies) || count($competencies) === 0) {
+        echo json_encode(['success' => false, 'message' => 'No competencies to save']);
+        exit;
     }
 
-    $conn->commit();
-    echo json_encode(['success' => true]);
+    $updated_count = 0;
+    $today = date('Y-m-d');
+
+    foreach ($competencies as $comp) {
+        $competency_id = $comp['competency_id'] ?? null;
+        $rating = $comp['rating'] ?? null;
+        $comments = $comp['comments'] ?? '';
+
+        if (!$competency_id) {
+            continue;
+        }
+
+        // Check if a record exists for this employee, competency, and cycle
+        $checkStmt = $conn->prepare("
+            SELECT employee_id FROM employee_competencies 
+            WHERE employee_id = :employee_id 
+            AND competency_id = :competency_id 
+            AND cycle_id = :cycle_id
+            LIMIT 1
+        ");
+        $checkStmt->execute([
+            ':employee_id' => $employee_id,
+            ':competency_id' => $competency_id,
+            ':cycle_id' => $cycle_id
+        ]);
+        $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            // Update existing record
+            $updateStmt = $conn->prepare("
+                UPDATE employee_competencies 
+                SET rating = :rating, 
+                    comments = :comments, 
+                    assessment_date = :assessment_date,
+                    updated_at = NOW()
+                WHERE employee_id = :employee_id 
+                AND competency_id = :competency_id 
+                AND cycle_id = :cycle_id
+            ");
+            $updateStmt->execute([
+                ':rating' => $rating ?: null,
+                ':comments' => $comments,
+                ':assessment_date' => $today,
+                ':employee_id' => $employee_id,
+                ':competency_id' => $competency_id,
+                ':cycle_id' => $cycle_id
+            ]);
+        } else {
+            // Insert new record
+            $insertStmt = $conn->prepare("
+                INSERT INTO employee_competencies 
+                (employee_id, competency_id, cycle_id, rating, comments, assessment_date, created_at, updated_at)
+                VALUES 
+                (:employee_id, :competency_id, :cycle_id, :rating, :comments, :assessment_date, NOW(), NOW())
+            ");
+            $insertStmt->execute([
+                ':employee_id' => $employee_id,
+                ':competency_id' => $competency_id,
+                ':cycle_id' => $cycle_id,
+                ':rating' => $rating ?: null,
+                ':comments' => $comments,
+                ':assessment_date' => $today
+            ]);
+        }
+
+        $updated_count++;
+    }
+
+    if ($updated_count > 0) {
+        echo json_encode(['success' => true, 'message' => "Successfully updated $updated_count competency(ies)"]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'No records were updated']);
+    }
+
 } catch (Exception $e) {
-    $conn->rollBack();
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('update_employee_evaluation error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
 }
+?>
