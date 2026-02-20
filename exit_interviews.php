@@ -133,6 +133,7 @@ $interviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("
     SELECT 
         ex.exit_id, 
+        ex.employee_id,
         ex.exit_date,
         ex.exit_type,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
@@ -142,20 +143,6 @@ $stmt = $pdo->query("
     ORDER BY ex.exit_date DESC
 ");
 $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch employees for dropdown
-$stmt = $pdo->query("
-    SELECT 
-        ep.employee_id,
-        CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
-        ep.employee_number,
-        jr.title as job_title
-    FROM employee_profiles ep
-    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-    LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-    ORDER BY pi.first_name
-");
-$employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -958,32 +945,16 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <input type="hidden" id="action" name="action" value="add">
                     <input type="hidden" id="interview_id" name="interview_id">
 
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="exit_id">Exit Record</label>
-                                <select id="exit_id" name="exit_id" class="form-control" required>
-                                    <option value="">Select exit record...</option>
-                                    <?php foreach ($exits as $exit): ?>
-                                    <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?> (<?= htmlspecialchars($exit['exit_type']) ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="employee_id">Employee</label>
-                                                                <select id="employee_id" name="employee_id" class="form-control" required>
-                                    <option value="">Select employee...</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                    <option value="<?= $employee['employee_id'] ?>">
-                                        <?= htmlspecialchars($employee['full_name']) ?> (<?= htmlspecialchars($employee['job_title']) ?>)
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="exit_id">Exit Record</label>
+                        <select id="exit_id" name="exit_id" class="form-control" required>
+                            <option value="">Select exit record...</option>
+                            <?php foreach ($exits as $exit): ?>
+                            <option value="<?= $exit['exit_id'] ?>" data-employee-id="<?= $exit['employee_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?> (<?= htmlspecialchars($exit['exit_type']) ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+                    <input type="hidden" id="employee_id" name="employee_id">
 
                     <div class="form-group">
                         <label for="interview_date">Interview Date</label>
@@ -1082,6 +1053,13 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         // Modal controls
         const modal = document.getElementById('interviewModal');
         const form = document.getElementById('interviewForm');
+
+        // Auto-populate employee_id when exit record is selected
+        document.getElementById('exit_id').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const employeeId = selectedOption.getAttribute('data-employee-id');
+            document.getElementById('employee_id').value = employeeId || '';
+        });
 
         function openModal(action, data = null) {
             document.getElementById('action').value = action;

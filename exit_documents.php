@@ -177,6 +177,7 @@ $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("
     SELECT 
         e.exit_id,
+        e.employee_id,
         e.exit_type,
         e.exit_date,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
@@ -186,18 +187,6 @@ $stmt = $pdo->query("
     ORDER BY e.exit_date DESC
 ");
 $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch employees for dropdown
-$stmt = $pdo->query("
-    SELECT 
-        ep.employee_id,
-        ep.employee_number,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
-    FROM employee_profiles ep
-    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-    ORDER BY pi.first_name
-");
-$employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -690,34 +679,18 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <input type="hidden" id="document_id" name="document_id">
                     <input type="hidden" id="existing_document_url" name="existing_document_url">
 
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="exit_id">Exit Record</label>
-                                <select id="exit_id" name="exit_id" class="form-control" required>
-                                    <option value="">Select exit record...</option>
-                                    <?php foreach ($exits as $exit): ?>
-                                    <option value="<?= $exit['exit_id'] ?>">
-                                        <?= htmlspecialchars($exit['employee_name']) ?> - <?= htmlspecialchars($exit['exit_type']) ?> (<?= date('M d, Y', strtotime($exit['exit_date'])) ?>)
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="employee_id">Employee</label>
-                                <select id="employee_id" name="employee_id" class="form-control" required>
-                                    <option value="">Select employee...</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                    <option value="<?= $employee['employee_id'] ?>">
-                                        <?= htmlspecialchars($employee['employee_name']) ?> (<?= htmlspecialchars($employee['employee_number']) ?>)
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="exit_id">Exit Record</label>
+                        <select id="exit_id" name="exit_id" class="form-control" required>
+                            <option value="">Select exit record...</option>
+                            <?php foreach ($exits as $exit): ?>
+                            <option value="<?= $exit['exit_id'] ?>" data-employee-id="<?= $exit['employee_id'] ?>">
+                                <?= htmlspecialchars($exit['employee_name']) ?> - <?= htmlspecialchars($exit['exit_type']) ?> (<?= date('M d, Y', strtotime($exit['exit_date'])) ?>)
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+                    <input type="hidden" id="employee_id" name="employee_id">
 
                     <div class="form-row">
                         <div class="form-col">
@@ -771,6 +744,13 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script>
         // Global variables
         let documentsData = <?= json_encode($documents) ?>;
+
+        // Auto-populate employee_id when exit record is selected
+        document.getElementById('exit_id').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const employeeId = selectedOption.getAttribute('data-employee-id');
+            document.getElementById('employee_id').value = employeeId || '';
+        });
 
         // File upload handling
         document.getElementById('document_file').addEventListener('change', function(e) {
