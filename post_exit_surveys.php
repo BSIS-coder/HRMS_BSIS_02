@@ -11,74 +11,111 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
 // Database connection
-$pdo = connectToDatabase();
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
 
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Handle form submissions
-$message = '';
-$messageType = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
                 // Add new survey
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO post_exit_surveys (employee_id, exit_id, survey_date, survey_response, satisfaction_rating, submitted_date) VALUES (?, ?, ?, ?, ?, ?)");
+                    // Handle anonymous survey: set employee_id to NULL if not provided
+                    $employee_id = isset($_POST['employee_id']) && $_POST['employee_id'] !== '' ? $_POST['employee_id'] : null;
+                    $stmt = $pdo->prepare("INSERT INTO post_exit_surveys (employee_id, exit_id, survey_date, survey_response, satisfaction_rating, submitted_date, is_anonymous, evaluation_score, evaluation_criteria) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
-                        $_POST['employee_id'],
-                        $_POST['exit_id'],
-                        $_POST['survey_date'],
-                        $_POST['survey_response'],
-                        $_POST['satisfaction_rating'],
-                        $_POST['submitted_date']
-                    ]);
-                    $message = "Post-exit survey added successfully!";
-                    $messageType = "success";
-                } catch (PDOException $e) {
-                    $message = "Error adding survey: " . $e->getMessage();
-                    $messageType = "error";
-                }
-                break;
-            
-            case 'update':
-                // Update survey
-                try {
-                    $stmt = $pdo->prepare("UPDATE post_exit_surveys SET employee_id=?, exit_id=?, survey_date=?, survey_response=?, satisfaction_rating=?, submitted_date=? WHERE survey_id=?");
-                    $stmt->execute([
-                        $_POST['employee_id'],
+                        $employee_id,
                         $_POST['exit_id'],
                         $_POST['survey_date'],
                         $_POST['survey_response'],
                         $_POST['satisfaction_rating'],
                         $_POST['submitted_date'],
+                        isset($_POST['is_anonymous']) ? 1 : 0,
+                        isset($_POST['evaluation_score']) ? $_POST['evaluation_score'] : 0,
+                        isset($_POST['evaluation_criteria']) ? $_POST['evaluation_criteria'] : null
+                    ]);
+                    $_SESSION['message'] = "Post-exit survey added successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: " . $_SERVER['PHP_SELF']);
+                    exit;
+                } catch (PDOException $e) {
+                    $_SESSION['message'] = "Error adding survey: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: " . $_SERVER['PHP_SELF']);
+                    exit;
+                }
+                // break; // not needed after exit
+            case 'update':
+                // Update survey
+                try {
+                    // Handle anonymous survey: set employee_id to NULL if not provided
+                    $employee_id = isset($_POST['employee_id']) && $_POST['employee_id'] !== '' ? $_POST['employee_id'] : null;
+                    $stmt = $pdo->prepare("UPDATE post_exit_surveys SET employee_id=?, exit_id=?, survey_date=?, survey_response=?, satisfaction_rating=?, submitted_date=?, is_anonymous=?, evaluation_score=?, evaluation_criteria=? WHERE survey_id=?");
+                    $stmt->execute([
+                        $employee_id,
+                        $_POST['exit_id'],
+                        $_POST['survey_date'],
+                        $_POST['survey_response'],
+                        $_POST['satisfaction_rating'],
+                        $_POST['submitted_date'],
+                        isset($_POST['is_anonymous']) ? 1 : 0,
+                        isset($_POST['evaluation_score']) ? $_POST['evaluation_score'] : 0,
+                        isset($_POST['evaluation_criteria']) ? $_POST['evaluation_criteria'] : null,
                         $_POST['survey_id']
                     ]);
-                    $message = "Post-exit survey updated successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Post-exit survey updated successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: " . $_SERVER['PHP_SELF']);
+                    exit;
                 } catch (PDOException $e) {
-                    $message = "Error updating survey: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error updating survey: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: " . $_SERVER['PHP_SELF']);
+                    exit;
                 }
-                break;
-            
+                // break; // not needed after exit
             case 'delete':
                 // Delete survey
                 try {
                     $stmt = $pdo->prepare("DELETE FROM post_exit_surveys WHERE survey_id=?");
                     $stmt->execute([$_POST['survey_id']]);
-                    $message = "Post-exit survey deleted successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Post-exit survey deleted successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: " . $_SERVER['PHP_SELF']);
+                    exit;
                 } catch (PDOException $e) {
-                    $message = "Error deleting survey: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error deleting survey: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: " . $_SERVER['PHP_SELF']);
+                    exit;
                 }
                 break;
         }
     }
+}
+
+// Get message from session if exists
+$message = '';
+$messageType = '';
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    $messageType = $_SESSION['messageType'];
+    // Clear the message after displaying
+    unset($_SESSION['message']);
+    unset($_SESSION['messageType']);
 }
 
 // Fetch surveys with related data
@@ -136,6 +173,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         /* Additional custom styles for post-exit surveys page */
         :root {
@@ -486,6 +524,154 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
             word-wrap: break-word;
         }
 
+        .flowchart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .flowchart {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .flowchart-step {
+            background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 150px;
+            border: 2px solid var(--azure-blue);
+            position: relative;
+        }
+
+        .flowchart-step.active {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+            border-color: var(--azure-blue-dark);
+        }
+
+        .flowchart-arrow {
+            font-size: 24px;
+            color: var(--azure-blue);
+        }
+
+        .anonymous-badge {
+            background: #6c757d;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .evaluation-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .evaluation-criteria {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .evaluation-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .evaluation-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .evaluation-item label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .evaluation-score-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .evaluation-score-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--azure-blue);
+            cursor: pointer;
+        }
+
+        .evaluation-score-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--azure-blue);
+            cursor: pointer;
+            border: none;
+        }
+
+        .score-display {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--azure-blue);
+            margin-top: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: var(--azure-blue);
+            border-bottom-color: var(--azure-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -507,6 +693,18 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
             .content {
                 padding: 20px;
             }
+
+            .flowchart {
+                flex-direction: column;
+            }
+
+            .flowchart-arrow {
+                transform: rotate(90deg);
+            }
+
+            .evaluation-criteria {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -524,81 +722,257 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     <?php endif; ?>
 
-                    <div class="controls">
-                        <div class="search-box">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search surveys by employee name or exit type...">
+                    <!-- Panelist Suggestion: Enhanced Flowchart with Anonymity & Evaluation Highlight -->
+                    <div class="flowchart-container">
+                        <h3 style="color: var(--azure-blue); margin-bottom: 20px;">📊 Survey Process Workflow</h3>
+                        <div class="flowchart">
+                            <div class="flowchart-step active">
+                                <strong>1. Employee Exit</strong><br>
+                                <small>Employee resigns/terminates</small>
+                            </div>
+                            <div class="flowchart-arrow">→</div>
+                            <div class="flowchart-step">
+                                <strong>2. Schedule Survey</strong><br>
+                                <small>Plan survey timeline</small>
+                            </div>
+                            <div class="flowchart-arrow">→</div>
+                            <div class="flowchart-step">
+                                <strong>3. Send Survey</strong><br>
+                                <small>
+                                    <span style="color:#6c757d;">Option: <b>Anonymous</b> or Identified</span>
+                                </small>
+                                <div style="margin-top:5px;">
+                                    <span class="anonymous-badge" style="background:#e7d4f5;color:#6f42c1;">🔒 Anonymous</span>
+                                    <span class="anonymous-badge" style="background:#d1ecf1;color:#0c5460;">📝 Identified</span>
+                                </div>
+                            </div>
+                            <div class="flowchart-arrow">→</div>
+                            <div class="flowchart-step">
+                                <strong>4. Collect Feedback</strong><br>
+                                <small>
+                                    <span style="color:#388e3c;">Employee <b>Rates</b> & <b>Evaluates</b></span>
+                                </small>
+                                <div style="margin-top:5px;">
+                                    <span class="rating-badge rating-excellent">⭐ Rating</span>
+                                    <span class="rating-badge rating-good" style="background:#d1ecf1;color:#0c5460;">📋 Evaluation</span>
+                                </div>
+                            </div>
+                            <div class="flowchart-arrow">→</div>
+                            <div class="flowchart-step">
+                                <strong>5. Analyze & Act</strong><br>
+                                <small>Improve processes</small>
+                            </div>
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('add')">
-                            ➕ Add New Survey
-                        </button>
+                        <div style="margin-top:10px; color:#888; font-size:14px;">
+                            <b>Legend:</b> <span class="anonymous-badge" style="background:#e7d4f5;color:#6f42c1;">Anonymous</span> = Hidden identity, <span class="rating-badge rating-excellent">⭐</span> = Satisfaction rating, <span class="rating-badge rating-good" style="background:#d1ecf1;color:#0c5460;">📋</span> = Evaluation
+                        </div>
                     </div>
 
-                    <div class="table-container">
-                        <table class="table" id="surveyTable">
-                            <thead>
-                                <tr>
-                                    <th>Survey ID</th>
-                                    <th>Employee</th>
-                                    <th>Exit Date</th>
-                                    <th>Exit Type</th>
-                                    <th>Survey Date</th>
-                                    <th>Rating</th>
-                                    <th>Submitted</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="surveyTableBody">
-                                <?php foreach ($surveys as $survey): ?>
-                                <tr>
-                                    <td><strong>#<?= htmlspecialchars($survey['survey_id']) ?></strong></td>
-                                    <td>
-                                        <div>
-                                            <strong><?= htmlspecialchars($survey['employee_name']) ?></strong><br>
-                                            <small style="color: #666;">👤 <?= htmlspecialchars($survey['employee_number']) ?></small><br>
-                                            <small style="color: #666;">💼 <?= htmlspecialchars($survey['job_title']) ?> - <?= htmlspecialchars($survey['department']) ?></small>
-                                        </div>
-                                    </td>
-                                    <td><?= date('M d, Y', strtotime($survey['exit_date'])) ?></td>
-                                    <td><?= htmlspecialchars($survey['exit_type']) ?></td>
-                                    <td><?= date('M d, Y', strtotime($survey['survey_date'])) ?></td>
-                                    <td>
-                                        <div class="rating-stars">
-                                            <?php 
-                                            $rating = $survey['satisfaction_rating'];
-                                            for ($i = 1; $i <= 5; $i++) {
-                                                echo $i <= $rating ? '⭐' : '☆';
-                                            }
-                                            ?>
-                                        </div>
-                                        <span class="rating-badge rating-<?= $rating >= 4 ? 'excellent' : ($rating == 3 ? 'good' : ($rating == 2 ? 'average' : 'poor')) ?>">
-                                            <?= $rating ?>/5
-                                        </span>
-                                    </td>
-                                    <td><?= $survey['submitted_date'] ? date('M d, Y H:i', strtotime($survey['submitted_date'])) : 'N/A' ?></td>
-                                    <td>
-                                        <button class="btn btn-info btn-small" onclick="viewSurvey(<?= $survey['survey_id'] ?>)">
-                                            👁️ View
-                                        </button>
-                                        <button class="btn btn-warning btn-small" onclick="editSurvey(<?= $survey['survey_id'] ?>)">
-                                            ✏️ Edit
-                                        </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteSurvey(<?= $survey['survey_id'] ?>)">
-                                            🗑️ Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                        
-                        <?php if (empty($surveys)): ?>
-                        <div class="no-results">
-                            <i>📋</i>
-                            <h3>No surveys found</h3>
-                            <p>Start by adding your first post-exit survey.</p>
+                    <!-- Tabs for different views -->
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchTab('all-surveys')">All Surveys</button>
+                        <button class="tab-btn" onclick="switchTab('anonymous-surveys')">Anonymous Only</button>
+                        <button class="tab-btn" onclick="switchTab('evaluations')">Evaluations</button>
+                    </div>
+
+                    <!-- All Surveys Tab -->
+                    <div id="all-surveys" class="tab-content active">
+                        <div class="controls">
+                            <div class="search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="searchInput" placeholder="Search surveys by employee name or exit type...">
+                            </div>
+                            <button class="btn btn-primary" onclick="openModal('add')">
+                                ➕ Add New Survey
+                            </button>
                         </div>
-                        <?php endif; ?>
+
+                        <div class="table-container">
+                            <table class="table" id="surveyTable">
+                                <thead>
+                                    <tr>
+                                        <th>Survey ID</th>
+                                        <th>Employee</th>
+                                        <th>Exit Date</th>
+                                        <th>Survey Date</th>
+                                        <th>Rating</th>
+                                        <th>Evaluation</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="surveyTableBody">
+                                    <?php foreach ($surveys as $survey): ?>
+                                    <tr>
+                                        <td><strong>#<?= htmlspecialchars($survey['survey_id']) ?></strong></td>
+                                        <td>
+                                            <?php if ($survey['is_anonymous']): ?>
+                                                <span class="anonymous-badge">🔒 Anonymous</span>
+                                            <?php else: ?>
+                                                <div>
+                                                    <strong><?= htmlspecialchars($survey['employee_name']) ?></strong><br>
+                                                    <small style="color: #666;">👤 <?= htmlspecialchars($survey['employee_number']) ?></small><br>
+                                                    <small style="color: #666;">💼 <?= htmlspecialchars($survey['job_title']) ?></small>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= date('M d, Y', strtotime($survey['exit_date'])) ?></td>
+                                        <td><?= date('M d, Y', strtotime($survey['survey_date'])) ?></td>
+                                        <td>
+                                            <div class="rating-stars">
+                                                <?php 
+                                                $rating = $survey['satisfaction_rating'];
+                                                for ($i = 1; $i <= 5; $i++) {
+                                                    echo $i <= $rating ? '⭐' : '☆';
+                                                }
+                                                ?>
+                                            </div>
+                                            <span class="rating-badge rating-<?= $rating >= 4 ? 'excellent' : ($rating == 3 ? 'good' : ($rating == 2 ? 'average' : 'poor')) ?>">
+                                                <?= $rating ?>/5
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($survey['evaluation_score'] > 0): ?>
+                                                <span class="rating-badge rating-excellent" style="background: #d4edda; color: #155724;">
+                                                    Score: <?= $survey['evaluation_score'] ?>/10
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="color: #999;">Not evaluated</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($survey['is_anonymous']): ?>
+                                                <span style="background: #e7d4f5; color: #6f42c1; padding: 5px 10px; border-radius: 5px; font-size: 12px;">🔐 Anonymous</span>
+                                            <?php else: ?>
+                                                <span style="background: #d1ecf1; color: #0c5460; padding: 5px 10px; border-radius: 5px; font-size: 12px;">📝 Identified</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-info btn-small" onclick="viewSurvey(<?= $survey['survey_id'] ?>)">
+                                                👁️ View
+                                            </button>
+                                            <button class="btn btn-warning btn-small" onclick="editSurvey(<?= $survey['survey_id'] ?>)">
+                                                ✏️ Edit
+                                            </button>
+                                            <button class="btn btn-danger btn-small" onclick="deleteSurvey(<?= $survey['survey_id'] ?>)">
+                                                🗑️ Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            
+                            <?php if (empty($surveys)): ?>
+                            <div class="no-results">
+                                <i>📋</i>
+                                <h3>No surveys found</h3>
+                                <p>Start by adding your first post-exit survey.</p>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Anonymous Surveys Tab -->
+                    <div id="anonymous-surveys" class="tab-content">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Survey ID</th>
+                                        <th>Exit Date</th>
+                                        <th>Rating</th>
+                                        <th>Evaluation</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($surveys as $survey): 
+                                        if ($survey['is_anonymous']): ?>
+                                    <tr>
+                                        <td><strong>#<?= htmlspecialchars($survey['survey_id']) ?></strong></td>
+                                        <td><?= date('M d, Y', strtotime($survey['exit_date'])) ?></td>
+                                        <td>
+                                            <div class="rating-stars">
+                                                <?php 
+                                                for ($i = 1; $i <= 5; $i++) {
+                                                    echo $i <= $survey['satisfaction_rating'] ? '⭐' : '☆';
+                                                }
+                                                ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <?php if ($survey['evaluation_score'] > 0): ?>
+                                                <span class="rating-badge rating-excellent" style="background: #d4edda; color: #155724;">
+                                                    Score: <?= $survey['evaluation_score'] ?>/10
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="color: #999;">Not evaluated</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= date('M d, Y', strtotime($survey['submitted_date'])) ?></td>
+                                        <td>
+                                            <button class="btn btn-info btn-small" onclick="viewSurvey(<?= $survey['survey_id'] ?>)">View</button>
+                                            <button class="btn btn-warning btn-small" onclick="editSurvey(<?= $survey['survey_id'] ?>)">Edit</button>
+                                        </td>
+                                    </tr>
+                                    <?php endif; endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php if (empty(array_filter($surveys, fn($s) => $s['is_anonymous']))): ?>
+                            <div class="no-results">
+                                <i>🔒</i>
+                                <h3>No anonymous surveys</h3>
+                                <p>Surveys submitted with hidden employee identity will appear here.</p>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Evaluations Tab -->
+                    <div id="evaluations" class="tab-content">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Survey ID</th>
+                                        <th>Employee</th>
+                                        <th>Evaluation Score</th>
+                                        <th>Criteria</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($surveys as $survey): 
+                                        if ($survey['evaluation_score'] > 0): ?>
+                                    <tr>
+                                        <td><strong>#<?= htmlspecialchars($survey['survey_id']) ?></strong></td>
+                                        <td>
+                                            <?= !$survey['is_anonymous'] ? htmlspecialchars($survey['employee_name']) : '<span class="anonymous-badge">Anonymous</span>' ?>
+                                        </td>
+                                        <td>
+                                            <strong style="color: var(--azure-blue);"><?= $survey['evaluation_score'] ?>/10</strong>
+                                        </td>
+                                        <td>
+                                            <small><?= htmlspecialchars(substr($survey['evaluation_criteria'], 0, 50)) ?>...</small>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-info btn-small" onclick="viewSurvey(<?= $survey['survey_id'] ?>)">View</button>
+                                            <button class="btn btn-warning btn-small" onclick="editSurvey(<?= $survey['survey_id'] ?>)">Edit</button>
+                                        </td>
+                                    </tr>
+                                    <?php endif; endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php if (empty(array_filter($surveys, fn($s) => $s['evaluation_score'] > 0))): ?>
+                            <div class="no-results">
+                                <i>📊</i>
+                                <h3>No evaluations yet</h3>
+                                <p>Employee evaluation results will be shown here.</p>
+                            </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -617,11 +991,22 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <input type="hidden" id="action" name="action" value="add">
                     <input type="hidden" id="survey_id" name="survey_id">
 
+                    <!-- Panelist Suggestion: Anonymous Toggle Highlight -->
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="is_anonymous" name="is_anonymous" value="1" onchange="toggleAnonymous()">
+                            <strong>🔒 Submit as <span style="color:#6f42c1;">Anonymous Survey</span></strong>
+                        </label>
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            <span style="color:#6f42c1;">Check to hide employee identity. Anonymous ratings help ensure honest feedback.</span>
+                        </small>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-col">
-                            <div class="form-group">
+                            <div class="form-group" id="employeeGroup">
                                 <label for="employee_id">Employee</label>
-                                <select id="employee_id" name="employee_id" class="form-control" required>
+                                <select id="employee_id" name="employee_id" class="form-control">
                                     <option value="">Select employee...</option>
                                     <?php foreach ($employees as $employee): ?>
                                     <option value="<?= $employee['employee_id'] ?>"><?= htmlspecialchars($employee['full_name']) ?> (<?= htmlspecialchars($employee['employee_number']) ?>)</option>
@@ -635,7 +1020,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <select id="exit_id" name="exit_id" class="form-control" required>
                                     <option value="">Select exit record...</option>
                                     <?php foreach ($exits as $exit): ?>
-                                    <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?> (<?= htmlspecialchars($exit['exit_type']) ?>)</option>
+                                    <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -660,24 +1045,65 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-group">
                         <label for="satisfaction_rating">Satisfaction Rating</label>
                         <div class="rating-input" id="ratingStars">
-                            <input type="radio" name="satisfaction_rating" id="star5" value="5">
-                            <label for="star5" data-rating="5">⭐</label>
-                            <input type="radio" name="satisfaction_rating" id="star4" value="4">
-                            <label for="star4" data-rating="4">⭐</label>
-                            <input type="radio" name="satisfaction_rating" id="star3" value="3">
-                            <label for="star3" data-rating="3">⭐</label>
-                            <input type="radio" name="satisfaction_rating" id="star2" value="2">
-                            <label for="star2" data-rating="2">⭐</label>
                             <input type="radio" name="satisfaction_rating" id="star1" value="1">
                             <label for="star1" data-rating="1">⭐</label>
+                            <input type="radio" name="satisfaction_rating" id="star2" value="2">
+                            <label for="star2" data-rating="2">⭐</label>
+                            <input type="radio" name="satisfaction_rating" id="star3" value="3">
+                            <label for="star3" data-rating="3">⭐</label>
+                            <input type="radio" name="satisfaction_rating" id="star4" value="4">
+                            <label for="star4" data-rating="4">⭐</label>
+                            <input type="radio" name="satisfaction_rating" id="star5" value="5">
+                            <label for="star5" data-rating="5">⭐</label>
                         </div>
-                        <small style="color: #666;">Click on a star to rate (1-5 stars)</small>
+                    </div>
+
+                    <div class="evaluation-section">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">
+                            📋 Employee Evaluation <span style="font-size:14px;color:#888;">(Panelist: Encourage honest, constructive evaluation)</span>
+                        </h4>
+                        
+                        <div class="form-group">
+                            <label>Overall Evaluation Score (0-10)</label>
+                            <input type="range" id="evaluation_score" name="evaluation_score" class="evaluation-score-slider" min="0" max="10" value="0" onchange="updateScoreDisplay()">
+                            <div class="score-display" id="scoreDisplay">Score: 0/10</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Evaluation Criteria Met</label>
+                            <div class="evaluation-criteria">
+                                <div class="evaluation-item">
+                                    <input type="checkbox" id="crit1" value="performance" class="evaluation-checkbox">
+                                    <label for="crit1">Performance Excellence</label>
+                                </div>
+                                <div class="evaluation-item">
+                                    <input type="checkbox" id="crit2" value="teamwork" class="evaluation-checkbox">
+                                    <label for="crit2">Teamwork & Collaboration</label>
+                                </div>
+                                <div class="evaluation-item">
+                                    <input type="checkbox" id="crit3" value="communication" class="evaluation-checkbox">
+                                    <label for="crit3">Communication Skills</label>
+                                </div>
+                                <div class="evaluation-item">
+                                    <input type="checkbox" id="crit4" value="reliability" class="evaluation-checkbox">
+                                    <label for="crit4">Reliability & Punctuality</label>
+                                </div>
+                                <div class="evaluation-item">
+                                    <input type="checkbox" id="crit5" value="innovation" class="evaluation-checkbox">
+                                    <label for="crit5">Innovation & Creativity</label>
+                                </div>
+                                <div class="evaluation-item">
+                                    <input type="checkbox" id="crit6" value="leadership" class="evaluation-checkbox">
+                                    <label for="crit6">Leadership Potential</label>
+                                </div>
+                            </div>
+                            <input type="hidden" id="evaluation_criteria" name="evaluation_criteria" value="">
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="survey_response">Survey Response</label>
-                        <textarea id="survey_response" name="survey_response" class="form-control" placeholder="Enter detailed survey response here..."></textarea>
-                        <small style="color: #666;">Include feedback, comments, and insights from the post-exit survey</small>
+                        <label for="survey_response">Survey Response & Feedback</label>
+                        <textarea id="survey_response" name="survey_response" class="form-control" placeholder="Enter detailed survey response, comments, and insights..."></textarea>
                     </div>
 
                     <div style="text-align: center; margin-top: 30px;">
@@ -706,6 +1132,51 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
         // Global variables
         let surveysData = <?= json_encode($surveys) ?>;
 
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Toggle anonymous survey
+        function toggleAnonymous() {
+            const isAnonymous = document.getElementById('is_anonymous').checked;
+            const employeeGroup = document.getElementById('employeeGroup');
+            
+            if (isAnonymous) {
+                employeeGroup.style.opacity = '0.5';
+                employeeGroup.style.pointerEvents = 'none';
+                document.getElementById('employee_id').value = '';
+            } else {
+                employeeGroup.style.opacity = '1';
+                employeeGroup.style.pointerEvents = 'auto';
+            }
+        }
+
+        // Update evaluation score display
+        function updateScoreDisplay() {
+            const score = document.getElementById('evaluation_score').value;
+            document.getElementById('scoreDisplay').textContent = 'Score: ' + score + '/10';
+        }
+
+        // Collect evaluation criteria
+        function getEvaluationCriteria() {
+            const checkboxes = document.querySelectorAll('.evaluation-checkbox:checked');
+            const criteria = Array.from(checkboxes).map(cb => cb.value).join(', ');
+            document.getElementById('evaluation_criteria').value = criteria;
+        }
+
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
@@ -715,12 +1186,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 const text = row.textContent.toLowerCase();
-                
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
             }
         });
 
@@ -745,7 +1211,6 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }
 
-        // Modal functions
         function openModal(mode, surveyId = null) {
             const modal = document.getElementById('surveyModal');
             const form = document.getElementById('surveyForm');
@@ -758,6 +1223,8 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 form.reset();
                 document.getElementById('survey_id').value = '';
                 updateStarDisplay(0);
+                document.getElementById('is_anonymous').checked = false;
+                toggleAnonymous();
             } else if (mode === 'edit' && surveyId) {
                 title.textContent = 'Edit Post-Exit Survey';
                 action.value = 'update';
@@ -782,18 +1249,27 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('exit_id').value = survey.exit_id || '';
                 document.getElementById('survey_date').value = survey.survey_date || '';
                 document.getElementById('survey_response').value = survey.survey_response || '';
+                document.getElementById('is_anonymous').checked = survey.is_anonymous == 1;
+                document.getElementById('evaluation_score').value = survey.evaluation_score || 0;
                 
-                // Set submitted date
-                if (survey.submitted_date) {
-                    const date = new Date(survey.submitted_date);
-                    const formattedDate = date.toISOString().slice(0, 16);
-                    document.getElementById('submitted_date').value = formattedDate;
+                // Populate evaluation criteria checkboxes
+                if (survey.evaluation_criteria) {
+                    const criteria = survey.evaluation_criteria.split(', ');
+                    document.querySelectorAll('.evaluation-checkbox').forEach(cb => {
+                        cb.checked = criteria.includes(cb.value);
+                    });
                 }
                 
-                // Set rating
+                if (survey.submitted_date) {
+                    const date = new Date(survey.submitted_date);
+                    document.getElementById('submitted_date').value = date.toISOString().slice(0, 16);
+                }
+                
                 const rating = survey.satisfaction_rating || 0;
                 document.getElementById('star' + rating).checked = true;
                 updateStarDisplay(rating);
+                updateScoreDisplay();
+                toggleAnonymous();
             }
         }
 
@@ -802,7 +1278,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         function deleteSurvey(surveyId) {
-            if (confirm('Are you sure you want to delete this survey? This action cannot be undone.')) {
+            if (confirm('Are you sure you want to delete this survey?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = `
@@ -821,23 +1297,31 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 const rating = survey.satisfaction_rating || 0;
                 const stars = '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
                 
-                modalBody.innerHTML = `
-                    <div style="padding: 20px;">
-                        <h3 style="color: var(--azure-blue); margin-bottom: 20px;">Survey Information</h3>
-                        
+                let employeeInfo = '';
+                if (survey.is_anonymous) {
+                    employeeInfo = '<span class="anonymous-badge">🔒 ANONYMOUS SUBMISSION</span>';
+                } else {
+                    employeeInfo = `
                         <div style="margin-bottom: 15px;">
                             <strong style="color: var(--azure-blue-dark);">Employee:</strong>
                             <p style="margin: 5px 0;">${survey.employee_name} (${survey.employee_number})</p>
                         </div>
-                        
                         <div style="margin-bottom: 15px;">
                             <strong style="color: var(--azure-blue-dark);">Job Title:</strong>
                             <p style="margin: 5px 0;">${survey.job_title} - ${survey.department}</p>
                         </div>
+                    `;
+                }
+                
+                modalBody.innerHTML = `
+                    <div style="padding: 20px;">
+                        <h3 style="color: var(--azure-blue); margin-bottom: 20px;">Survey Information</h3>
+                        
+                        ${employeeInfo}
                         
                         <div style="margin-bottom: 15px;">
                             <strong style="color: var(--azure-blue-dark);">Exit Date:</strong>
-                            <p style="margin: 5px 0;">${new Date(survey.exit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p style="margin: 5px 0;">${new Date(survey.exit_date).toLocaleDateString()}</p>
                         </div>
                         
                         <div style="margin-bottom: 15px;">
@@ -846,23 +1330,27 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         
                         <div style="margin-bottom: 15px;">
-                            <strong style="color: var(--azure-blue-dark);">Survey Date:</strong>
-                            <p style="margin: 5px 0;">${new Date(survey.survey_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        </div>
-                        
-                        <div style="margin-bottom: 15px;">
                             <strong style="color: var(--azure-blue-dark);">Satisfaction Rating:</strong>
-                            <p style="margin: 5px 0; font-size: 24px;">${stars} (${rating}/5)</p>
+                            <p style="margin: 5px 0; font-size: 20px;">${stars} (${rating}/5)</p>
                         </div>
                         
+                        ${survey.evaluation_score > 0 ? `
                         <div style="margin-bottom: 15px;">
-                            <strong style="color: var(--azure-blue-dark);">Submitted Date:</strong>
-                            <p style="margin: 5px 0;">${survey.submitted_date ? new Date(survey.submitted_date).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not submitted'}</p>
+                            <strong style="color: var(--azure-blue-dark);">Evaluation Score:</strong>
+                            <p style="margin: 5px 0; font-size: 18px; color: var(--azure-blue);">${survey.evaluation_score}/10</p>
                         </div>
+                        ` : ''}
+                        
+                        ${survey.evaluation_criteria ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: var(--azure-blue-dark);">Evaluation Criteria:</strong>
+                            <p style="margin: 5px 0;">${survey.evaluation_criteria}</p>
+                        </div>
+                        ` : ''}
                         
                         <div style="margin-bottom: 15px;">
                             <strong style="color: var(--azure-blue-dark);">Survey Response:</strong>
-                            <div class="survey-preview" style="margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                            <div class="survey-preview" style="margin-top: 10px;">
                                 ${survey.survey_response || 'No response provided'}
                             </div>
                         </div>
@@ -879,66 +1367,36 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         function closeViewModal() {
-            const modal = document.getElementById('viewModal');
-            modal.style.display = 'none';
+            document.getElementById('viewModal').style.display = 'none';
             document.body.style.overflow = 'auto';
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
             const surveyModal = document.getElementById('surveyModal');
             const viewModal = document.getElementById('viewModal');
-            if (event.target === surveyModal) {
-                closeModal();
-            } else if (event.target === viewModal) {
-                closeViewModal();
-            }
+            if (event.target === surveyModal) closeModal();
+            else if (event.target === viewModal) closeViewModal();
         }
 
-        // Form validation
         document.getElementById('surveyForm').addEventListener('submit', function(e) {
-            const rating = document.querySelector('input[name="satisfaction_rating"]:checked');
-            if (!rating) {
+            if (!document.querySelector('input[name="satisfaction_rating"]:checked')) {
                 e.preventDefault();
                 alert('Please select a satisfaction rating');
                 return;
             }
-
-            const surveyResponse = document.getElementById('survey_response').value;
-            if (surveyResponse.length > 5000) {
-                e.preventDefault();
-                alert('Survey response is too long. Please limit to 5000 characters.');
-                return;
-            }
+            getEvaluationCriteria();
         });
 
-        // Auto-hide alerts
-        setTimeout(function() {
+        setTimeout(() => {
             const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
+            alerts.forEach(alert => {
                 alert.style.transition = 'opacity 0.5s';
                 alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.remove();
-                }, 500);
+                setTimeout(() => alert.remove(), 500);
             });
         }, 5000);
 
-        // Initialize tooltips and animations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to table rows
-            const tableRows = document.querySelectorAll('#surveyTable tbody tr');
-            tableRows.forEach(row => {
-                row.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.02)';
-                });
-                
-                row.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-
-            // Set default date to today
+        document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('survey_date').value = today;
         });

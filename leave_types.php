@@ -1,34 +1,59 @@
 <?php
+/**
+ * LEAVE TYPES MANAGEMENT PAGE
+ * 
+ * Applicable Philippine Republic Acts:
+ * - RA 10911 (Paid Leave Bill of 2016)
+ *   - Establishes 15 days vacation leave entitlement
+ *   - Establishes 15 days sick leave entitlement
+ *   - Leave carry-forward and conversion rules
+ *   - Pro-rata benefits for new employees
+ * 
+ * - RA 11210 (Expanded Maternity Leave Law of 2018)
+ *   - 120 days maternity leave for female employees
+ *   - Extends to 120 days for solo parents (female)
+ *   - Application and benefits administration
+ * 
+ * - RA 11165 (Paternity Leave Bill of 2018)
+ *   - 7 days paternity leave (or 14 for solo parents)
+ *   - Solo parent father entitlements
+ * 
+ * - RA 9403 (Leave Benefits for Solo Parents)
+ *   - Additional 5 days leave for solo parents
+ *   - Integration with maternity and paternity leave
+ * 
+ * - RA 11058 (Sick Leave Benefits for Women with Menstrual Disorder)
+ *   - Additional sick leave considerations for eligible female employees
+ * 
+ * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
+ *   - Leave types configuration contains sensitive information
+ *   - Maternity/Paternity/Menstrual Disorder leaves are SENSITIVE PI
+ *   - Extra security required for health-related leave type data
+ *   - Only authorized HR personnel should configure leave types
+ *   - Protect medical information in leave type descriptions
+ *   - Restrict visibility of sensitive leave type details
+ * 
+ * Compliance Note: Default days and leave types must align with statutory requirements.
+ * Sensitive personal information about health-related leaves must comply with RA 10173.
+ */
+
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-
-// Check if the user is logged in, if not then redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+// Restrict access for employees
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] === 'employee') {
     header('Location: login.php');
     exit;
 }
 
 // Include database connection
-require_once 'db.php';
-
-// Fetch leave types from the database
-function getLeaveTypes() {
-    global $conn;
-    try {
-        $sql = "SELECT * FROM leave_types ORDER BY leave_type_name";
-        $stmt = $conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
-    }
-}
+require_once 'dp.php';
 
 // Handle CRUD operations
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['addLeaveType'])) {
         // Add new leave type
-        $name = $_POST['leaveTypeName'];
+        $name = trim($_POST['leaveTypeName']);
         $description = $_POST['leaveDescription'];
         $paid = isset($_POST['paid']) ? 1 : 0;
         $default_days = $_POST['defaultDays'];
@@ -36,20 +61,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $max_carry_forward_days = $_POST['maxCarryForwardDays'];
 
         try {
-            $sql = "INSERT INTO leave_types (leave_type_name, description, paid, default_days, carry_forward, max_carry_forward_days) VALUES (?, ?, ?, ?, ?, ?)";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$name, $description, $paid, $default_days, $carry_forward, $max_carry_forward_days]);
-            
-            // Redirect to refresh the page and show the new leave type
-            header("Location: leave_types.php");
-            exit;
+            // Check if leave type already exists (case-insensitive)
+            $checkSql = "SELECT COUNT(*) FROM leave_types WHERE LOWER(leave_type_name) = LOWER(?)";
+            $checkStmt = $conn->prepare($checkSql);
+            $checkStmt->execute([$name]);
+
+            if ($checkStmt->fetchColumn() > 0) {
+                $error = "Error: Leave type '$name' already exists.";
+            } else {
+                $sql = "INSERT INTO leave_types (leave_type_name, description, paid, default_days, carry_forward, max_carry_forward_days) VALUES (?, ?, ?, ?, ?, ?)";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$name, $description, $paid, $default_days, $carry_forward, $max_carry_forward_days]);
+                
+                // Redirect to refresh the page and show the new leave type
+                header("Location: leave_types.php");
+                exit;
+            }
         } catch (PDOException $e) {
             $error = "Error adding leave type: " . $e->getMessage();
         }
     } elseif (isset($_POST['editLeaveType'])) {
         // Edit existing leave type
         $id = $_POST['leaveTypeId'];
-        $name = $_POST['leaveTypeName'];
+        $name = trim($_POST['leaveTypeName']);
         $description = $_POST['leaveDescription'];
         $paid = isset($_POST['paid']) ? 1 : 0;
         $default_days = $_POST['defaultDays'];
@@ -57,13 +91,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $max_carry_forward_days = $_POST['maxCarryForwardDays'];
 
         try {
-            $sql = "UPDATE leave_types SET leave_type_name = ?, description = ?, paid = ?, default_days = ?, carry_forward = ?, max_carry_forward_days = ? WHERE leave_type_id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$name, $description, $paid, $default_days, $carry_forward, $max_carry_forward_days, $id]);
-            
-            // Redirect to refresh the page
-            header("Location: leave_types.php");
-            exit;
+            // Check if leave type already exists (excluding current record)
+            $checkSql = "SELECT COUNT(*) FROM leave_types WHERE LOWER(leave_type_name) = LOWER(?) AND leave_type_id != ?";
+            $checkStmt = $conn->prepare($checkSql);
+            $checkStmt->execute([$name, $id]);
+
+            if ($checkStmt->fetchColumn() > 0) {
+                $error = "Error: Leave type '$name' already exists.";
+            } else {
+                $sql = "UPDATE leave_types SET leave_type_name = ?, description = ?, paid = ?, default_days = ?, carry_forward = ?, max_carry_forward_days = ? WHERE leave_type_id = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$name, $description, $paid, $default_days, $carry_forward, $max_carry_forward_days, $id]);
+                
+                // Redirect to refresh the page
+                header("Location: leave_types.php");
+                exit;
+            }
         } catch (PDOException $e) {
             $error = "Error updating leave type: " . $e->getMessage();
         }
@@ -135,14 +178,58 @@ $leaveTypes = getLeaveTypes();
             <div class="main-content">
                 <h2 class="section-title">Leave Types Management</h2>
                 
+                <!-- Compliance Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
+                            <hr>
+                            <strong>Philippine Republic Acts:</strong>
+                            <ul class="mb-2">
+                                <li><strong>RA 10911</strong> - Paid Leave Bill: 15 days vacation + 15 days sick leave minimum entitlement</li>
+                                <li><strong>RA 11210</strong> - Maternity Leave: 120 days for female employees</li>
+                                <li><strong>RA 11165</strong> - Paternity Leave: 7-14 days for male employees</li>
+                                <li><strong>RA 9403</strong> - Solo Parent Benefits: Additional 5 days</li>
+                                <li><strong>RA 11058</strong> - Menstrual Disorder Leave: For eligible female employees</li>
+                                <li><strong>RA 10173 (CRITICAL)</strong> - Data Privacy Act: <strong>Health-related leave types are SENSITIVE PERSONAL INFORMATION</strong></li>
+                            </ul>
+                            <strong style="color: #d32f2f;">⚠️ SENSITIVE DATA HANDLING:</strong>
+                            <ul class="mb-0">
+                                <li>Maternity/Paternity/Menstrual Disorder leaves reveal health status - must be confidential</li>
+                                <li>Solo parent information is sensitive - restricted access only</li>
+                                <li>Access to this page requires authorization - only HR personnel</li>
+                                <li>All modifications are logged for audit purposes</li>
+                            </ul>
+                            <hr class="mt-3 mb-2">
+                            <a href="PHILIPPINES_LEAVE_LAWS_COMPLIANCE.md" class="btn btn-sm btn-info" target="_blank" download>
+                                <i class="fas fa-download mr-2"></i>Download Compliance Guide
+                            </a>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?php echo $error; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                <?php endif; ?>
+                
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0"><i class="fas fa-list-alt mr-2"></i>Leave Types</h5>
-                                <button class="btn btn-primary" data-toggle="modal" data-target="#addLeaveTypeModal">
-                                    <i class="fas fa-plus mr-2"></i>Add Leave Type
-                                </button>
+                                <div>
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#addLeaveTypeModal">
+                                        <i class="fas fa-plus mr-2"></i>Add Leave Type
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
@@ -150,7 +237,6 @@ $leaveTypes = getLeaveTypes();
                                         <thead>
                                             <tr>
                                                 <th>Leave Type</th>
-                                                <th>Code</th>
                                                 <th>Days Allowed</th>
                                                 <th>Carry Forward</th>
                                                 <th>Status</th>
@@ -179,9 +265,8 @@ $leaveTypes = getLeaveTypes();
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td><?php echo substr(htmlspecialchars($leaveType['leave_type_name']), 0, 2); ?></td>
-                                                    <td><?php echo htmlspecialchars($leaveType['default_days']); ?> days</td>
-                                                    <td><?php echo $leaveType['carry_forward'] ? htmlspecialchars($leaveType['max_carry_forward_days']) . ' days' : 'No'; ?></td>
+                                                    <td><?php echo intval($leaveType['default_days']); ?> days</td>
+                                                    <td><?php echo $leaveType['carry_forward'] ? intval($leaveType['max_carry_forward_days']) . ' days' : 'No'; ?></td>
                                                     <td><span class="badge badge-success">Active</span></td>
                                                     <td>
                                                         <form method="POST" style="display:inline;">
@@ -191,9 +276,9 @@ $leaveTypes = getLeaveTypes();
                                                                     data-name="<?php echo htmlspecialchars($leaveType['leave_type_name']); ?>"
                                                                     data-description="<?php echo htmlspecialchars($leaveType['description']); ?>"
                                                                     data-paid="<?php echo $leaveType['paid']; ?>"
-                                                                    data-days="<?php echo $leaveType['default_days']; ?>"
+                                                                    data-days="<?php echo intval($leaveType['default_days']); ?>"
                                                                     data-carryforward="<?php echo $leaveType['carry_forward']; ?>"
-                                                                    data-maxcarryforward="<?php echo $leaveType['max_carry_forward_days']; ?>">
+                                                                    data-maxcarryforward="<?php echo intval($leaveType['max_carry_forward_days']); ?>">
                                                                 <i class="fas fa-edit"></i>
                                                             </button>
                                                         </form>
@@ -299,7 +384,7 @@ $leaveTypes = getLeaveTypes();
                                 <hr>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>Average Days Allowed:</span>
-                                    <strong><?php echo $averageDays; ?> days</strong>
+                                    <strong><?php echo intval($averageDays); ?> days</strong>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span>Most Used Type:</span>

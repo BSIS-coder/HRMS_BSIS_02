@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-include __DIR__ . '/db_connect.php';
+require_once 'config.php';
 
 if (!isset($_GET['job_role_id'])) {
     echo json_encode(['error' => 'Job Role ID is required']);
@@ -9,22 +9,17 @@ if (!isset($_GET['job_role_id'])) {
 
 $job_role_id = intval($_GET['job_role_id']);
 
-$sql = "SELECT competency_id, name 
-        FROM competencies 
-        WHERE job_role_id = ? 
-        ORDER BY name";
+try {
+    $sql = "SELECT competency_id, name
+            FROM competencies
+            WHERE job_role_id = ?
+            ORDER BY name";
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $job_role_id);
-$stmt->execute();
-$result = $stmt->get_result();
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$job_role_id]);
+    $competencies = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$competencies = [];
-while ($row = $result->fetch_assoc()) {
-    $competencies[] = $row;
+    echo json_encode($competencies);
+} catch (PDOException $e) {
+    echo json_encode(['error' => $e->getMessage()]);
 }
-
-echo json_encode($competencies);
-
-$stmt->close();
-$conn->close();

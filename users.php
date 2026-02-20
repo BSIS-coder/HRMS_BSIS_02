@@ -8,9 +8,13 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header("Location: login.php");
     exit;
 }
-// Database connection
-$pdo = connectToDatabase();
 
+// Include database connection and helper functions
+require_once 'dp.php';
+
+// Use the global database connection from dp.php
+global $conn;
+$pdo = $conn;
 // Handle form submissions
 $message = '';
 $messageType = '';

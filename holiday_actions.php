@@ -4,6 +4,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 require_once 'config.php';
 require_once 'config/api_keys.php'; // Include API keys
+require_once 'holiday_type_mapper.php'; // Include holiday type mapper
 
 // Function to fetch public holidays from Calendarific API
 function fetchPublicHolidaysFromCalendarific($country = DEFAULT_COUNTRY, $year = null) {
@@ -42,6 +43,10 @@ function fetchPublicHolidaysFromCalendarific($country = DEFAULT_COUNTRY, $year =
                 $hasSource = sourceColumnExists();
                 
                 if ($hasHolidayType && $hasSource) {
+                    // Map API type to Philippine official type
+                    $apiType = $holiday['type'][0] ?? 'National';
+                    $philippineType = mapToPhilippineHolidayType($apiType, $holiday['name']);
+                    
                     $stmt = $conn->prepare("INSERT INTO public_holidays (holiday_name, holiday_date, holiday_type, description, source) 
                                            VALUES (?, ?, ?, ?, 'calendarific') 
                                            ON DUPLICATE KEY UPDATE 
@@ -52,10 +57,14 @@ function fetchPublicHolidaysFromCalendarific($country = DEFAULT_COUNTRY, $year =
                     $stmt->execute([
                         $holiday['name'],
                         $holiday['date']['iso'],
-                        $holiday['type'][0] ?? 'National',
+                        $philippineType,
                         $holiday['description'] ?? ''
                     ]);
                 } elseif ($hasHolidayType) {
+                    // Map API type to Philippine official type
+                    $apiType = $holiday['type'][0] ?? 'National';
+                    $philippineType = mapToPhilippineHolidayType($apiType, $holiday['name']);
+                    
                     $stmt = $conn->prepare("INSERT INTO public_holidays (holiday_name, holiday_date, holiday_type, description) 
                                            VALUES (?, ?, ?, ?) 
                                            ON DUPLICATE KEY UPDATE 
@@ -66,7 +75,7 @@ function fetchPublicHolidaysFromCalendarific($country = DEFAULT_COUNTRY, $year =
                     $stmt->execute([
                         $holiday['name'],
                         $holiday['date']['iso'],
-                        $holiday['type'][0] ?? 'National',
+                        $philippineType,
                         $holiday['description'] ?? ''
                     ]);
                 } elseif ($hasSource) {
@@ -152,29 +161,37 @@ function fetchPublicHolidaysFromNager($country = DEFAULT_COUNTRY, $year = null) 
                 $hasSource = sourceColumnExists();
                 
                 if ($hasHolidayType && $hasSource) {
+                    // Nager.Date doesn't provide type, so map based on holiday name
+                    $philippineType = mapToPhilippineHolidayType('National', $holiday['name']);
+                    
                     $stmt = $conn->prepare("INSERT INTO public_holidays (holiday_name, holiday_date, holiday_type, description, source) 
                                            VALUES (?, ?, ?, ?, 'nager') 
                                            ON DUPLICATE KEY UPDATE 
                                            holiday_name = VALUES(holiday_name), 
+                                           holiday_type = VALUES(holiday_type),
                                            description = VALUES(description)");
                     
                     $stmt->execute([
                         $holiday['name'],
                         $holiday['date'],
-                        'National', // Nager.Date doesn't provide type, default to National
+                        $philippineType,
                         $holiday['localName'] ?? $holiday['name']
                     ]);
                 } elseif ($hasHolidayType) {
+                    // Nager.Date doesn't provide type, so map based on holiday name
+                    $philippineType = mapToPhilippineHolidayType('National', $holiday['name']);
+                    
                     $stmt = $conn->prepare("INSERT INTO public_holidays (holiday_name, holiday_date, holiday_type, description) 
                                            VALUES (?, ?, ?, ?) 
                                            ON DUPLICATE KEY UPDATE 
                                            holiday_name = VALUES(holiday_name), 
+                                           holiday_type = VALUES(holiday_type),
                                            description = VALUES(description)");
                     
                     $stmt->execute([
                         $holiday['name'],
                         $holiday['date'],
-                        'National', // Nager.Date doesn't provide type, default to National
+                        $philippineType,
                         $holiday['localName'] ?? $holiday['name']
                     ]);
                 } elseif ($hasSource) {

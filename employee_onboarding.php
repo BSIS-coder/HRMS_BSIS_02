@@ -7,41 +7,50 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 require_once 'config.php';
 
 $success_message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'complete_onboarding':
-                $employee_id = $_POST['employee_id'];
-                
-                $stmt = $conn->prepare("UPDATE employees SET updated_at = NOW() WHERE employee_id = ?");
-                $stmt->execute([$employee_id]);
-                
-                $success_message = "✅ Employee record updated!";
-                break;
-                
-            case 'promote_employee':
-                $employee_id = $_POST['employee_id'];
-                $new_position = $_POST['new_position'];
-                
-                $stmt = $conn->prepare("UPDATE employees SET current_position = ?, updated_at = NOW() WHERE employee_id = ?");
-                $stmt->execute([$new_position, $employee_id]);
-                
-                $success_message = "🎉 Employee position updated!";
-                break;
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    switch ($_POST['action']) {
+        case 'complete_task':
+            $stmt = $conn->prepare("UPDATE employee_onboarding_tasks SET status = 'Completed', completion_date = NOW() WHERE employee_task_id = ?");
+            $stmt->execute([$_POST['task_id']]);
+            $success_message = "✅ Task completed!";
+            break;
+            
+        case 'start_onboarding':
+            $employee_id = $_POST['employee_id'];
+            
+            // Create employee onboarding record
+            $stmt = $conn->prepare("INSERT INTO employee_onboarding (employee_id, start_date, expected_completion_date, status) VALUES (?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'In Progress')");
+            $stmt->execute([$employee_id]);
+            $onboarding_id = $conn->lastInsertId();
+            
+            // Create tasks for this employee
+            $conn->exec("INSERT INTO employee_onboarding_tasks (onboarding_id, task_id, due_date, status)
+                         SELECT $onboarding_id, ot.task_id, DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'Not Started'
+                         FROM onboarding_tasks ot
+                         WHERE ot.task_type = 'employee' OR ot.task_type IS NULL");
+            
+            $success_message = "🎉 Employee onboarding started!";
+            break;
     }
 }
 
-// Get active employees
-$hired_employees = $conn->query("SELECT * FROM employees WHERE status = 'Active' ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+// Get employees ready for onboarding (newly hired or promoted)
+$employees_ready = $conn->query("SELECT * FROM employees WHERE status = 'Active' 
+                                AND employee_id NOT IN (SELECT employee_id FROM employee_onboarding WHERE status IN ('In Progress', 'Completed'))
+                                ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
 
-// Get recent employees
-$completed_employees = $conn->query("SELECT * FROM employees WHERE status = 'Active' ORDER BY created_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
+// Get employees currently in onboarding
+$employees_onboarding = $conn->query("SELECT e.*, eo.onboarding_id, eo.start_date, eo.expected_completion_date, eo.status as onboarding_status,
+                                     COUNT(eot.employee_task_id) as total_tasks,
+                                     COUNT(CASE WHEN eot.status = 'Completed' THEN 1 END) as completed_tasks
+                                     FROM employees e
+                                     JOIN employee_onboarding eo ON e.employee_id = eo.employee_id
+                                     LEFT JOIN employee_onboarding_tasks eot ON eo.onboarding_id = eot.onboarding_id
+                                     WHERE eo.status = 'In Progress'
+                                     GROUP BY e.employee_id, eo.onboarding_id
+                                     ORDER BY eo.start_date DESC")->fetchAll(PDO::FETCH_ASSOC);
 
-$stats = [
-    'pending' => count($hired_employees),
-    'completed' => $conn->query("SELECT COUNT(*) as count FROM employees WHERE status = 'Active'")->fetch()['count']
-];
+$stats = ['ready' => count($employees_ready), 'in_progress' => count($employees_onboarding)];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,7 +79,7 @@ $stats = [
                     </div>
                 <?php endif; ?>
                 
-                <!-- Statistics -->
+                <!-- Statistics Cards -->
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <div class="stats-card card">
@@ -78,8 +87,8 @@ $stats = [
                                 <div class="activity-icon bg-warning">
                                     <i class="fas fa-clock"></i>
                                 </div>
-                                <h3 class="stats-number"><?php echo $stats['pending']; ?></h3>
-                                <p class="stats-label">Pending Onboarding</p>
+                                <h3 class="stats-number"><?php echo $stats['ready']; ?></h3>
+                                <p class="stats-label">Ready for Onboarding</p>
                             </div>
                         </div>
                     </div>
@@ -87,54 +96,49 @@ $stats = [
                         <div class="stats-card card">
                             <div class="card-body text-center">
                                 <div class="activity-icon bg-success">
-                                    <i class="fas fa-check-circle"></i>
+                                    <i class="fas fa-tasks"></i>
                                 </div>
-                                <h3 class="stats-number"><?php echo $stats['completed']; ?></h3>
-                                <p class="stats-label">Completed</p>
+                                <h3 class="stats-number"><a href="onboarding_tasks.php?type=employee" class="text-decoration-none">Manage</a></h3>
+                                <p class="stats-label">Employee Tasks</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Pending Onboarding -->
+                <!-- Ready for Onboarding -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5><i class="fas fa-user-plus"></i> Employees Pending Onboarding</h5>
+                        <h5><i class="fas fa-user-plus"></i> Employees Ready for Onboarding</h5>
                     </div>
                     <div class="card-body">
-                        <?php if (count($hired_employees) > 0): ?>
+                        <?php if (count($employees_ready) > 0): ?>
                             <div class="table-responsive">
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
                                             <th>Employee</th>
                                             <th>Position</th>
-                                            <th>Department</th>
-                                            <th>Created Date</th>
+                                            <th>Hired Date</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach($hired_employees as $employee): ?>
+                                        <?php foreach($employees_ready as $employee): ?>
                                             <tr>
                                                 <td>
                                                     <strong><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></strong><br>
                                                     <small class="text-muted"><?php echo htmlspecialchars($employee['email']); ?></small>
                                                 </td>
                                                 <td><?php echo htmlspecialchars($employee['current_position']); ?></td>
-                                                <td>-</td>
                                                 <td><?php echo date('M d, Y', strtotime($employee['created_at'])); ?></td>
                                                 <td>
                                                     <form method="POST" style="display:inline;">
-                                                        <input type="hidden" name="action" value="complete_onboarding">
+                                                        <input type="hidden" name="action" value="start_onboarding">
                                                         <input type="hidden" name="employee_id" value="<?php echo $employee['employee_id']; ?>">
                                                         <button type="submit" class="btn btn-success btn-sm">
-                                                            <i class="fas fa-check"></i> Complete
+                                                            <i class="fas fa-play"></i> Start Onboarding
                                                         </button>
                                                     </form>
-                                                    <button class="btn btn-info btn-sm ml-1" data-toggle="modal" data-target="#promoteModal<?php echo $employee['employee_id']; ?>">
-                                                        <i class="fas fa-arrow-up"></i> Promote
-                                                    </button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -143,86 +147,75 @@ $stats = [
                             </div>
                         <?php else: ?>
                             <div class="alert alert-info text-center">
-                                <i class="fas fa-info-circle"></i> No employees pending onboarding.
+                                <i class="fas fa-info-circle"></i> No employees ready for onboarding.
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Recently Completed -->
+                <!-- Employees in Onboarding -->
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="fas fa-history"></i> Recently Completed Onboarding</h5>
+                        <h5><i class="fas fa-users"></i> Employees in Onboarding Process</h5>
                     </div>
                     <div class="card-body">
-                        <?php if (count($completed_employees) > 0): ?>
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Employee</th>
-                                            <th>Position</th>
-                                            <th>Department</th>
-                                            <th>Completed Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach($completed_employees as $employee): ?>
-                                            <tr>
-                                                <td>
-                                                    <strong><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></strong><br>
-                                                    <small class="text-muted"><?php echo htmlspecialchars($employee['email']); ?></small>
-                                                </td>
-                                                <td><?php echo htmlspecialchars($employee['position']); ?></td>
-                                                <td><?php echo htmlspecialchars($employee['department_name']); ?></td>
-                                                <td><?php echo date('M d, Y', strtotime($employee['onboarding_date'])); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <?php if (count($employees_onboarding) > 0): ?>
+                            <?php foreach($employees_onboarding as $employee): ?>
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></strong>
+                                                <small class="text-muted"> - <?php echo htmlspecialchars($employee['current_position']); ?></small>
+                                            </div>
+                                            <div>
+                                                <span class="badge badge-info"><?php echo $employee['completed_tasks']; ?>/<?php echo $employee['total_tasks']; ?> Tasks</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php 
+                                        $tasks_query = $conn->prepare("SELECT eot.*, ot.task_name, ot.description FROM employee_onboarding_tasks eot 
+                                                                      JOIN onboarding_tasks ot ON eot.task_id = ot.task_id 
+                                                                      WHERE eot.onboarding_id = ? ORDER BY ot.task_id");
+                                        $tasks_query->execute([$employee['onboarding_id']]);
+                                        $employee_tasks = $tasks_query->fetchAll(PDO::FETCH_ASSOC);
+                                        ?>
+                                        <div class="row">
+                                            <?php foreach($employee_tasks as $task): ?>
+                                                <div class="col-md-4 mb-2">
+                                                    <div class="card border-<?php echo $task['status'] == 'Completed' ? 'success' : 'warning'; ?>">
+                                                        <div class="card-body p-2">
+                                                            <h6 class="card-title mb-1"><?php echo htmlspecialchars($task['task_name']); ?></h6>
+                                                            <p class="card-text small"><?php echo htmlspecialchars($task['description']); ?></p>
+                                                            <?php if ($task['status'] != 'Completed'): ?>
+                                                                <form method="POST" style="display:inline;">
+                                                                    <input type="hidden" name="action" value="complete_task">
+                                                                    <input type="hidden" name="task_id" value="<?php echo $task['employee_task_id']; ?>">
+                                                                    <button type="submit" class="btn btn-success btn-sm">
+                                                                        <i class="fas fa-check"></i> Complete
+                                                                    </button>
+                                                                </form>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-success">✅ Completed</span>
+                                                                <br><small class="text-muted"><?php echo date('M d, Y', strtotime($task['completion_date'])); ?></small>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         <?php else: ?>
                             <div class="alert alert-info text-center">
-                                <i class="fas fa-info-circle"></i> No completed onboarding records.
+                                <h5><i class="fas fa-info-circle"></i> No Employees in Onboarding</h5>
+                                <p>No employees are currently in the onboarding process.</p>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
-
-                <!-- Promotion Modals -->
-                <?php foreach($hired_employees as $employee): ?>
-                    <div class="modal fade" id="promoteModal<?php echo $employee['employee_id']; ?>" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Promote Employee</h5>
-                                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                </div>
-                                <form method="POST">
-                                    <div class="modal-body">
-                                        <input type="hidden" name="action" value="promote_employee">
-                                        <input type="hidden" name="employee_id" value="<?php echo $employee['employee_id']; ?>">
-                                        
-                                        <div class="alert alert-info">
-                                            <strong><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></strong><br>
-                                            Current: <?php echo htmlspecialchars($employee['current_position']); ?>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label>New Position</label>
-                                            <input type="text" name="new_position" class="form-control" required>
-                                        </div>
-
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-success">Promote</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
             </div>
         </div>
     </div>

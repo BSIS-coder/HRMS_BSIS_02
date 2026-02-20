@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json'); // Always return JSON
-require_once 'db.php'; // database connection
+require_once 'config.php'; // database connection
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

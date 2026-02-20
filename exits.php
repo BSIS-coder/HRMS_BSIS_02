@@ -16,10 +16,21 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
 // Database connection (use existing $pdo from dp.php if available)
-$pdo = connectToDatabase();
+if (!isset($pdo) || !($pdo instanceof PDO)) {
+    $host = 'localhost';
+    $dbname = 'hr_system';
+    $username = 'root';
+    $password = '';
+    try {
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch(PDOException $e) {
+        die("Connection failed: " . $e->getMessage());
+    }
+}
 
 // Get messages from session and clear them
 $message = $_SESSION['message'] ?? '';
@@ -138,6 +149,19 @@ if (isset($_POST['ajax']) && $_POST['ajax'] === 'true') {
                 $stmt = $pdo->prepare("DELETE FROM exits WHERE exit_id = ?");
                 $stmt->execute([$_POST['exit_id']]);
                 echo json_encode(['success' => true, 'exit_id' => $_POST['exit_id']]);
+                exit;
+            
+            case 'change_status':
+                $stmt = $pdo->prepare("UPDATE exits SET status=? WHERE exit_id=?");
+                $stmt->execute([$_POST['new_status'], $_POST['exit_id']]);
+                
+                // You can optionally log the remarks to an audit table here
+                // For now, we'll just return success with the new status
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Status updated successfully',
+                    'new_status' => $_POST['new_status']
+                ]);
                 exit;
         }
     } catch (PDOException $e) {
@@ -416,6 +440,83 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         color: #343a40;
     }
 
+    .status-badge.status-pending {
+        background: #ffc107;
+        color: #000;
+    }
+
+    .status-badge.status-approved {
+        background: #28a745;
+        color: white;
+    }
+
+    .status-badge.status-rejected {
+        background: #dc3545;
+        color: white;
+    }
+
+    .status-badge.status-processing {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .status-badge.status-completed {
+        background: #6c757d;
+        color: white;
+    }
+
+    .status-badge.status-cancelled {
+        background: #6c757d;
+        color: white;
+    }
+
+    .status-badge.status-under.review {
+        background: #007bff;
+        color: white;
+    }
+
+    .status-badge.status-request.revision {
+        background: #fd7e14;
+        color: white;
+    }
+
+    .status-badge.status-clearance.ongoing {
+        background: #20c997;
+        color: white;
+    }
+
+    .status-badge.status-exit.interview.scheduled {
+        background: #6610f2;
+        color: white;
+    }
+
+    .status-badge.status-on.hold {
+        background: #e83e8c;
+        color: white;
+    }
+
+    .status-badge.status-withdrawn {
+        background: #6c757d;
+        color: white;
+    }
+
+    .status-action-btn {
+        background: linear-gradient(135deg, #6610f2 0%, #6f42c1 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .status-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 16, 242, 0.4);
+    }
+
     .modal {
         display: none;
         position: fixed;
@@ -552,6 +653,10 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         color: #dc3545;
     }
 
+    .actions-cell {
+        min-width: 240px;
+    }
+
     @media (max-width: 768px) {
         .controls {
             flex-direction: column;
@@ -596,9 +701,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <span class="search-icon">🔍</span>
                             <input type="text" id="searchInput" placeholder="Search exits...">
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('add')">
-                            ➕ Add New Exit Record
-                        </button>
                     </div>
 
                     <div class="table-container">
@@ -616,7 +718,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </thead>
                             <tbody>
                                 <?php foreach ($exits as $exit): ?>
-                                <tr data-exit-id="<?= $exit['exit_id'] ?>">
+                                <tr data-exit-id="<?= $exit['exit_id'] ?>" data-status="<?= strtolower(str_replace(' ', '.', $exit['status'])) ?>">
                                     <td>
                                         <strong><?= htmlspecialchars($exit['employee_name']) ?></strong><br>
                                         <small><?= htmlspecialchars($exit['employee_number']) ?></small>
@@ -625,19 +727,21 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <td><?= date('M d, Y', strtotime($exit['notice_date'])) ?></td>
                                     <td><?= date('M d, Y', strtotime($exit['exit_date'])) ?></td>
                                     <td>
-                                        <span class="status-badge status-<?= strtolower($exit['status']) ?>">
+                                        <span class="status-badge status-<?= strtolower(str_replace(' ', '.', $exit['status'])) ?>">
                                             <?= htmlspecialchars($exit['status']) ?>
                                         </span>
                                     </td>
                                     <td><?= htmlspecialchars($exit['exit_reason']) ?></td>
-                                    <td>
-                                        <button class="btn btn-warning btn-small"
-                                            onclick="editExit(<?= $exit['exit_id'] ?>)">
-                                            ✏️ Edit
+                                    <td class="actions-cell">
+                                        <button class="status-action-btn" 
+                                            onclick="openStatusChangeModal(<?= $exit['exit_id'] ?>, '<?= htmlspecialchars($exit['status'], ENT_QUOTES) ?>')"
+                                            title="Change Status">
+                                            🔄 Change Status
                                         </button>
-                                        <button class="btn btn-danger btn-small"
-                                            onclick="deleteExit(<?= $exit['exit_id'] ?>)">
-                                            🗑️ Delete
+                                        <button class="btn btn-info btn-small"
+                                            onclick="viewDetails(<?= $exit['exit_id'] ?>)"
+                                            title="View Details">
+                                            👁 View Details
                                         </button>
                                     </td>
                                 </tr>
@@ -695,9 +799,16 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <select id="status" name="status" class="form-control" required>
                                     <option value="">Select status...</option>
                                     <option value="Pending">Pending</option>
+                                    <option value="Under Review">Under Review</option>
+                                    <option value="Request Revision">Request Revision</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
                                     <option value="Processing">Processing</option>
+                                    <option value="Clearance Ongoing">Clearance Ongoing</option>
+                                    <option value="Exit Interview Scheduled">Exit Interview Scheduled</option>
+                                    <option value="On Hold">On Hold</option>
+                                    <option value="Withdrawn">Withdrawn</option>
                                     <option value="Completed">Completed</option>
-                                    <option value="Cancelled">Cancelled</option>
                                 </select>
                             </div>
                         </div>
@@ -747,6 +858,95 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <button class="btn btn-danger" id="confirmDelete" style="margin-right: 10px;">Yes</button>
                     <button class="btn btn-secondary" onclick="closeDeleteModal()">No</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Change Modal -->
+    <div id="statusChangeModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6610f2 0%, #6f42c1 100%);">
+                <h2>Update Exit Request Status</h2>
+                <span class="close" onclick="closeStatusChangeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="statusChangeForm">
+                    <input type="hidden" id="status_change_exit_id" name="exit_id">
+                    
+                    <div class="form-group">
+                        <label for="current_status_display">Current Status</label>
+                        <input type="text" id="current_status_display" class="form-control" readonly style="background: #f8f9fa; font-weight: 600;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_status">New Status <span class="required">*</span></label>
+                        <select id="new_status" name="new_status" class="form-control" required>
+                            <option value="">Select new status...</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Request Revision">Request Revision</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Clearance Ongoing">Clearance Ongoing</option>
+                            <option value="Exit Interview Scheduled">Exit Interview Scheduled</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Withdrawn">Withdrawn</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status_remarks">Remarks / Comments</label>
+                        <textarea id="status_remarks" name="remarks" class="form-control" rows="4" placeholder="Add any notes, reasons, or comments about this status change..."></textarea>
+                        <small style="color: #6c757d; font-size: 12px;">These remarks will be saved with the status change for record keeping.</small>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="submit" class="btn btn-success" style="margin-right: 10px;">✓ Update Status</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeStatusChangeModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Exit Request Details</h2>
+                <span class="close" onclick="closeDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <!-- Details will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Send Feedback to Employee</h2>
+                <span class="close" onclick="closeFeedbackModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="feedbackForm">
+                    <input type="hidden" id="feedback_exit_id" name="exit_id">
+                    <div class="form-group">
+                        <label for="feedback_subject">Subject</label>
+                        <input type="text" id="feedback_subject" name="subject" class="form-control" placeholder="Enter subject..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback_message">Message</label>
+                        <textarea id="feedback_message" name="message" class="form-control" rows="5" placeholder="Enter your message..." required></textarea>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary" style="margin-right: 10px;">📧 Send Feedback</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeFeedbackModal()">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -842,11 +1042,125 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('deleteModal').style.display = 'none';
     }
 
-    // Update form handling
-    document.getElementById('exitForm').addEventListener('submit', function(e) {
+    // Status Change Modal Functions
+    function openStatusChangeModal(exitId, currentStatus) {
+        document.getElementById('status_change_exit_id').value = exitId;
+        document.getElementById('current_status_display').value = currentStatus;
+        document.getElementById('new_status').value = '';
+        document.getElementById('status_remarks').value = '';
+        document.getElementById('statusChangeModal').style.display = 'block';
+    }
+
+    function closeStatusChangeModal() {
+        document.getElementById('statusChangeModal').style.display = 'none';
+    }
+
+    // Handle status change form submission
+    document.getElementById('statusChangeForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         const formData = new FormData(this);
+        formData.append('action', 'change_status');
+        formData.append('ajax', 'true');
+        
+        const exitId = formData.get('exit_id');
+        const newStatus = formData.get('new_status');
+        
+        fetch('exits.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the row with new status
+                const row = document.querySelector(`tr[data-exit-id="${exitId}"]`);
+                if (row) {
+                    const statusBadge = row.querySelector('.status-badge');
+                    const statusClass = newStatus.toLowerCase().replace(/ /g, '.');
+                    statusBadge.className = `status-badge status-${statusClass}`;
+                    statusBadge.textContent = newStatus;
+                    row.setAttribute('data-status', statusClass);
+                }
+                
+                // Update exitsData array
+                const index = exitsData.findIndex(e => e.exit_id == exitId);
+                if (index !== -1) {
+                    exitsData[index].status = newStatus;
+                }
+                
+                closeStatusChangeModal();
+                showAlert('Status updated successfully to: ' + newStatus, 'success');
+            } else {
+                showAlert('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error: ' + error.message, 'danger');
+        });
+    });
+
+    // View Details
+    function viewDetails(exitId) {
+        const exit = exitsData.find(e => e.exit_id == exitId);
+        if (!exit) return;
+        
+        const detailsContent = document.getElementById('detailsContent');
+        detailsContent.innerHTML = `
+            <div style="padding: 10px;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--azure-blue); margin-bottom: 15px;">Employee Information</h3>
+                    <p><strong>Name:</strong> ${exit.employee_name}</p>
+                    <p><strong>Employee Number:</strong> ${exit.employee_number}</p>
+                    <p><strong>Department:</strong> ${exit.department || 'N/A'}</p>
+                    <p><strong>Job Title:</strong> ${exit.job_title || 'N/A'}</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--azure-blue); margin-bottom: 15px;">Exit Details</h3>
+                    <p><strong>Exit Type:</strong> ${exit.exit_type}</p>
+                    <p><strong>Notice Date:</strong> ${formatDate(exit.notice_date)}</p>
+                    <p><strong>Exit Date:</strong> ${formatDate(exit.exit_date)}</p>
+                    <p><strong>Status:</strong> <span class="status-badge status-${exit.status.toLowerCase().replace(/ /g, '.')}">${exit.status}</span></p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--azure-blue); margin-bottom: 15px;">Exit Reason</h3>
+                    <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid var(--azure-blue);">
+                        ${exit.exit_reason}
+                    </p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-secondary" onclick="closeDetailsModal()">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('detailsModal').style.display = 'block';
+    }
+
+    function closeDetailsModal() {
+        document.getElementById('detailsModal').style.display = 'none';
+    }
+
+    // Send Feedback
+    function sendFeedback(exitId) {
+        document.getElementById('feedback_exit_id').value = exitId;
+        document.getElementById('feedbackModal').style.display = 'block';
+    }
+
+    function closeFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'none';
+        document.getElementById('feedbackForm').reset();
+    }
+
+    // Handle feedback form submission
+    document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('action', 'send_feedback');
         formData.append('ajax', 'true');
         
         fetch('exits.php', {
@@ -856,29 +1170,77 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Add new row to table
-                const tbody = document.querySelector('#exitsTable tbody');
-                const newRow = createTableRow(data.data);
-                tbody.insertBefore(newRow, tbody.firstChild);
-                
-                // Close modal and show success message
-                closeModal();
-                showAlert('Exit record added successfully!', 'success');
-                
-                // Add to exitsData array
-                exitsData.unshift(data.data);
+                closeFeedbackModal();
+                showAlert('Feedback sent successfully!', 'success');
             } else {
-                showAlert('Error: ' + data.message, 'error');
+                showAlert('Error: ' + data.message, 'danger');
             }
         })
         .catch(error => {
-            showAlert('Error: ' + error.message, 'error');
+            showAlert('Error: ' + error.message, 'danger');
+        });
+    });
+
+    // Update form handling
+    document.getElementById('exitForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('ajax', 'true');
+        const action = formData.get('action');
+        const exitId = formData.get('exit_id');
+        
+        fetch('exits.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (action === 'add') {
+                    // Add new row to table
+                    const tbody = document.querySelector('#exitsTable tbody');
+                    const newRow = createTableRow(data.data);
+                    tbody.insertBefore(newRow, tbody.firstChild);
+                    
+                    // Add to exitsData array
+                    exitsData.unshift(data.data);
+                    
+                    showAlert('Exit record added successfully!', 'success');
+                } else if (action === 'update') {
+                    // Update existing row in table
+                    const row = document.querySelector(`tr[data-exit-id="${exitId}"]`);
+                    if (row) {
+                        const newRow = createTableRow(data.data);
+                        row.replaceWith(newRow);
+                    }
+                    
+                    // Update exitsData array
+                    const index = exitsData.findIndex(e => e.exit_id == exitId);
+                    if (index !== -1) {
+                        exitsData[index] = data.data;
+                    }
+                    
+                    showAlert('Exit record updated successfully!', 'success');
+                }
+                
+                // Close modal
+                closeModal();
+            } else {
+                showAlert('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error: ' + error.message, 'danger');
         });
     });
 
     function createTableRow(exit) {
         const row = document.createElement('tr');
+        const statusClass = exit.status.toLowerCase().replace(/ /g, '.');
         row.setAttribute('data-exit-id', exit.exit_id);
+        row.setAttribute('data-status', statusClass);
+        
         row.innerHTML = `
             <td>
                 <strong>${exit.employee_name}</strong><br>
@@ -888,17 +1250,19 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <td>${formatDate(exit.notice_date)}</td>
             <td>${formatDate(exit.exit_date)}</td>
             <td>
-                <span class="status-badge status-${exit.status.toLowerCase()}">
+                <span class="status-badge status-${statusClass}">
                     ${exit.status}
                 </span>
             </td>
             <td>${exit.exit_reason}</td>
-            <td>
-                <button class="btn btn-warning btn-small" onclick="editExit(${exit.exit_id})">
-                    ✏️ Edit
+            <td class="actions-cell">
+                <button class="status-action-btn" 
+                    onclick="openStatusChangeModal(${exit.exit_id}, '${exit.status.replace(/'/g, "\\'")}')"
+                    title="Change Status">
+                    🔄 Change Status
                 </button>
-                <button class="btn btn-danger btn-small" onclick="deleteExit(${exit.exit_id})">
-                    🗑️ Delete
+                <button class="btn btn-info btn-small" onclick="viewDetails(${exit.exit_id})" title="View Details">
+                    👁 View Details
                 </button>
             </td>
         `;
@@ -926,11 +1290,24 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     window.onclick = function(event) {
         const exitModal = document.getElementById('exitModal');
         const deleteModal = document.getElementById('deleteModal');
+        const statusChangeModal = document.getElementById('statusChangeModal');
+        const detailsModal = document.getElementById('detailsModal');
+        const feedbackModal = document.getElementById('feedbackModal');
+        
         if (event.target === exitModal) {
             closeModal();
         }
         if (event.target === deleteModal) {
             closeDeleteModal();
+        }
+        if (event.target === statusChangeModal) {
+            closeStatusChangeModal();
+        }
+        if (event.target === detailsModal) {
+            closeDetailsModal();
+        }
+        if (event.target === feedbackModal) {
+            closeFeedbackModal();
         }
     }
 

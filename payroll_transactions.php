@@ -7,8 +7,42 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
+// Check if user has permission (only admin and hr can view payroll transactions)
+if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'hr') {
+    header('Location: index.php');
+    exit;
+}
+
+// Determine access level for confidential data
+$can_view_confidential = ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'hr');
+
 // Include database connection
 require_once 'config.php';
+require_once 'dp.php'; // For audit logging
+
+// Function to calculate BIR income tax based on monthly salary
+function calculateBIRTax($monthly_salary) {
+    global $conn;
+
+    try {
+        $sql = "SELECT * FROM tax_brackets WHERE tax_type = 'Income Tax' ORDER BY min_salary ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        $brackets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $tax = 0;
+        foreach ($brackets as $bracket) {
+            if ($monthly_salary > $bracket['min_salary']) {
+                $taxable_amount = min($monthly_salary, $bracket['max_salary'] ?? $monthly_salary) - $bracket['min_salary'];
+                $tax += $bracket['fixed_amount'] + ($taxable_amount * $bracket['tax_rate']);
+            }
+        }
+
+        return round($tax, 2);
+    } catch (PDOException $e) {
+        return 0; // Return 0 if calculation fails
+    }
+}
 
 // Get filter parameters
 $cycle_id = $_GET['cycle_id'] ?? null;
@@ -39,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt->execute([$status, $transaction_id]);
                     $success_message = "Transaction status updated successfully!";
                 } catch (PDOException $e) {
+
                     $error_message = "Error updating transaction: " . $e->getMessage();
                 }
                 break;
@@ -48,14 +83,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 try {
                 // Get all processed transactions for this cycle
-                $trans_sql = "SELECT pt.*, ep.employee_number, pi.first_name, pi.last_name
+                $trans_sql = "SELECT pt.*, 
+                              COALESCE(ep.employee_number, CONCAT('EMP-', pt.employee_id)) as employee_number, 
+                              COALESCE(pi.first_name, 'Unknown') as first_name, 
+                              COALESCE(pi.last_name, '') as last_name
                               FROM payroll_transactions pt
-                              JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
-                              JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+                              LEFT JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
+                              LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
                               WHERE pt.payroll_cycle_id = ? AND pt.status = 'Processed'";
                     $trans_stmt = $conn->prepare($trans_sql);
                     $trans_stmt->execute([$cycle_id]);
                     $transactions = $trans_stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    error_log("Generating payslips for {$cycle_id}: Found " . count($transactions) . " transactions");
                     
                     $generated_count = 0;
                     
@@ -78,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 $payslip_url
                             ]);
                             
+                            error_log("Generated payslip for: " . $transaction['first_name'] . " " . $transaction['last_name']);
                             $generated_count++;
                         }
                     }
@@ -93,9 +134,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Build the query with filters
-$sql = "SELECT pt.*, pc.cycle_name, ep.employee_number, pi.first_name, pi.last_name, 
-               jr.title as job_title, d.department_name,
-               ps.payslip_id, ps.status as payslip_status
+$sql = "SELECT 
+            pt.*, 
+            pc.cycle_name, 
+            ep.employee_number, 
+            pi.first_name, 
+            pi.last_name,
+            jr.title as job_title, 
+            d.department_name,
+            ps.payslip_id, 
+            ps.status as payslip_status
         FROM payroll_transactions pt
         JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
         JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
@@ -130,6 +178,9 @@ try {
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Use the stored deduction values from payroll processing
+    // These are correctly halved for half-month cycles per the payroll_cycles.php logic
+
 } catch (PDOException $e) {
     $transactions = [];
     $error_message = "Error fetching transactions: " . $e->getMessage();
@@ -143,6 +194,20 @@ try {
 } catch (PDOException $e) {
     $cycles = [];
 }
+
+// Log confidential payroll data access
+logActivity("Payroll Transactions Viewed", "payroll_transactions", 0, [
+    'user_id' => $_SESSION['user_id'] ?? null,
+    'user_role' => $_SESSION['role'] ?? null,
+    'cycle_id' => $cycle_id,
+    'employee_search' => $employee_search,
+    'status_filter' => $status_filter,
+    'records_count' => count($transactions),
+    'total_gross' => array_sum(array_column($transactions, 'gross_pay')),
+    'total_net' => array_sum(array_column($transactions, 'net_pay')),
+    'total_tax' => array_sum(array_column($transactions, 'tax_deductions')),
+    'total_statutory' => array_sum(array_column($transactions, 'statutory_deductions'))
+]);
 
 // Calculate totals for current filtered results
 $total_gross = array_sum(array_column($transactions, 'gross_pay'));
@@ -167,7 +232,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -176,14 +241,14 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -206,7 +271,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -232,17 +297,17 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #E91E63;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #E91E63;
             font-weight: 600;
         }
         .table td {
@@ -251,12 +316,12 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -273,17 +338,17 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .salary-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .badge-pending {
             background-color: #ffc107;
@@ -299,7 +364,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
             background-color: #dc3545;
         }
         .summary-card {
-            background: linear-gradient(135deg, #800000 0%, #a60000 100%);
+            background: linear-gradient(135deg, #E91E63 0%, #a60000 100%);
             color: white;
             border-radius: 10px;
             padding: 20px;
@@ -356,38 +421,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                     </div>
                 <?php endif; ?>
 
-                <!-- Summary Cards -->
-                <?php if (!empty($transactions)): ?>
-                <div class="summary-card">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_gross, 2); ?></div>
-                                <div class="summary-label">Total Gross Pay</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_tax, 2); ?></div>
-                                <div class="summary-label">Total Tax Deductions</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_statutory, 2); ?></div>
-                                <div class="summary-label">Total Statutory Deductions</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="summary-item">
-                                <div class="summary-amount">₱<?php echo number_format($total_net, 2); ?></div>
-                                <div class="summary-label">Total Net Pay</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
+                <!-- Summary Cards - HIDDEN for confidentiality (view individual details instead) -->
                 <!-- Filters -->
                 <div class="filters-card">
                     <form method="get" class="row">
@@ -457,11 +491,6 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                         <th>Emp. #</th>
                                         <th>Department</th>
                                         <th>Cycle</th>
-                                        <th>Gross Pay</th>
-                                        <th>Tax Deductions</th>
-                                        <th>Statutory Deductions</th>
-                                        <th>Other Deductions</th>
-                                        <th>Net Pay</th>
                                         <th>Status</th>
                                         <th>Payslip</th>
                                         <th>Actions</th>
@@ -475,11 +504,6 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                                 <td><?php echo htmlspecialchars($transaction['employee_number']); ?></td>
                                                 <td><?php echo htmlspecialchars($transaction['department_name'] ?? 'N/A'); ?></td>
                                                 <td><?php echo htmlspecialchars($transaction['cycle_name']); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['gross_pay'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['tax_deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['statutory_deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['other_deductions'], 2); ?></td>
-                                                <td class="salary-amount">₱<?php echo number_format($transaction['net_pay'], 2); ?></td>
                                                 <td>
                                                     <?php 
                                                     $status = strtolower($transaction['status']);
@@ -502,7 +526,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                                     <div class="btn-group" role="group">
                                                         <button type="button" class="btn btn-sm btn-outline-info" 
                                                                 onclick="viewTransactionDetails(<?php echo htmlspecialchars(json_encode($transaction)); ?>)">
-                                                            <i class="fas fa-eye"></i>
+                                                            <i class="fas fa-eye"></i> View Details
                                                         </button>
                                                         
                                                         <?php if ($transaction['status'] != 'Cancelled'): ?>
@@ -547,7 +571,7 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="12" class="text-center">No payroll transactions found.</td>
+                                            <td colspan="7" class="text-center">No payroll transactions found.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>

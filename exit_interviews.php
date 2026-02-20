@@ -11,15 +11,22 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
 // Database connection
-$pdo = connectToDatabase();
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Handle form submissions
-$message = '';
-$messageType = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
@@ -37,12 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         isset($_POST['would_recommend']) ? 1 : 0,
                         $_POST['status']
                     ]);
-                    $message = "Exit interview scheduled successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Exit interview added successfully!";
+                    $_SESSION['messageType'] = "success";
                 } catch (PDOException $e) {
-                    $message = "Error scheduling exit interview: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error adding interview: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
                 }
+                header("Location: " . $_SERVER['PHP_SELF']);
+                exit;
                 break;
             
             case 'update':
@@ -60,12 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['status'],
                         $_POST['interview_id']
                     ]);
-                    $message = "Exit interview updated successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Exit interview updated successfully!";
+                    $_SESSION['messageType'] = "success";
                 } catch (PDOException $e) {
-                    $message = "Error updating exit interview: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error updating interview: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
                 }
+                header("Location: " . $_SERVER['PHP_SELF']);
+                exit;
                 break;
             
             case 'delete':
@@ -73,62 +84,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $stmt = $pdo->prepare("DELETE FROM exit_interviews WHERE interview_id=?");
                     $stmt->execute([$_POST['interview_id']]);
-                    $message = "Exit interview deleted successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Exit interview deleted successfully!";
+                    $_SESSION['messageType'] = "success";
                 } catch (PDOException $e) {
-                    $message = "Error deleting exit interview: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error deleting interview: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
                 }
+                header("Location: " . $_SERVER['PHP_SELF']);
+                exit;
                 break;
         }
     }
+}
+
+// Get message from session
+$message = '';
+$messageType = '';
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    $messageType = $_SESSION['messageType'];
+    // Clear the message after displaying
+    unset($_SESSION['message']);
+    unset($_SESSION['messageType']);
 }
 
 // Fetch exit interviews with related data
 $stmt = $pdo->query("
     SELECT 
         ei.*,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
         ep.employee_number,
+        ep.work_email,
         jr.title as job_title,
         jr.department,
-        e.exit_date,
-        e.exit_reason
+        ex.exit_date,
+        ex.exit_type,
+        ep.hire_date
     FROM exit_interviews ei
-    LEFT JOIN exits e ON ei.exit_id = e.exit_id
     LEFT JOIN employee_profiles ep ON ei.employee_id = ep.employee_id
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
     LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-    ORDER BY ei.interview_date DESC, ei.interview_id DESC
+    LEFT JOIN exits ex ON ei.exit_id = ex.exit_id
+    ORDER BY ei.interview_date DESC
 ");
 $interviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch exits for dropdown
 $stmt = $pdo->query("
     SELECT 
-        e.exit_id, 
-        e.exit_date,
-        e.exit_reason,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number
-    FROM exits e
-    LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
+        ex.exit_id, 
+        ex.exit_date,
+        ex.exit_type,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
+    FROM exits ex
+    LEFT JOIN employee_profiles ep ON ex.employee_id = ep.employee_id
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-    ORDER BY e.exit_date DESC
+    ORDER BY ex.exit_date DESC
 ");
 $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch employees for dropdown
 $stmt = $pdo->query("
     SELECT 
-        ep.employee_id, 
+        ep.employee_id,
         CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
         ep.employee_number,
         jr.title as job_title
     FROM employee_profiles ep
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
     LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-    WHERE ep.employment_status != 'Terminated'
     ORDER BY pi.first_name
 ");
 $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -144,7 +168,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Additional custom styles for exit interview page */
+        /* Additional custom styles for exit interviews page */
         :root {
             --azure-blue: #E91E63;
             --azure-blue-light: #F06292;
@@ -253,6 +277,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: white;
         }
 
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+
         .btn-small {
             padding: 8px 15px;
             font-size: 14px;
@@ -315,28 +344,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #721c24;
         }
 
-        .recommendation-badge {
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .recommendation-yes {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .recommendation-no {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .recommendation-na {
-            background: #e2e3e5;
-            color: #495057;
-        }
-
         .modal {
             display: none;
             position: fixed;
@@ -351,12 +358,12 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .modal-content {
             background: white;
-            margin: 2% auto;
+            margin: 5% auto;
             padding: 0;
             border-radius: 15px;
-            width: 95%;
-            max-width: 800px;
-            max-height: 95vh;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             animation: slideIn 0.3s ease;
@@ -421,6 +428,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
         }
 
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
         .form-row {
             display: flex;
             gap: 20px;
@@ -468,20 +480,346 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #ddd;
         }
 
-        textarea.form-control {
-            min-height: 100px;
-            resize: vertical;
+        /* Certificate Styles */
+        .certificate-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            background: white;
+            border: 15px solid;
+            border-image: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 50%, var(--azure-blue-dark) 100%) 1;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            position: relative;
         }
 
-        .interview-details {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
+        .certificate-container::before,
+        .certificate-container::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 3px solid var(--azure-blue);
+        }
+
+        .certificate-container::before {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .certificate-container::after {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .certificate-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--azure-blue-lighter);
+        }
+
+        .certificate-logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+        }
+
+        .certificate-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--azure-blue-dark);
+            margin: 20px 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .certificate-subtitle {
+            font-size: 18px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .certificate-body {
+            padding: 30px 20px;
+            line-height: 1.8;
+        }
+
+        .certificate-text {
+            font-size: 16px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .employee-details {
+            background: var(--azure-blue-pale);
+            padding: 30px;
+            border-radius: 10px;
+            margin: 30px 0;
+            border-left: 5px solid var(--azure-blue);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--azure-blue-lighter);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            min-width: 180px;
+        }
+
+        .detail-value {
+            color: #333;
+            text-align: right;
+            flex: 1;
+        }
+
+        .certificate-footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-around;
+            padding-top: 30px;
+            border-top: 2px solid var(--azure-blue-lighter);
+        }
+
+        .signature-block {
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .signature-line {
+            border-top: 2px solid #333;
+            margin: 60px 0 10px;
+            padding-top: 10px;
+        }
+
+        .signature-name {
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+        }
+
+        .signature-title {
             font-size: 14px;
+            color: #666;
+            font-style: italic;
         }
 
-        @media (max-width: 768px) {
+        .certificate-seal {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 100px;
+            height: 100px;
+            border: 3px solid var(--azure-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            font-size: 12px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            transform: rotate(-15deg);
+        }
+
+        .certificate-date {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* IMPROVED PRINT STYLES */
+        @media print {
+            /* Hide everything except the certificate */
+            body * {
+                visibility: hidden;
+            }
+            
+            #printCertificate,
+            #printCertificate * {
+                visibility: visible;
+            }
+            
+            /* Hide non-printable elements */
+            .no-print {
+                display: none !important;
+            }
+            
+            /* Position certificate for printing */
+            #printCertificate {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            
+            /* Reset page setup for optimal printing */
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+            
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+            
+            /* Ensure certificate fits on one page */
+            .certificate-container {
+                max-width: 100%;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                page-break-inside: avoid;
+                box-sizing: border-box;
+                border-width: 8px;
+                box-shadow: none !important;
+            }
+            
+            /* Adjust font sizes for print */
+            .certificate-title {
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+            
+            .certificate-subtitle {
+                font-size: 14px;
+            }
+            
+            .certificate-text {
+                font-size: 13px;
+                line-height: 1.6;
+            }
+            
+            .detail-row {
+                padding: 8px 0;
+                font-size: 13px;
+            }
+            
+            .employee-details {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            
+            .detail-label {
+                font-size: 13px;
+                min-width: 150px;
+            }
+            
+            .detail-value {
+                font-size: 13px;
+            }
+            
+            /* Adjust logo size */
+            .certificate-logo {
+                width: 70px;
+                height: 70px;
+                font-size: 32px;
+                margin-bottom: 15px;
+            }
+            
+            /* Adjust decorative corners */
+            .certificate-container::before,
+            .certificate-container::after {
+                width: 50px;
+                height: 50px;
+                border-width: 2px;
+            }
+            
+            .certificate-container::before {
+                top: 10px;
+                left: 10px;
+            }
+            
+            .certificate-container::after {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            /* Adjust body padding */
+            .certificate-body {
+                padding: 15px 10px;
+            }
+            
+            /* Adjust header */
+            .certificate-header {
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+            }
+            
+            /* Adjust footer spacing */
+            .certificate-footer {
+                margin-top: 25px;
+                padding-top: 15px;
+            }
+            
+            .signature-line {
+                margin: 30px 0 5px;
+            }
+            
+            .signature-name {
+                font-size: 13px;
+            }
+            
+            .signature-title {
+                font-size: 12px;
+            }
+            
+            /* Adjust seal position and size */
+            .certificate-seal {
+                bottom: 20px;
+                left: 20px;
+                width: 70px;
+                height: 70px;
+                font-size: 9px;
+                border-width: 2px;
+            }
+            
+            .certificate-date {
+                margin-top: 20px;
+                font-size: 12px;
+            }
+            
+            /* Ensure colors print correctly */
+            .certificate-container,
+            .certificate-logo,
+            .employee-details {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color-adjust: exact;
+            }
+            
+            /* Remove shadows for cleaner print */
+            .certificate-logo {
+                box-shadow: none !important;
+            }
+        }
+
+        /* Additional responsive adjustments for smaller screens */
+        @media screen and (max-width: 768px) {
             .controls {
                 flex-direction: column;
                 align-items: stretch;
@@ -501,6 +839,20 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             .content {
                 padding: 20px;
+            }
+
+            .certificate-container {
+                padding: 20px;
+                border-width: 8px;
+            }
+
+            .certificate-title {
+                font-size: 24px;
+            }
+
+            .certificate-footer {
+                flex-direction: column;
+                gap: 40px;
             }
         }
     </style>
@@ -522,10 +874,10 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="controls">
                         <div class="search-box">
                             <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search by employee name, status, or interview date...">
+                            <input type="text" id="searchInput" placeholder="Search by employee name, status...">
                         </div>
                         <button class="btn btn-primary" onclick="openModal('add')">
-                            📋 Schedule Exit Interview
+                            ➕ Add New Interview
                         </button>
                     </div>
 
@@ -535,10 +887,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tr>
                                     <th>Employee</th>
                                     <th>Job Title</th>
-                                    <th>Exit Date</th>
                                     <th>Interview Date</th>
+                                    <th>Exit Date</th>
+                                    <th>Exit Type</th>
                                     <th>Status</th>
-                                    <th>Would Recommend</th>
+                                    <th>Recommend</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -547,37 +900,27 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tr>
                                     <td>
                                         <div>
-                                            <strong><?= htmlspecialchars($interview['employee_name']) ?></strong><br>
-                                            <small style="color: #666;">ID: <?= htmlspecialchars($interview['employee_number']) ?></small>
+                                            <strong><?= htmlspecialchars($interview['full_name']) ?></strong><br>
+                                            <small style="color: #666;">#<?= htmlspecialchars($interview['employee_number']) ?></small>
                                         </div>
                                     </td>
                                     <td>
-                                        <div>
-                                            <?= htmlspecialchars($interview['job_title']) ?><br>
-                                            <small style="color: #666;"><?= htmlspecialchars($interview['department']) ?></small>
-                                        </div>
+                                        <?= htmlspecialchars($interview['job_title']) ?><br>
+                                        <small style="color: #666;"><?= htmlspecialchars($interview['department']) ?></small>
                                     </td>
-                                    <td><?= $interview['exit_date'] ? date('M d, Y', strtotime($interview['exit_date'])) : 'N/A' ?></td>
-                                    <td><strong><?= date('M d, Y', strtotime($interview['interview_date'])) ?></strong></td>
+                                    <td><?= date('M d, Y', strtotime($interview['interview_date'])) ?></td>
+                                    <td><?= date('M d, Y', strtotime($interview['exit_date'])) ?></td>
+                                    <td><?= htmlspecialchars($interview['exit_type']) ?></td>
                                     <td>
                                         <span class="status-badge status-<?= strtolower($interview['status']) ?>">
                                             <?= htmlspecialchars($interview['status']) ?>
                                         </span>
                                     </td>
+                                    <td><?= $interview['would_recommend'] ? '✅ Yes' : '❌ No' ?></td>
                                     <td>
-                                        <?php if ($interview['status'] == 'Completed'): ?>
-                                            <?php if ($interview['would_recommend'] === '1'): ?>
-                                                <span class="recommendation-badge recommendation-yes">✅ Yes</span>
-                                            <?php elseif ($interview['would_recommend'] === '0'): ?>
-                                                <span class="recommendation-badge recommendation-no">❌ No</span>
-                                            <?php else: ?>
-                                                <span class="recommendation-badge recommendation-na">➖ N/A</span>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="recommendation-badge recommendation-na">➖ Pending</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
+                                        <button class="btn btn-info btn-small" onclick="printCertificate(<?= $interview['interview_id'] ?>)">
+                                            🖨️ Print
+                                        </button>
                                         <button class="btn btn-warning btn-small" onclick="editInterview(<?= $interview['interview_id'] ?>)">
                                             ✏️ Edit
                                         </button>
@@ -594,7 +937,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="no-results">
                             <i>📋</i>
                             <h3>No exit interviews found</h3>
-                            <p>Start by scheduling your first exit interview.</p>
+                            <p>Start by adding your first exit interview.</p>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -603,11 +946,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <!-- Add/Edit Exit Interview Modal -->
+    <!-- Add/Edit Interview Modal -->
     <div id="interviewModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">Schedule Exit Interview</h2>
+                <h2 id="modalTitle">Add New Exit Interview</h2>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <div class="modal-body">
@@ -622,12 +965,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <select id="exit_id" name="exit_id" class="form-control" required>
                                     <option value="">Select exit record...</option>
                                     <?php foreach ($exits as $exit): ?>
-                                    <option value="<?= $exit['exit_id'] ?>" 
-                                            data-employee="<?= htmlspecialchars($exit['employee_name']) ?>"
-                                            data-exit-date="<?= $exit['exit_date'] ?>"
-                                            data-reason="<?= htmlspecialchars($exit['exit_reason']) ?>">
-                                        <?= htmlspecialchars($exit['employee_name']) ?> (<?= htmlspecialchars($exit['employee_number']) ?>) - <?= date('M d, Y', strtotime($exit['exit_date'])) ?>
-                                    </option>
+                                    <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?> (<?= htmlspecialchars($exit['exit_type']) ?>)</option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -635,11 +973,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="employee_id">Employee</label>
-                                <select id="employee_id" name="employee_id" class="form-control" required>
+                                                                <select id="employee_id" name="employee_id" class="form-control" required>
                                     <option value="">Select employee...</option>
                                     <?php foreach ($employees as $employee): ?>
                                     <option value="<?= $employee['employee_id'] ?>">
-                                        <?= htmlspecialchars($employee['full_name']) ?> (<?= htmlspecialchars($employee['employee_number']) ?>) - <?= htmlspecialchars($employee['job_title']) ?>
+                                        <?= htmlspecialchars($employee['full_name']) ?> (<?= htmlspecialchars($employee['job_title']) ?>)
                                     </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -647,531 +985,196 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="interview_date">Interview Date</label>
-                                <input type="date" id="interview_date" name="interview_date" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="status">Status</label>
-                                <select id="status" name="status" class="form-control" required>
-                                    <option value="Scheduled">Scheduled</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="interview_date">Interview Date</label>
+                        <input type="date" id="interview_date" name="interview_date" class="form-control" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="reason_for_leaving">Reason for Leaving</label>
-                        <textarea id="reason_for_leaving" name="reason_for_leaving" class="form-control" 
-                                  placeholder="Employee's stated reason for leaving the company..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="feedback">General Feedback</label>
-                        <textarea id="feedback" name="feedback" class="form-control" 
-                                  placeholder="Employee's feedback about their experience, work environment, management, etc..."></textarea>
+                        <label for="feedback">Feedback</label>
+                        <textarea id="feedback" name="feedback" class="form-control" placeholder="Enter feedback..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="improvement_suggestions">Improvement Suggestions</label>
-                        <textarea id="improvement_suggestions" name="improvement_suggestions" class="form-control" 
-                                  placeholder="Employee's suggestions for company improvement..."></textarea>
+                        <textarea id="improvement_suggestions" name="improvement_suggestions" class="form-control" placeholder="Enter improvement suggestions..."></textarea>
                     </div>
 
                     <div class="form-group">
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="would_recommend" name="would_recommend">
-                            <label for="would_recommend">Would recommend this company to others</label>
-                        </div>
+                        <label for="reason_for_leaving">Reason for Leaving</label>
+                        <textarea id="reason_for_leaving" name="reason_for_leaving" class="form-control" placeholder="Enter reason for leaving..."></textarea>
                     </div>
 
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success">💾 Save Interview</button>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="would_recommend" name="would_recommend" value="1">
+                        <label for="would_recommend">Would recommend the company to others</label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" class="form-control" required>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div style="text-align: right;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- Certificate Print Section -->
+    <div id="printCertificate" style="display: none;">
+        <div class="certificate-container">
+            <div class="certificate-header">
+                <div class="certificate-logo">🏢</div>
+                <h1 class="certificate-title">Exit Certificate</h1>
+                <p class="certificate-subtitle">Official Record of Employment Exit</p>
+            </div>
+
+            <div class="certificate-body">
+                <p class="certificate-text">
+                    This is to certify that <strong id="certEmployeeName">[Employee Name]</strong> has formally completed the exit process with our organization. 
+                    The company acknowledges their service and extends best wishes for their future endeavors.
+                </p>
+
+                <div class="employee-details">
+                    <div class="detail-row"><span class="detail-label">Employee Name:</span><span class="detail-value" id="certName"></span></div>
+                    <div class="detail-row"><span class="detail-label">Employee Number:</span><span class="detail-value" id="certNumber"></span></div>
+                    <div class="detail-row"><span class="detail-label">Job Title:</span><span class="detail-value" id="certJobTitle"></span></div>
+                    <div class="detail-row"><span class="detail-label">Department:</span><span class="detail-value" id="certDepartment"></span></div>
+                    <div class="detail-row"><span class="detail-label">Exit Type:</span><span class="detail-value" id="certExitType"></span></div>
+                    <div class="detail-row"><span class="detail-label">Exit Date:</span><span class="detail-value" id="certExitDate"></span></div>
+                    <div class="detail-row"><span class="detail-label">Interview Date:</span><span class="detail-value" id="certInterviewDate"></span></div>
+                </div>
+
+                <div class="certificate-date">
+                    Issued on <span id="certIssuedDate"><?= date('F d, Y') ?></span>
+                </div>
+            </div>
+
+            <div class="certificate-footer">
+                <div class="signature-block">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">_______________________</div>
+                    <div class="signature-title">HR Manager</div>
+                </div>
+
+                <div class="signature-block">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">_______________________</div>
+                    <div class="signature-title">Authorized Signature</div>
+                </div>
+            </div>
+
+            <div class="certificate-seal">
+                OFFICIAL<br>COMPANY<br>SEAL
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Global variables
-        let interviewsData = <?= json_encode($interviews) ?>;
+        // Modal controls
+        const modal = document.getElementById('interviewModal');
+        const form = document.getElementById('interviewForm');
 
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const tableBody = document.getElementById('interviewTableBody');
-            const rows = tableBody.getElementsByTagName('tr');
+        function openModal(action, data = null) {
+            document.getElementById('action').value = action;
+            document.getElementById('modalTitle').innerText = action === 'add' ? 'Add New Exit Interview' : 'Edit Exit Interview';
+            form.reset();
 
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const text = row.textContent.toLowerCase();
-                
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+            if (data) {
+                // Set form values from data
+                for (let key in data) {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            element.checked = data[key] == 1;
+                        } else {
+                            element.value = data[key];
+                        }
+                    }
                 }
-            }
-        });
-
-        // Modal functions
-        function openModal(mode, interviewId = null) {
-            const modal = document.getElementById('interviewModal');
-            const form = document.getElementById('interviewForm');
-            const title = document.getElementById('modalTitle');
-            const action = document.getElementById('action');
-
-            if (mode === 'add') {
-                title.textContent = 'Schedule Exit Interview';
-                action.value = 'add';
-                form.reset();
-                document.getElementById('interview_id').value = '';
-                
-                // Set default interview date to tomorrow
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                document.getElementById('interview_date').value = tomorrow.toISOString().split('T')[0];
-            } else if (mode === 'edit' && interviewId) {
-                title.textContent = 'Edit Exit Interview';
-                action.value = 'update';
-                document.getElementById('interview_id').value = interviewId;
-                populateEditForm(interviewId);
             }
 
             modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
         }
 
         function closeModal() {
-            const modal = document.getElementById('interviewModal');
             modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
         }
 
-        function populateEditForm(interviewId) {
-            const interview = interviewsData.find(int => int.interview_id == interviewId);
-            if (interview) {
-                document.getElementById('exit_id').value = interview.exit_id || '';
-                document.getElementById('employee_id').value = interview.employee_id || '';
-                document.getElementById('interview_date').value = interview.interview_date || '';
-                document.getElementById('status').value = interview.status || '';
-                document.getElementById('reason_for_leaving').value = interview.reason_for_leaving || '';
-                document.getElementById('feedback').value = interview.feedback || '';
-                document.getElementById('improvement_suggestions').value = interview.improvement_suggestions || '';
-                document.getElementById('would_recommend').checked = interview.would_recommend == 1;
-            }
+        window.onclick = function(event) {
+            if (event.target == modal) closeModal();
         }
 
-        function editInterview(interviewId) {
-            openModal('edit', interviewId);
-        }
-
-        function deleteInterview(interviewId) {
-            if (confirm('Are you sure you want to delete this exit interview? This action cannot be undone.')) {
+        // Delete confirmation
+        function deleteInterview(id) {
+            if (confirm("Are you sure you want to delete this interview?")) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="interview_id" value="${interviewId}">
-                `;
+                form.innerHTML = `<input type="hidden" name="action" value="delete">
+                                  <input type="hidden" name="interview_id" value="${id}">`;
                 document.body.appendChild(form);
                 form.submit();
             }
         }
 
-        // Auto-populate employee when exit record is selected
-        document.getElementById('exit_id').addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption.value) {
-                // You could auto-populate the employee field here if needed
-                // For now, we'll leave both fields independent for flexibility
-            }
-        });
+        // Print certificate logic
+        function printCertificate(id) {
+            // Find row data by ID from PHP-rendered table
+            const row = [...document.querySelectorAll('#interviewTableBody tr')].find(r =>
+                r.querySelector('.btn-info').getAttribute('onclick').includes(id)
+            );
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('interviewModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+            if (!row) return;
+
+            const cells = row.querySelectorAll('td');
+            document.getElementById('certEmployeeName').textContent = cells[0].innerText.trim();
+            document.getElementById('certName').textContent = cells[0].querySelector('strong').innerText;
+            document.getElementById('certNumber').textContent = cells[0].querySelector('small').innerText.replace('#', '');
+            document.getElementById('certJobTitle').textContent = cells[1].childNodes[0].nodeValue.trim();
+            document.getElementById('certDepartment').textContent = cells[1].querySelector('small').innerText;
+            document.getElementById('certInterviewDate').textContent = cells[2].innerText;
+            document.getElementById('certExitDate').textContent = cells[3].innerText;
+            document.getElementById('certExitType').textContent = cells[4].innerText;
+
+            const cert = document.getElementById('printCertificate');
+            cert.style.display = 'block';
+            window.print();
+            cert.style.display = 'none';
         }
 
-        // Form validation
-        document.getElementById('interviewForm').addEventListener('submit', function(e) {
-            const interviewDate = new Date(document.getElementById('interview_date').value);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            if (interviewDate < today) {
-                if (!confirm('The interview date is in the past. Are you sure you want to continue?')) {
-                    e.preventDefault();
-                    return;
-                }
-            }
-        });
-
-        // Auto-hide alerts
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.remove();
-                }, 500);
-            });
-        }, 5000);
-
-        // Initialize tooltips and animations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to table rows
-            const tableRows = document.querySelectorAll('#interviewTable tbody tr');
-            tableRows.forEach(row => {
-                row.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.02)';
-                    this.style.boxShadow = '0 5px 15px rgba(233, 30, 99, 0.2)';
-                });
-                
-                row.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                    this.style.boxShadow = 'none';
-                });
-            });
-
-            // Add smooth scrolling animation
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
-            });
-
-            // Animate buttons on load
-            const buttons = document.querySelectorAll('.btn');
-            buttons.forEach((btn, index) => {
-                btn.style.opacity = '0';
-                btn.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    btn.style.transition = 'all 0.5s ease';
-                    btn.style.opacity = '1';
-                    btn.style.transform = 'translateY(0)';
-                }, index * 100);
+        // Search filter
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const value = this.value.toLowerCase();
+            document.querySelectorAll('#interviewTableBody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
             });
         });
 
-        // Enhanced search with filters
-        function filterTable() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter')?.value?.toLowerCase() || '';
-            const dateFilter = document.getElementById('dateFilter')?.value || '';
-            
-            const tableBody = document.getElementById('interviewTableBody');
-            const rows = tableBody.getElementsByTagName('tr');
-
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const text = row.textContent.toLowerCase();
-                const statusCell = row.cells[4]?.textContent.toLowerCase() || '';
-                const dateCell = row.cells[3]?.textContent || '';
-                
-                let showRow = text.includes(searchTerm);
-                
-                if (statusFilter && !statusCell.includes(statusFilter)) {
-                    showRow = false;
-                }
-                
-                if (dateFilter && !dateCell.includes(dateFilter)) {
-                    showRow = false;
-                }
-                
-                row.style.display = showRow ? '' : 'none';
-            }
-
-            // Update results count
-            const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none').length;
-            updateResultsCount(visibleRows, rows.length);
-        }
-
-        function updateResultsCount(visible, total) {
-            let countElement = document.getElementById('resultsCount');
-            if (!countElement) {
-                countElement = document.createElement('div');
-                countElement.id = 'resultsCount';
-                countElement.style.cssText = 'margin-top: 10px; color: #666; font-size: 14px;';
-                document.querySelector('.table-container').appendChild(countElement);
-            }
-            countElement.textContent = `Showing ${visible} of ${total} interviews`;
-        }
-
-        // Export functionality
-        function exportToCSV() {
-            const table = document.getElementById('interviewTable');
-            const rows = table.querySelectorAll('tr');
-            let csv = [];
-
-            for (let i = 0; i < rows.length; i++) {
-                if (rows[i].style.display === 'none') continue; // Skip hidden rows
-                
-                const row = rows[i];
-                const cols = row.querySelectorAll('td, th');
-                let rowData = [];
-
-                for (let j = 0; j < cols.length - 1; j++) { // Skip actions column
-                    let cellData = cols[j].textContent.trim();
-                    // Clean up the data
-                    cellData = cellData.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-                    rowData.push(`"${cellData}"`);
-                }
-                csv.push(rowData.join(','));
-            }
-
-            // Download CSV
-            const csvString = csv.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `exit_interviews_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }
-
-        // Print functionality
-        function printTable() {
-            const printWindow = window.open('', '_blank');
-            const table = document.getElementById('interviewTable').cloneNode(true);
-            
-            // Remove action column
-            const actionHeaders = table.querySelectorAll('th:last-child, td:last-child');
-            actionHeaders.forEach(cell => cell.remove());
-            
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Exit Interviews Report</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f2f2f2; font-weight: bold; }
-                        .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; }
-                        .status-scheduled { background: #fff3cd; }
-                        .status-completed { background: #d4edda; }
-                        .status-cancelled { background: #f8d7da; }
-                        @media print { body { margin: 0; } }
-                    </style>
-                </head>
-                <body>
-                    <h1>Exit Interviews Report</h1>
-                    <p>Generated on: ${new Date().toLocaleDateString()}</p>
-                    ${table.outerHTML}
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl/Cmd + K to focus search
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('searchInput').focus();
-            }
-            
-            // Escape to close modal
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-            
-            // Ctrl/Cmd + N to add new interview
-            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-                e.preventDefault();
-                openModal('add');
-            }
-        });
-
-        // Form auto-save (draft functionality)
-        let autoSaveTimer;
-        function setupAutoSave() {
-            const formInputs = document.querySelectorAll('#interviewForm input, #interviewForm textarea, #interviewForm select');
-            
-            formInputs.forEach(input => {
-                input.addEventListener('input', function() {
-                    clearTimeout(autoSaveTimer);
-                    autoSaveTimer = setTimeout(saveDraft, 2000); // Save after 2 seconds of inactivity
-                });
-            });
-        }
-
-        function saveDraft() {
-            const formData = new FormData(document.getElementById('interviewForm'));
-            const draft = {};
-            
-            for (let [key, value] of formData.entries()) {
-                draft[key] = value;
-            }
-            
-            localStorage.setItem('exitInterviewDraft', JSON.stringify(draft));
-            
-            // Show draft saved indicator
-            const indicator = document.createElement('div');
-            indicator.textContent = '💾 Draft saved';
-            indicator.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 8px 15px; border-radius: 5px; z-index: 1001; font-size: 14px;';
-            document.body.appendChild(indicator);
-            
-            setTimeout(() => {
-                indicator.remove();
-            }, 2000);
-        }
-
-        function loadDraft() {
-            const draft = localStorage.getItem('exitInterviewDraft');
-            if (draft && confirm('A draft was found. Would you like to load it?')) {
-                const draftData = JSON.parse(draft);
-                
-                Object.keys(draftData).forEach(key => {
-                    const element = document.getElementById(key);
-                    if (element) {
-                        if (element.type === 'checkbox') {
-                            element.checked = draftData[key] === 'on';
-                        } else {
-                            element.value = draftData[key];
-                        }
-                    }
+        // Edit interview function
+        function editInterview(id) {
+            const interview = <?= json_encode($interviews) ?>.find(i => i.interview_id == id);
+            if (interview) {
+                openModal('update', {
+                    interview_id: interview.interview_id,
+                    employee_id: interview.employee_id,
+                    exit_id: interview.exit_id,
+                    interview_date: interview.interview_date,
+                    feedback: interview.feedback,
+                    improvement_suggestions: interview.improvement_suggestions,
+                    reason_for_leaving: interview.reason_for_leaving,
+                    would_recommend: interview.would_recommend,
+                    status: interview.status
                 });
             }
-        }
-
-        function clearDraft() {
-            localStorage.removeItem('exitInterviewDraft');
-        }
-
-        // Enhanced modal with keyboard navigation
-        document.addEventListener('DOMContentLoaded', function() {
-            setupAutoSave();
-            
-            // Add keyboard navigation in modal
-            document.getElementById('interviewModal').addEventListener('keydown', function(e) {
-                if (e.key === 'Tab') {
-                    const focusableElements = this.querySelectorAll(
-                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                    );
-                    const firstFocusable = focusableElements[0];
-                    const lastFocusable = focusableElements[focusableElements.length - 1];
-
-                    if (e.shiftKey) {
-                        if (document.activeElement === firstFocusable) {
-                            lastFocusable.focus();
-                            e.preventDefault();
-                        }
-                    } else {
-                        if (document.activeElement === lastFocusable) {
-                            firstFocusable.focus();
-                            e.preventDefault();
-                        }
-                    }
-                }
-            });
-        });
-
-        // Real-time validation
-        function validateForm() {
-            const form = document.getElementById('interviewForm');
-            const submitBtn = form.querySelector('button[type="submit"]');
-            let isValid = true;
-
-            // Check required fields
-            const requiredFields = form.querySelectorAll('[required]');
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.style.borderColor = '#dc3545';
-                } else {
-                    field.style.borderColor = '#28a745';
-                }
-            });
-
-            // Date validation
-            const interviewDate = document.getElementById('interview_date');
-            const today = new Date().toISOString().split('T')[0];
-            
-            if (interviewDate.value && interviewDate.value < today) {
-                interviewDate.style.borderColor = '#ffc107';
-                interviewDate.title = 'Interview date is in the past';
-            }
-
-            submitBtn.disabled = !isValid;
-            submitBtn.style.opacity = isValid ? '1' : '0.6';
-        }
-
-        // Add event listeners for real-time validation
-        document.addEventListener('DOMContentLoaded', function() {
-            const formInputs = document.querySelectorAll('#interviewForm input[required], #interviewForm select[required]');
-            formInputs.forEach(input => {
-                input.addEventListener('blur', validateForm);
-                input.addEventListener('input', validateForm);
-            });
-        });
-
-        // Success animation after form submission
-        function showSuccessAnimation() {
-            const successDiv = document.createElement('div');
-            successDiv.innerHTML = '✅';
-            successDiv.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-size: 4rem;
-                z-index: 2000;
-                animation: successBounce 1s ease;
-            `;
-            
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes successBounce {
-                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-                    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-                    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(style);
-            document.body.appendChild(successDiv);
-            
-            setTimeout(() => {
-                successDiv.remove();
-                style.remove();
-            }, 1000);
         }
     </script>
-
-    <!-- Additional HTML elements that might be missing -->
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-        <button class="btn btn-secondary" onclick="exportToCSV()" style="margin-right: 10px;" title="Export to CSV">
-            📊 Export
-        </button>
-        <button class="btn btn-secondary" onclick="printTable()" title="Print Report">
-            🖨️ Print
-        </button>
-    </div>
-
 </body>
 </html>

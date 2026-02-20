@@ -6,7 +6,18 @@ ini_set('display_errors', 1);
 session_start();
 require_once 'config.php';
 
-$pdo = connectToDatabase();
+// Database connection
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Demo credentials array (fallback for demo users)
 $demo_users = [
@@ -63,11 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     // Verify password
                     if (password_verify($password, $user['password'])) {
+                        // Regenerate session ID for security (prevent session fixation)
+                        session_regenerate_id(true);
+                        
                         // Store data in session variables
                         $_SESSION['loggedin'] = true;
                         $_SESSION['user_id'] = $user['user_id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['role'] = $user['role'];
+                        $_SESSION['login_time'] = time();
+                        $_SESSION['login_ip'] = $_SERVER['REMOTE_ADDR'];
+                        
+                        error_log("User {$user['username']} logged in from IP {$_SERVER['REMOTE_ADDR']} with session ID " . session_id());
                         
                         $authenticated = true;
                         
@@ -90,14 +108,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (!$authenticated) {
             foreach ($demo_users as $user) {
                 if ($username === $user['username'] && $password === $user['password']) {
+                    // Regenerate session ID for security (prevent session fixation)
+                    session_regenerate_id(true);
+                    
                     // Store data in session variables
                     $_SESSION['loggedin'] = true;
                     $_SESSION['user_id'] = $user['user_id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['role'] = $user['role'];
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['login_ip'] = $_SERVER['REMOTE_ADDR'];
+                    
+                    error_log("Demo user {$user['username']} logged in from IP {$_SERVER['REMOTE_ADDR']} with session ID " . session_id());
                     
                     $authenticated = true;
                     
+                    $_SESSION['employee_id'] = $row['employee_id'];
+
                     // Redirect based on role
                     if ($user['role'] === 'employee') {
                         header("location: employee_index.php");

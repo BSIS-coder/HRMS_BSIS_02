@@ -11,14 +11,39 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
 // Database connection
-$pdo = connectToDatabase();
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Handle form submissions
 $message = '';
 $messageType = '';
+
+// File upload handler
+function handleFileUpload($file, $targetDir) {
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0777, true);
+    }
+    
+    $fileName = uniqid() . '_' . basename($file['name']);
+    $targetFile = $targetDir . $fileName;
+    
+    if (move_uploaded_file($file['tmp_name'], $targetFile)) {
+        return '/uploads/' . basename($targetDir) . '/' . $fileName;
+    }
+    return null;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -26,6 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add':
                 // Add new personal information
                 try {
+                    $pdo->beginTransaction();
+                    
                     // Check for duplicate Tax ID or SSN
                     $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM personal_information WHERE tax_id = ? OR social_security_number = ?");
                     $checkStmt->execute([$_POST['tax_id'], $_POST['social_security_number']]);
@@ -33,26 +60,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($checkStmt->fetchColumn() > 0) {
                         $message = "Error: Tax ID or Social Security Number already exists!";
                         $messageType = "error";
+                        $pdo->rollBack();
                     } else {
-                        $stmt = $pdo->prepare("INSERT INTO personal_information (first_name, last_name, date_of_birth, gender, marital_status, nationality, tax_id, social_security_number, phone_number, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        // Handle marital status document upload
+                        $maritalDocUrl = null;
+                        if (isset($_FILES['marital_status_document']) && $_FILES['marital_status_document']['error'] === 0) {
+                            $maritalDocUrl = handleFileUpload($_FILES['marital_status_document'], 'uploads/marital_documents/');
+                        }
+                        
+                        $stmt = $pdo->prepare("INSERT INTO personal_information (
+                            first_name, last_name, date_of_birth, gender, marital_status, marital_status_date, 
+                            marital_status_document_url, nationality, tax_id, social_security_number, 
+                            pag_ibig_id, philhealth_id, phone_number, 
+                            emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
+                            highest_educational_attainment, course_degree, school_university, year_graduated
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        
                         $stmt->execute([
                             $_POST['first_name'],
                             $_POST['last_name'],
                             $_POST['date_of_birth'],
                             $_POST['gender'],
                             $_POST['marital_status'],
+                            !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $maritalDocUrl,
                             $_POST['nationality'],
                             $_POST['tax_id'],
                             $_POST['social_security_number'],
+                            $_POST['pag_ibig_id'] ?? null,
+                            $_POST['philhealth_id'] ?? null,
                             $_POST['phone_number'],
                             $_POST['emergency_contact_name'],
                             $_POST['emergency_contact_relationship'],
-                            $_POST['emergency_contact_phone']
+                            $_POST['emergency_contact_phone'],
+                            !empty($_POST['highest_educational_attainment']) ? $_POST['highest_educational_attainment'] : null,
+                            $_POST['course_degree'] ?? null,
+                            $_POST['school_university'] ?? null,
+                            !empty($_POST['year_graduated']) ? $_POST['year_graduated'] : null
                         ]);
+                        
+                        $personalInfoId = $pdo->lastInsertId();
+                        
+                        // Add marital status history if provided
+                        if (!empty($_POST['marital_status_date'])) {
+                            $maritalStmt = $pdo->prepare("INSERT INTO marital_status_history (
+                                personal_info_id, marital_status, status_date, spouse_name, 
+                                supporting_document_type, document_url, document_number, issuing_authority, is_current
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+                            
+                            $maritalStmt->execute([
+                                $personalInfoId,
+                                $_POST['marital_status'],
+                                $_POST['marital_status_date'],
+                                $_POST['spouse_name'] ?? null,
+                                $_POST['supporting_document_type'] ?? null,
+                                $maritalDocUrl,
+                                $_POST['document_number'] ?? null,
+                                $_POST['issuing_authority'] ?? null
+                            ]);
+                        }
+                        
+                        $pdo->commit();
                         $message = "Personal information added successfully!";
                         $messageType = "success";
                     }
                 } catch (PDOException $e) {
+                    $pdo->rollBack();
                     $message = "Error adding personal information: " . $e->getMessage();
                     $messageType = "error";
                 }
@@ -61,6 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'update':
                 // Update personal information
                 try {
+                    $pdo->beginTransaction();
+                    
                     // Check for duplicate Tax ID or SSN (excluding current record)
                     $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM personal_information WHERE (tax_id = ? OR social_security_number = ?) AND personal_info_id != ?");
                     $checkStmt->execute([$_POST['tax_id'], $_POST['social_security_number'], $_POST['personal_info_id']]);
@@ -68,50 +143,200 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($checkStmt->fetchColumn() > 0) {
                         $message = "Error: Tax ID or Social Security Number already exists!";
                         $messageType = "error";
+                        $pdo->rollBack();
                     } else {
-                        $stmt = $pdo->prepare("UPDATE personal_information SET first_name=?, last_name=?, date_of_birth=?, gender=?, marital_status=?, nationality=?, tax_id=?, social_security_number=?, phone_number=?, emergency_contact_name=?, emergency_contact_relationship=?, emergency_contact_phone=? WHERE personal_info_id=?");
+                        // Handle marital status document upload
+                        $maritalDocUrl = $_POST['existing_marital_doc'] ?? null;
+                        if (isset($_FILES['marital_status_document']) && $_FILES['marital_status_document']['error'] === 0) {
+                            $maritalDocUrl = handleFileUpload($_FILES['marital_status_document'], 'uploads/marital_documents/');
+                        }
+                        
+                        $stmt = $pdo->prepare("UPDATE personal_information SET 
+                            first_name=?, last_name=?, date_of_birth=?, gender=?, marital_status=?, 
+                            marital_status_date=?, marital_status_document_url=?, nationality=?, tax_id=?, 
+                            social_security_number=?, pag_ibig_id=?, philhealth_id=?, phone_number=?, 
+                            emergency_contact_name=?, emergency_contact_relationship=?, emergency_contact_phone=?,
+                            highest_educational_attainment=?, course_degree=?, school_university=?, year_graduated=?
+                            WHERE personal_info_id=?");
+                        
                         $stmt->execute([
                             $_POST['first_name'],
                             $_POST['last_name'],
                             $_POST['date_of_birth'],
                             $_POST['gender'],
                             $_POST['marital_status'],
+                            !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $maritalDocUrl,
                             $_POST['nationality'],
                             $_POST['tax_id'],
                             $_POST['social_security_number'],
+                            $_POST['pag_ibig_id'] ?? null,
+                            $_POST['philhealth_id'] ?? null,
                             $_POST['phone_number'],
                             $_POST['emergency_contact_name'],
                             $_POST['emergency_contact_relationship'],
                             $_POST['emergency_contact_phone'],
+                            !empty($_POST['highest_educational_attainment']) ? $_POST['highest_educational_attainment'] : null,
+                            $_POST['course_degree'] ?? null,
+                            $_POST['school_university'] ?? null,
+                            !empty($_POST['year_graduated']) ? $_POST['year_graduated'] : null,
                             $_POST['personal_info_id']
                         ]);
+                        
+                        $pdo->commit();
                         $message = "Personal information updated successfully!";
                         $messageType = "success";
                     }
                 } catch (PDOException $e) {
+                    $pdo->rollBack();
                     $message = "Error updating personal information: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
             
-            case 'delete':
-                // Delete personal information
+            case 'add_education':
+                // Add educational background
                 try {
+                    $educationDocUrl = null;
+                    if (isset($_FILES['education_document']) && $_FILES['education_document']['error'] === 0) {
+                        $educationDocUrl = handleFileUpload($_FILES['education_document'], 'uploads/education_documents/');
+                    }
+                    
+                    $stmt = $pdo->prepare("INSERT INTO educational_background (
+                        personal_info_id, education_level, school_name, course_degree, major_specialization,
+                        year_started, year_graduated, honors_awards, is_highest_attainment, document_url
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    
+                    $stmt->execute([
+                        $_POST['personal_info_id'],
+                        $_POST['education_level'],
+                        $_POST['school_name'],
+                        $_POST['course_degree'] ?? null,
+                        $_POST['major_specialization'] ?? null,
+                        !empty($_POST['year_started']) ? $_POST['year_started'] : null,
+                        !empty($_POST['year_graduated']) ? $_POST['year_graduated'] : null,
+                        $_POST['honors_awards'] ?? null,
+                        isset($_POST['is_highest_attainment']) ? 1 : 0,
+                        $educationDocUrl
+                    ]);
+                    
+                    $message = "Educational background added successfully!";
+                    $messageType = "success";
+                } catch (PDOException $e) {
+                    $message = "Error adding educational background: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+            
+            case 'add_marital_history':
+                // Add marital status history
+                try {
+                    $maritalDocUrl = null;
+                    if (isset($_FILES['marital_history_document']) && $_FILES['marital_history_document']['error'] === 0) {
+                        $maritalDocUrl = handleFileUpload($_FILES['marital_history_document'], 'uploads/marital_documents/');
+                    }
+                    
+                    // Set all previous statuses to not current
+                    $updateStmt = $pdo->prepare("UPDATE marital_status_history SET is_current = 0 WHERE personal_info_id = ?");
+                    $updateStmt->execute([$_POST['personal_info_id']]);
+                    
+                    $stmt = $pdo->prepare("INSERT INTO marital_status_history (
+                        personal_info_id, marital_status, status_date, spouse_name, supporting_document_type,
+                        document_url, document_number, issuing_authority, remarks, is_current
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+                    
+                    $stmt->execute([
+                        $_POST['personal_info_id'],
+                        $_POST['marital_status_new'],
+                        $_POST['status_date'],
+                        $_POST['spouse_name'] ?? null,
+                        $_POST['supporting_document_type'] ?? null,
+                        $maritalDocUrl,
+                        $_POST['document_number'] ?? null,
+                        $_POST['issuing_authority'] ?? null,
+                        $_POST['remarks'] ?? null
+                    ]);
+                    
+                    // Update personal_information table
+                    $updatePersonalStmt = $pdo->prepare("UPDATE personal_information SET marital_status = ?, marital_status_date = ?, marital_status_document_url = ? WHERE personal_info_id = ?");
+                    $updatePersonalStmt->execute([
+                        $_POST['marital_status_new'],
+                        $_POST['status_date'],
+                        $maritalDocUrl,
+                        $_POST['personal_info_id']
+                    ]);
+                    
+                    $message = "Marital status history added successfully!";
+                    $messageType = "success";
+                } catch (PDOException $e) {
+                    $message = "Error adding marital status history: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+                
+            case 'delete':
+                // Archive personal information instead of permanent delete
+                try {
+                    $pdo->beginTransaction();
+                    
                     // Check if this person is linked to any employee profiles
                     $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM employee_profiles WHERE personal_info_id = ?");
                     $checkStmt->execute([$_POST['personal_info_id']]);
                     
                     if ($checkStmt->fetchColumn() > 0) {
+                        $pdo->rollBack();
                         $message = "Error: Cannot delete personal information. This person is linked to an employee profile!";
                         $messageType = "error";
                     } else {
-                        $stmt = $pdo->prepare("DELETE FROM personal_information WHERE personal_info_id=?");
-                        $stmt->execute([$_POST['personal_info_id']]);
-                        $message = "Personal information deleted successfully!";
-                        $messageType = "success";
+                        // Fetch the record to be archived
+                        $fetchStmt = $pdo->prepare("SELECT * FROM personal_information WHERE personal_info_id = ?");
+                        $fetchStmt->execute([$_POST['personal_info_id']]);
+                        $recordToArchive = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($recordToArchive) {
+                            $archived_by = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+                            
+                            $employeeId = null;
+                            $employeeCheck = $pdo->prepare("SELECT employee_id FROM employee_profiles WHERE personal_info_id = ? LIMIT 1");
+                            $employeeCheck->execute([$_POST['personal_info_id']]);
+                            $employeeResult = $employeeCheck->fetch(PDO::FETCH_ASSOC);
+                            if ($employeeResult) {
+                                $employeeId = $employeeResult['employee_id'];
+                            }
+                            
+                            // Archive the record
+                            $archiveStmt = $pdo->prepare("INSERT INTO archive_storage (
+                                source_table, record_id, employee_id, archive_reason, archive_reason_details, 
+                                archived_by, archived_at, can_restore, record_data, notes
+                            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, ?, ?)");
+                            
+                            $archiveStmt->execute([
+                                'personal_information',
+                                $recordToArchive['personal_info_id'],
+                                $employeeId,
+                                'Data Cleanup',
+                                'Personal information record deleted by user',
+                                $archived_by,
+                                json_encode($recordToArchive, JSON_PRETTY_PRINT),
+                                'Personal information archived on deletion'
+                            ]);
+                            
+                            // Delete from personal_information table
+                            $deleteStmt = $pdo->prepare("DELETE FROM personal_information WHERE personal_info_id=?");
+                            $deleteStmt->execute([$_POST['personal_info_id']]);
+                            
+                            $pdo->commit();
+                            $message = "Personal information archived successfully! You can view it in Archive Storage.";
+                            $messageType = "success";
+                        } else {
+                            $pdo->rollBack();
+                            $message = "Error: Record not found!";
+                            $messageType = "error";
+                        }
                     }
                 } catch (PDOException $e) {
-                    $message = "Error deleting personal information: " . $e->getMessage();
+                    $pdo->rollBack();
+                    $message = "Error archiving personal information: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
@@ -119,13 +344,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch all personal information
+// Fetch all personal information with education and marital status
 $stmt = $pdo->query("
-    SELECT *,
-           CONCAT(first_name, ' ', last_name) as full_name,
-           TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as age
-    FROM personal_information 
-    ORDER BY personal_info_id DESC
+    SELECT pi.*,
+           CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
+           TIMESTAMPDIFF(YEAR, pi.date_of_birth, CURDATE()) as age
+    FROM personal_information pi
+    ORDER BY pi.personal_info_id DESC
 ");
 $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -140,7 +365,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Additional custom styles for personal information page */
+        /* [Previous CSS styles remain the same] */
         :root {
             --azure-blue: #E91E63;
             --azure-blue-light: #F06292;
@@ -155,15 +380,6 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-weight: 600;
         }
         
-        .container-fluid {
-            padding: 0;
-        }
-        
-        .row {
-            margin-right: 0;
-            margin-left: 0;
-        }
-
         body {
             background: var(--azure-blue-pale);
         }
@@ -231,7 +447,11 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
-            background: linear-gradient(135deg, var(--azure-blue-light) 0%, var(--azure-blue-dark) 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
         }
 
         .btn-success {
@@ -284,8 +504,6 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .table tbody tr:hover {
             background-color: var(--azure-blue-lighter);
-            transform: scale(1.01);
-            transition: all 0.2s ease;
         }
 
         .status-badge {
@@ -334,7 +552,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 0;
             border-radius: 15px;
             width: 90%;
-            max-width: 800px;
+            max-width: 900px;
             max-height: 95vh;
             overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
@@ -387,7 +605,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .form-control {
             width: 100%;
-            padding: 6px 15px;
+            padding: 10px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
@@ -428,18 +646,6 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border: 1px solid #f5c6cb;
         }
 
-        .no-results {
-            text-align: center;
-            padding: 50px;
-            color: #666;
-        }
-
-        .no-results i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            color: #ddd;
-        }
-
         .section-divider {
             border-top: 2px solid #e0e0e0;
             margin: 30px 0 20px 0;
@@ -451,6 +657,50 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-weight: 600;
             color: var(--azure-blue-dark);
             margin-bottom: 20px;
+        }
+
+        .education-badge {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .document-link {
+            color: var(--azure-blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .document-link:hover {
+            text-decoration: underline;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #333;
         }
 
         @media (max-width: 768px) {
@@ -470,10 +720,6 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             .table-container {
                 overflow-x: auto;
             }
-
-            .content {
-                padding: 20px;
-            }
         }
     </style>
 </head>
@@ -483,7 +729,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="row">
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
-                <h2 class="section-title">Personal Information Management</h2>
+                <h2 class="section-title">📋 Personal Information Management</h2>
                 <div class="content">
                     <?php if ($message): ?>
                         <div class="alert alert-<?= $messageType ?>">
@@ -494,7 +740,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="controls">
                         <div class="search-box">
                             <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search by name, phone, tax ID, or SSN...">
+                            <input type="text" id="searchInput" placeholder="Search by name, phone, education...">
                         </div>
                         <button class="btn btn-primary" onclick="openModal('add')">
                             👤 Add New Person
@@ -510,9 +756,8 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th>Age/DOB</th>
                                     <th>Gender</th>
                                     <th>Marital Status</th>
-                                    <th>Contact Info</th>
-                                    <th>Tax ID</th>
-                                    <th>Emergency Contact</th>
+                                    <th>Education</th>
+                                    <th>Contact</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -528,7 +773,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </td>
                                     <td>
                                         <div>
-                                            <strong><?= $person['age'] ?> years old</strong><br>
+                                            <strong><?= $person['age'] ?> years</strong><br>
                                             <small style="color: #666;">🎂 <?= date('M d, Y', strtotime($person['date_of_birth'])) ?></small>
                                         </div>
                                     </td>
@@ -537,40 +782,54 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <span class="status-badge status-<?= strtolower($person['marital_status']) ?>">
                                             <?= htmlspecialchars($person['marital_status']) ?>
                                         </span>
+                                        <?php if ($person['marital_status_date']): ?>
+                                            <br><small style="color: #666;">📅 <?= date('Y', strtotime($person['marital_status_date'])) ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($person['highest_educational_attainment']): ?>
+                                            <span class="education-badge">🎓 <?= htmlspecialchars($person['highest_educational_attainment']) ?></span>
+                                            <?php if ($person['school_university']): ?>
+                                                <br><small style="color: #666;"><?= htmlspecialchars($person['school_university']) ?></small>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <small style="color: #999;">No education recorded</small>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <div>
-                                            📞 <?= htmlspecialchars($person['phone_number']) ?><br>
-                                            <small style="color: #666;">🆔 <?= htmlspecialchars($person['social_security_number']) ?></small>
-                                        </div>
-                                    </td>
-                                    <td><?= htmlspecialchars($person['tax_id']) ?></td>
-                                    <td>
-                                        <div>
-                                            <strong><?= htmlspecialchars($person['emergency_contact_name']) ?></strong><br>
-                                            <small style="color: #666;"><?= htmlspecialchars($person['emergency_contact_relationship']) ?> - <?= htmlspecialchars($person['emergency_contact_phone']) ?></small>
+                                            <strong>📞 <?= htmlspecialchars($person['phone_number']) ?></strong><br>
+                                            <?php if ($person['emergency_contact_name']): ?>
+                                                <small style="color: #666;">🚨 <?= htmlspecialchars($person['emergency_contact_name']) ?></small>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                     <td>
+                                        <button class="btn btn-info btn-small" onclick="viewDetails(<?= $person['personal_info_id'] ?>)">
+                                            👁️ View
+                                        </button>
                                         <button class="btn btn-warning btn-small" onclick="editPerson(<?= $person['personal_info_id'] ?>)">
                                             ✏️ Edit
                                         </button>
-                                        <button class="btn btn-danger btn-small" onclick="deletePerson(<?= $person['personal_info_id'] ?>)">
+                                        <button class="btn btn-success btn-small" onclick="printPDS(<?= $person['personal_info_id'] ?>)">
+                                            🖨️ Print PDS
+                                        </button>
+                                        <button class="btn btn-danger btn-small" onclick="deletePerson(<?= $person['personal_info_id'] ?>, '<?= htmlspecialchars(addslashes($person['full_name'])) ?>')">
                                             🗑️ Delete
                                         </button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
+                                <?php if (empty($personalInfo)): ?>
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
+                                        No personal information records found. Click "Add New Person" to get started.
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
-                        
-                        <?php if (empty($personalInfo)): ?>
-                        <div class="no-results">
-                            <i>👥</i>
-                            <h3>No personal information found</h3>
-                            <p>Start by adding your first person's information.</p>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -585,7 +844,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="personalInfoForm" method="POST">
+                <form id="personalInfoForm" method="POST" enctype="multipart/form-data">
                     <input type="hidden" id="action" name="action" value="add">
                     <input type="hidden" id="personal_info_id" name="personal_info_id">
 
@@ -594,13 +853,13 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="first_name">First Name</label>
+                                <label for="first_name">First Name *</label>
                                 <input type="text" id="first_name" name="first_name" class="form-control" required>
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="last_name">Last Name</label>
+                                <label for="last_name">Last Name *</label>
                                 <input type="text" id="last_name" name="last_name" class="form-control" required>
                             </div>
                         </div>
@@ -609,15 +868,15 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="date_of_birth">Date of Birth</label>
+                                <label for="date_of_birth">Date of Birth *</label>
                                 <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" required>
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="gender">Gender</label>
+                                <label for="gender">Gender *</label>
                                 <select id="gender" name="gender" class="form-control" required>
-                                    <option value="">Select gender...</option>
+                                    <option value="">Select Gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                     <option value="Other">Other</option>
@@ -629,9 +888,27 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="marital_status">Marital Status</label>
+                                <label for="nationality">Nationality *</label>
+                                <input type="text" id="nationality" name="nationality" class="form-control" value="Filipino" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="phone_number">Phone Number *</label>
+                                <input type="tel" id="phone_number" name="phone_number" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Marital Status Section -->
+                    <div class="section-divider"></div>
+                    <div class="section-header">💍 Marital Status</div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="marital_status">Marital Status *</label>
                                 <select id="marital_status" name="marital_status" class="form-control" required>
-                                    <option value="">Select status...</option>
+                                    <option value="">Select Status</option>
                                     <option value="Single">Single</option>
                                     <option value="Married">Married</option>
                                     <option value="Divorced">Divorced</option>
@@ -641,75 +918,151 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="nationality">Nationality</label>
-                                <input type="text" id="nationality" name="nationality" class="form-control" value="Filipino" required>
+                                <label for="marital_status_date">Marital Status Date</label>
+                                <input type="date" id="marital_status_date" name="marital_status_date" class="form-control">
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Government Information Section -->
-                    <div class="section-divider">
-                        <div class="section-header">🏛️ Government Information</div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="tax_id">Tax ID</label>
-                                <input type="text" id="tax_id" name="tax_id" class="form-control" placeholder="123-45-6789" required>
+                                <label for="spouse_name">Spouse Name</label>
+                                <input type="text" id="spouse_name" name="spouse_name" class="form-control">
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="social_security_number">Social Security Number</label>
-                                <input type="text" id="social_security_number" name="social_security_number" class="form-control" placeholder="123456789" required>
+                                <label for="marital_status_document">Marital Status Document</label>
+                                <input type="file" id="marital_status_document" name="marital_status_document" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                                <input type="hidden" id="existing_marital_doc" name="existing_marital_doc">
+                                <small style="color: #666;">Upload marriage certificate, divorce decree, etc.</small>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Contact Information Section -->
-                    <div class="section-divider">
-                        <div class="section-header">📞 Contact Information</div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="supporting_document_type">Document Type</label>
+                                <select id="supporting_document_type" name="supporting_document_type" class="form-control">
+                                    <option value="">Select Type</option>
+                                    <option value="Marriage Certificate">Marriage Certificate</option>
+                                    <option value="Divorce Decree">Divorce Decree</option>
+                                    <option value="Death Certificate">Death Certificate</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="document_number">Document Number</label>
+                                <input type="text" id="document_number" name="document_number" class="form-control">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="phone_number">Phone Number</label>
-                        <input type="tel" id="phone_number" name="phone_number" class="form-control" placeholder="555-1234" required>
+                        <label for="issuing_authority">Issuing Authority</label>
+                        <input type="text" id="issuing_authority" name="issuing_authority" class="form-control">
                     </div>
 
-                    <!-- Emergency Contact Section -->
-                    <div class="section-divider">
-                        <div class="section-header">🚨 Emergency Contact</div>
-                    </div>
-
+                    <!-- Identification Section -->
+                    <div class="section-divider"></div>
+                    <div class="section-header">🆔 Identification</div>
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="emergency_contact_name">Emergency Contact Name</label>
+                                <label for="tax_id">Tax ID *</label>
+                                <input type="text" id="tax_id" name="tax_id" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="social_security_number">Social Security Number *</label>
+                                <input type="text" id="social_security_number" name="social_security_number" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="pag_ibig_id">Pag-IBIG ID</label>
+                                <input type="text" id="pag_ibig_id" name="pag_ibig_id" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="philhealth_id">PhilHealth ID</label>
+                                <input type="text" id="philhealth_id" name="philhealth_id" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Emergency Contact Section -->
+                    <div class="section-divider"></div>
+                    <div class="section-header">🚨 Emergency Contact</div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="emergency_contact_name">Emergency Contact Name *</label>
                                 <input type="text" id="emergency_contact_name" name="emergency_contact_name" class="form-control" required>
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="emergency_contact_relationship">Relationship</label>
-                                <select id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-control" required>
-                                    <option value="">Select relationship...</option>
-                                    <option value="Spouse">Spouse</option>
-                                    <option value="Father">Father</option>
-                                    <option value="Mother">Mother</option>
-                                    <option value="Brother">Brother</option>
-                                    <option value="Sister">Sister</option>
-                                    <option value="Child">Child</option>
-                                    <option value="Friend">Friend</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <label for="emergency_contact_relationship">Relationship *</label>
+                                <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-control" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="emergency_contact_phone">Emergency Contact Phone</label>
-                        <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" class="form-control" placeholder="555-5678" required>
+                        <label for="emergency_contact_phone">Emergency Contact Phone *</label>
+                        <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" class="form-control" required>
+                    </div>
+
+                    <!-- Education Section -->
+                    <div class="section-divider"></div>
+                    <div class="section-header">🎓 Education</div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="highest_educational_attainment">Highest Educational Attainment</label>
+                                <select id="highest_educational_attainment" name="highest_educational_attainment" class="form-control">
+                                    <option value="">Select Level</option>
+                                    <option value="Elementary">Elementary</option>
+                                    <option value="High School">High School</option>
+                                    <option value="Senior High School">Senior High School</option>
+                                    <option value="Vocational">Vocational</option>
+                                    <option value="Associate Degree">Associate Degree</option>
+                                    <option value="Bachelor's Degree">Bachelor's Degree</option>
+                                    <option value="Master's Degree">Master's Degree</option>
+                                    <option value="Doctorate">Doctorate</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="course_degree">Course/Degree</label>
+                                <input type="text" id="course_degree" name="course_degree" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="school_university">School/University</label>
+                                <input type="text" id="school_university" name="school_university" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="year_graduated">Year Graduated</label>
+                                <input type="number" id="year_graduated" name="year_graduated" class="form-control" min="1900" max="<?= date('Y') ?>">
+                            </div>
+                        </div>
                     </div>
 
                     <div style="text-align: center; margin-top: 30px;">
@@ -721,9 +1074,38 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <!-- View Details Modal -->
+    <div id="viewDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Personal Information Details</h2>
+                <span class="close" onclick="closeViewModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="viewDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div style="padding: 20px 30px; border-top: 1px solid #e0e0e0; text-align: center;">
+                <button class="btn btn-success" id="printPDSFromView" onclick="printPDSFromViewModal()" style="display: none;">
+                    🖨️ Print PDS
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let personalInfoData = <?= json_encode($personalInfo) ?>;
+        
+        // Fetch education and marital history data
+        <?php
+        $educationStmt = $pdo->query("SELECT * FROM educational_background ORDER BY personal_info_id, year_graduated DESC");
+        $educationData = $educationStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $maritalStmt = $pdo->query("SELECT * FROM marital_status_history ORDER BY personal_info_id, status_date DESC");
+        $maritalHistoryData = $maritalStmt->fetchAll(PDO::FETCH_ASSOC);
+        ?>
+        let educationData = <?= json_encode($educationData) ?>;
+        let maritalHistoryData = <?= json_encode($maritalHistoryData) ?>;
 
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function() {
@@ -755,7 +1137,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 action.value = 'add';
                 form.reset();
                 document.getElementById('personal_info_id').value = '';
-                document.getElementById('nationality').value = 'Filipino'; // Default value
+                document.getElementById('nationality').value = 'Filipino';
             } else if (mode === 'edit' && personalInfoId) {
                 title.textContent = 'Edit Personal Information';
                 action.value = 'update';
@@ -773,6 +1155,12 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             document.body.style.overflow = 'auto';
         }
 
+        function closeViewModal() {
+            const modal = document.getElementById('viewDetailsModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
         function populateEditForm(personalInfoId) {
             const person = personalInfoData.find(p => p.personal_info_id == personalInfoId);
             if (person) {
@@ -780,14 +1168,24 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('last_name').value = person.last_name || '';
                 document.getElementById('date_of_birth').value = person.date_of_birth || '';
                 document.getElementById('gender').value = person.gender || '';
-                document.getElementById('marital_status').value = person.marital_status || '';
                 document.getElementById('nationality').value = person.nationality || '';
+                document.getElementById('phone_number').value = person.phone_number || '';
+                document.getElementById('marital_status').value = person.marital_status || '';
+                document.getElementById('marital_status_date').value = person.marital_status_date || '';
                 document.getElementById('tax_id').value = person.tax_id || '';
                 document.getElementById('social_security_number').value = person.social_security_number || '';
-                document.getElementById('phone_number').value = person.phone_number || '';
+                document.getElementById('pag_ibig_id').value = person.pag_ibig_id || '';
+                document.getElementById('philhealth_id').value = person.philhealth_id || '';
                 document.getElementById('emergency_contact_name').value = person.emergency_contact_name || '';
                 document.getElementById('emergency_contact_relationship').value = person.emergency_contact_relationship || '';
                 document.getElementById('emergency_contact_phone').value = person.emergency_contact_phone || '';
+                document.getElementById('highest_educational_attainment').value = person.highest_educational_attainment || '';
+                document.getElementById('course_degree').value = person.course_degree || '';
+                document.getElementById('school_university').value = person.school_university || '';
+                document.getElementById('year_graduated').value = person.year_graduated || '';
+                if (person.marital_status_document_url) {
+                    document.getElementById('existing_marital_doc').value = person.marital_status_document_url;
+                }
             }
         }
 
@@ -795,8 +1193,8 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             openModal('edit', personalInfoId);
         }
 
-        function deletePerson(personalInfoId) {
-            if (confirm('Are you sure you want to delete this person\'s information? This action cannot be undone and will fail if the person is linked to an employee profile.')) {
+        function deletePerson(personalInfoId, fullName) {
+            if (confirm(`Are you sure you want to delete the personal information for "${fullName}"? This will archive the record.`)) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = `
@@ -808,104 +1206,207 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
+        // Store current viewing person ID for print function
+        let currentViewingPersonId = null;
+
+        function viewDetails(personalInfoId) {
+            currentViewingPersonId = personalInfoId;
+            const person = personalInfoData.find(p => p.personal_info_id == personalInfoId);
+            if (!person) return;
+
+            const personEducation = educationData.filter(e => e.personal_info_id == personalInfoId);
+            const personMaritalHistory = maritalHistoryData.filter(m => m.personal_info_id == personalInfoId);
+            
+            // Show print button
+            document.getElementById('printPDSFromView').style.display = 'inline-block';
+
+            let html = `
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Full Name</div>
+                        <div class="info-value">${person.first_name} ${person.last_name}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Date of Birth</div>
+                        <div class="info-value">${person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Age</div>
+                        <div class="info-value">${person.age} years</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Gender</div>
+                        <div class="info-value">${person.gender || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nationality</div>
+                        <div class="info-value">${person.nationality || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone Number</div>
+                        <div class="info-value">${person.phone_number || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Tax ID</div>
+                        <div class="info-value">${person.tax_id || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">SSN</div>
+                        <div class="info-value">${person.social_security_number || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Pag-IBIG ID</div>
+                        <div class="info-value">${person.pag_ibig_id || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">PhilHealth ID</div>
+                        <div class="info-value">${person.philhealth_id || 'N/A'}</div>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+                <div class="section-header">💍 Marital Status</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">${person.marital_status || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Status Date</div>
+                        <div class="info-value">${person.marital_status_date ? new Date(person.marital_status_date).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                </div>
+
+                ${personMaritalHistory.length > 0 ? `
+                    <div class="section-divider"></div>
+                    <div class="section-header">📜 Marital History</div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Spouse Name</th>
+                                <th>Document Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${personMaritalHistory.map(m => `
+                                <tr>
+                                    <td>${m.marital_status}</td>
+                                    <td>${m.status_date ? new Date(m.status_date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>${m.spouse_name || 'N/A'}</td>
+                                    <td>${m.supporting_document_type || 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : ''}
+
+                <div class="section-divider"></div>
+                <div class="section-header">🚨 Emergency Contact</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Name</div>
+                        <div class="info-value">${person.emergency_contact_name || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Relationship</div>
+                        <div class="info-value">${person.emergency_contact_relationship || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">${person.emergency_contact_phone || 'N/A'}</div>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+                <div class="section-header">🎓 Education</div>
+                ${person.highest_educational_attainment ? `
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Highest Attainment</div>
+                            <div class="info-value">${person.highest_educational_attainment}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Course/Degree</div>
+                            <div class="info-value">${person.course_degree || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">School/University</div>
+                            <div class="info-value">${person.school_university || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Year Graduated</div>
+                            <div class="info-value">${person.year_graduated || 'N/A'}</div>
+                        </div>
+                    </div>
+                ` : '<p>No education information recorded.</p>'}
+
+                ${personEducation.length > 0 ? `
+                    <div class="section-divider"></div>
+                    <div class="section-header">📚 Educational Background</div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>School</th>
+                                <th>Course/Degree</th>
+                                <th>Year Graduated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${personEducation.map(e => `
+                                <tr>
+                                    <td>${e.education_level}</td>
+                                    <td>${e.school_name || 'N/A'}</td>
+                                    <td>${e.course_degree || 'N/A'}</td>
+                                    <td>${e.year_graduated || 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : ''}
+            `;
+
+            document.getElementById('viewDetailsContent').innerHTML = html;
+            document.getElementById('viewDetailsModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function printPDSFromViewModal() {
+            if (currentViewingPersonId) {
+                printPDS(currentViewingPersonId);
+            }
+        }
+
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('personalInfoModal');
-            if (event.target === modal) {
+            const personalInfoModal = document.getElementById('personalInfoModal');
+            const viewDetailsModal = document.getElementById('viewDetailsModal');
+            if (event.target === personalInfoModal) {
                 closeModal();
+            }
+            if (event.target === viewDetailsModal) {
+                closeViewModal();
             }
         }
 
         // Form validation
         document.getElementById('personalInfoForm').addEventListener('submit', function(e) {
-            // Validate age (must be at least 16 years old)
-            const birthDate = new Date(document.getElementById('date_of_birth').value);
-            const today = new Date();
-            const age = today.getFullYear() - birthDate.getFullYear();
-            const monthDiff = today.getMonth() - birthDate.getMonth();
+            const firstName = document.getElementById('first_name').value.trim();
+            const lastName = document.getElementById('last_name').value.trim();
             
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-
-            if (age < 16) {
+            if (firstName.length < 2) {
                 e.preventDefault();
-                alert('Person must be at least 16 years old');
+                alert('First name must be at least 2 characters long');
                 return;
             }
-
-            if (age > 120) {
-                e.preventDefault();
-                alert('Please enter a valid birth date');
-                return;
-            }
-
-            // Validate phone numbers (basic format check)
-            const phone = document.getElementById('phone_number').value;
-            const emergencyPhone = document.getElementById('emergency_contact_phone').value;
             
-            if (phone && !isValidPhone(phone)) {
+            if (lastName.length < 2) {
                 e.preventDefault();
-                alert('Please enter a valid phone number format');
+                alert('Last name must be at least 2 characters long');
                 return;
             }
-
-            if (emergencyPhone && !isValidPhone(emergencyPhone)) {
-                e.preventDefault();
-                alert('Please enter a valid emergency contact phone number format');
-                return;
-            }
-
-            // Validate Tax ID format (basic check)
-            const taxId = document.getElementById('tax_id').value;
-            if (taxId && !isValidTaxId(taxId)) {
-                e.preventDefault();
-                alert('Please enter a valid Tax ID format (XXX-XX-XXXX)');
-                return;
-            }
-
-            // Validate SSN format (basic check)
-            const ssn = document.getElementById('social_security_number').value;
-            if (ssn && !isValidSSN(ssn)) {
-                e.preventDefault();
-                alert('Please enter a valid Social Security Number (9 digits)');
-                return;
-            }
-        });
-
-        function isValidPhone(phone) {
-            // Basic phone validation - allows various formats
-            const phoneRegex = /^[\d\s\-\+\(\)]{7,15}$/;
-            return phoneRegex.test(phone);
-        }
-
-        function isValidTaxId(taxId) {
-            // Basic Tax ID validation - XXX-XX-XXXX format
-            const taxIdRegex = /^\d{3}-\d{2}-\d{4}$/;
-            return taxIdRegex.test(taxId);
-        }
-
-        function isValidSSN(ssn) {
-            // Basic SSN validation - 9 digits
-            const ssnRegex = /^\d{9}$/;
-            return ssnRegex.test(ssn.replace(/\D/g, ''));
-        }
-
-        // Auto-format inputs
-        document.getElementById('tax_id').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 3) {
-                value = value.substring(0, 3) + '-' + value.substring(3);
-            }
-            if (value.length >= 6) {
-                value = value.substring(0, 6) + '-' + value.substring(6, 10);
-            }
-            e.target.value = value;
-        });
-
-        document.getElementById('social_security_number').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            e.target.value = value.substring(0, 9);
         });
 
         // Auto-hide alerts
@@ -920,28 +1421,19 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }, 5000);
 
-        // Initialize tooltips and animations
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to table rows
-            const tableRows = document.querySelectorAll('#personalInfoTable tbody tr');
-            tableRows.forEach(row => {
-                row.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.02)';
-                });
-                
-                row.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-
             // Set max date for birth date (today)
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date_of_birth').setAttribute('max', today);
-
-            // Set min date for birth date (120 years ago)
-            const minDate = new Date();
-            minDate.setFullYear(minDate.getFullYear() - 120);
-            document.getElementById('date_of_birth').setAttribute('min', minDate.toISOString().split('T')[0]);
+            const dateOfBirthInput = document.getElementById('date_of_birth');
+            if (dateOfBirthInput) {
+                dateOfBirthInput.setAttribute('max', today);
+                
+                // Set min date for birth date (120 years ago)
+                const minDate = new Date();
+                minDate.setFullYear(minDate.getFullYear() - 120);
+                dateOfBirthInput.setAttribute('min', minDate.toISOString().split('T')[0]);
+            }
         });
 
         // Keyboard shortcuts
@@ -949,6 +1441,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             // ESC to close modal
             if (e.key === 'Escape') {
                 closeModal();
+                closeViewModal();
             }
             
             // Ctrl+N to add new person
@@ -973,13 +1466,390 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         // Live age calculation on birth date change
-        document.getElementById('date_of_birth').addEventListener('change', function() {
-            const birthDate = this.value;
-            if (birthDate) {
-                const age = calculateAge(birthDate);
-                console.log(`Age will be: ${age} years`);
+        const dateOfBirthInput = document.getElementById('date_of_birth');
+        if (dateOfBirthInput) {
+            dateOfBirthInput.addEventListener('change', function() {
+                const birthDate = this.value;
+                if (birthDate) {
+                    const age = calculateAge(birthDate);
+                    console.log(`Age will be: ${age} years`);
+                }
+            });
+        }
+
+        // Print PDS function
+        function printPDS(personalInfoId) {
+            const person = personalInfoData.find(p => p.personal_info_id == personalInfoId);
+            if (!person) {
+                alert('Person not found!');
+                return;
             }
-        });
+
+            const personEducation = educationData.filter(e => e.personal_info_id == personalInfoId);
+            const personMaritalHistory = maritalHistoryData.filter(m => m.personal_info_id == personalInfoId);
+
+            // Format date helper
+            function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+
+            // Get Pag-IBIG ID
+            const pagIbigId = person.pag_ibig_id || 'N/A';
+
+            // Generate PDS HTML
+            let pdsHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Data Sheet - ${person.first_name} ${person.last_name}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0.8cm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #000;
+            background: #fff;
+            padding: 10px;
+        }
+        .pds-header {
+            text-align: center;
+            border: 2px solid #000;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        .pds-header h1 {
+            font-size: 13pt;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .pds-header p {
+            font-size: 8pt;
+            margin: 0;
+        }
+        .photo-section {
+            float: right;
+            width: 100px;
+            height: 120px;
+            border: 1px solid #000;
+            margin: 0 0 10px 10px;
+            text-align: center;
+            padding: 5px;
+            background: #f9f9f9;
+        }
+        .photo-section p {
+            font-size: 7pt;
+            margin-top: 85px;
+        }
+        .section {
+            margin-bottom: 10px;
+            clear: both;
+        }
+        .section-title {
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 10pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            font-size: 8.5pt;
+        }
+        .info-table td {
+            padding: 3px 6px;
+            border: 1px solid #000;
+            vertical-align: top;
+        }
+        .info-table td.label {
+            width: 30%;
+            background: #f0f0f0;
+            font-weight: bold;
+            font-size: 8pt;
+        }
+        .info-table td.value {
+            width: 70%;
+            font-size: 8.5pt;
+        }
+        .info-table thead td {
+            padding: 4px 6px;
+            font-size: 8pt;
+        }
+        .signature-section {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 35px;
+            padding-top: 3px;
+            font-size: 8pt;
+        }
+        .footer {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 7pt;
+            color: #666;
+        }
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .print-button:hover {
+            background: #218838;
+        }
+        @media print {
+            .print-button {
+                display: none;
+            }
+            body {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">🖨️ Print PDS</button>
+    
+    <div class="pds-header">
+        <h1>Personal Data Sheet</h1>
+        <p>Republic of the Philippines</p>
+    </div>
+
+    <div class="photo-section">
+        <p>Paste ID Picture Here<br>(4.5 cm x 3.5 cm)</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">I. Personal Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">1. SURNAME</td>
+                <td class="value">${person.last_name || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">2. FIRST NAME</td>
+                <td class="value">${person.first_name || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">3. MIDDLE NAME</td>
+                <td class="value">N/A</td>
+            </tr>
+            <tr>
+                <td class="label">4. DATE OF BIRTH</td>
+                <td class="value">${formatDate(person.date_of_birth)}</td>
+            </tr>
+            <tr>
+                <td class="label">6. GENDER</td>
+                <td class="value">${person.gender || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">7. CIVIL STATUS</td>
+                <td class="value">${person.marital_status || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">8. NATIONALITY</td>
+                <td class="value">${person.nationality || 'N/A'}</td>
+            </tr>
+
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">II. Contact Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">14. TELEPHONE NO.</td>
+                <td class="value">${person.phone_number || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">15. MOBILE NO.</td>
+                <td class="value">${person.phone_number || 'N/A'}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">III. Educational Background</div>
+        <table class="info-table">
+            <thead>
+                <tr>
+                    <td class="label" style="text-align: center; font-weight: bold;">LEVEL</td>
+                    <td class="label" style="text-align: center; font-weight: bold;">NAME OF SCHOOL</td>
+                    <td class="label" style="text-align: center; font-weight: bold;">COURSE/DEGREE</td>
+                    <td class="label" style="text-align: center; font-weight: bold;">YEAR GRADUATED</td>
+                </tr>
+            </thead>
+            <tbody>
+                ${personEducation.length > 0 ? personEducation.slice(0, 3).map(e => `
+                    <tr>
+                        <td class="value">${e.education_level || 'N/A'}</td>
+                        <td class="value">${e.school_name || 'N/A'}</td>
+                        <td class="value">${e.course_degree || 'N/A'}</td>
+                        <td class="value">${e.year_graduated || 'N/A'}</td>
+                    </tr>
+                `).join('') : ''}
+                ${person.highest_educational_attainment && !personEducation.some(e => e.education_level === person.highest_educational_attainment) ? `
+                    <tr>
+                        <td class="value">${person.highest_educational_attainment}</td>
+                        <td class="value">${person.school_university || 'N/A'}</td>
+                        <td class="value">${person.course_degree || 'N/A'}</td>
+                        <td class="value">${person.year_graduated || 'N/A'}</td>
+                    </tr>
+                ` : ''}
+                ${personEducation.length === 0 && !person.highest_educational_attainment ? `
+                    <tr>
+                        <td class="value" colspan="4" style="text-align: center;">No educational background recorded</td>
+                    </tr>
+                ` : ''}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">IV. Government Issued ID</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">17. TAX ID (TIN)</td>
+                <td class="value">${person.tax_id || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">18. SOCIAL SECURITY NUMBER (SSS)</td>
+                <td class="value">${person.social_security_number || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">19. PAG-IBIG ID</td>
+                <td class="value">${pagIbigId}</td>
+            </tr>
+            <tr>
+                <td class="label">20. PHILHEALTH ID</td>
+                <td class="value">${person.philhealth_id || 'N/A'}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">V. Emergency Contact</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">21. NAME</td>
+                <td class="value">${person.emergency_contact_name || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">22. RELATIONSHIP</td>
+                <td class="value">${person.emergency_contact_relationship || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td class="label">23. CONTACT NUMBER</td>
+                <td class="value">${person.emergency_contact_phone || 'N/A'}</td>
+            </tr>
+        </table>
+    </div>
+
+    ${personMaritalHistory.length > 0 ? `
+    <div class="section">
+        <div class="section-title">VI. Marital Status History</div>
+        <table class="info-table">
+            <thead>
+                <tr>
+                    <td class="label" style="text-align: center; font-weight: bold;">STATUS</td>
+                    <td class="label" style="text-align: center; font-weight: bold;">DATE</td>
+                    <td class="label" style="text-align: center; font-weight: bold;">SPOUSE NAME</td>
+                    <td class="label" style="text-align: center; font-weight: bold;">DOCUMENT TYPE</td>
+                </tr>
+            </thead>
+            <tbody>
+                ${personMaritalHistory.slice(0, 2).map(m => `
+                    <tr>
+                        <td class="value">${m.marital_status || 'N/A'}</td>
+                        <td class="value">${formatDate(m.status_date)}</td>
+                        <td class="value">${m.spouse_name || 'N/A'}</td>
+                        <td class="value">${m.supporting_document_type || 'N/A'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    ` : ''}
+
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line">
+                <strong>Signature of Employee</strong>
+            </div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">
+                <strong>Date</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>This Personal Data Sheet is generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+    </div>
+</body>
+</html>
+            `;
+
+            // Open print window
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(pdsHTML);
+            printWindow.document.close();
+            
+            // Wait for content to load, then trigger print
+            printWindow.onload = function() {
+                setTimeout(function() {
+                    printWindow.print();
+                }, 250);
+            };
+        }
     </script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>

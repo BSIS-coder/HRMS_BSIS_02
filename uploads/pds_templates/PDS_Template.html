@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Data Sheet (CS Form No. 212, Revised 2017)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.3;
+            margin: 20px;
+            color: #000;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 15px;
+            border: 1px solid #000;
+            padding: 10px;
+        }
+        .section-title {
+            background-color: #d3d3d3;
+            font-weight: bold;
+            padding: 5px;
+            margin: -10px -10px 10px -10px;
+            border-bottom: 1px solid #000;
+            text-transform: uppercase;
+        }
+        .form-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .form-group {
+            flex: 1;
+            margin-right: 15px;
+        }
+        .form-group:last-child {
+            margin-right: 0;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+        .input-line {
+            border: none;
+            border-bottom: 1px solid #000;
+            width: 100%;
+            padding: 2px 0;
+            background: transparent;
+            font-size: 11px;
+        }
+        .checkbox-group {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            margin-right: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+        }
+        th {
+            background-color: #d3d3d3;
+            font-weight: bold;
+        }
+        td input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 10px;
+        }
+        .submit-btn {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        .submit-btn:hover {
+            background-color: #0052a3;
+        }
+        .required {
+            color: red;
+        }
+        @media print {
+            body { margin: 0; }
+            .section { page-break-inside: avoid; }
+            .submit-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <form id="pdsForm" method="POST" enctype="multipart/form-data">
+        <div class="header">
+            <h2>PERSONAL DATA SHEET</h2>
+            <p style="font-size: 10px; margin: 5px 0;">CS FORM NO. 212 (Revised 2017)</p>
+            <p><strong>Republic of the Philippines</strong></p>
+            <p style="font-size: 10px; font-style: italic;">WARNING: Any misrepresentation made in the Personal Data Sheet and the Work Experience Sheet shall cause the filing of administrative/criminal case/s against the person concerned.</p>
+            <p style="font-size: 10px; margin-top: 10px;">READ THE ATTACHED GUIDE TO FILLING OUT THE PERSONAL DATA SHEET (PDS) BEFORE ACCOMPLISHING THE PDS FORM.</p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">I. Personal Information</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>1. SURNAME <span class="required">*</span></label>
+                    <input type="text" name="last_name" class="input-line" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>FIRST NAME <span class="required">*</span></label>
+                    <input type="text" name="first_name" class="input-line" required>
+                </div>
+                <div class="form-group">
+                    <label>MIDDLE NAME</label>
+                    <input type="text" name="middle_name" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>NAME EXTENSION (JR., SR)</label>
+                    <input type="text" name="name_extension" class="input-line" placeholder="JR., SR., III, etc.">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>2. DATE OF BIRTH (mm/dd/yyyy)</label>
+                    <input type="date" name="date_of_birth" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>3. PLACE OF BIRTH</label>
+                    <input type="text" name="place_of_birth" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>4. SEX</label>
+                    <div style="margin-top: 5px;">
+                        <label class="checkbox-group">
+                            <input type="radio" name="sex" value="Male"> Male
+                        </label>
+                        <label class="checkbox-group">
+                            <input type="radio" name="sex" value="Female"> Female
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>5. CIVIL STATUS</label>
+                    <div style="margin-top: 5px;">
+                        <label class="checkbox-group">
+                            <input type="radio" name="civil_status" value="Single"> Single
+                        </label>
+                        <label class="checkbox-group">
+                            <input type="radio" name="civil_status" value="Married"> Married
+                        </label>
+                        <label class="checkbox-group">
+                            <input type="radio" name="civil_status" value="Widowed"> Widowed
+                        </label>
+                        <label class="checkbox-group">
+                            <input type="radio" name="civil_status" value="Separated"> Separated
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>6. HEIGHT (m)</label>
+                    <input type="text" name="height" class="input-line" placeholder="e.g., 1.65">
+                </div>
+                <div class="form-group">
+                    <label>7. WEIGHT (kg)</label>
+                    <input type="text" name="weight" class="input-line" placeholder="e.g., 65">
+                </div>
+                <div class="form-group">
+                    <label>8. BLOOD TYPE</label>
+                    <input type="text" name="blood_type" class="input-line" placeholder="e.g., O+">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>9. GSIS ID NO.</label>
+                    <input type="text" name="gsis_id" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>10. PAG-IBIG ID NO.</label>
+                    <input type="text" name="pagibig_id" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>11. PHILHEALTH NO.</label>
+                    <input type="text" name="philhealth_no" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>12. SSS NO.</label>
+                    <input type="text" name="sss_no" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>13. TIN NO.</label>
+                    <input type="text" name="tin_no" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>14. AGENCY EMPLOYEE NO.</label>
+                    <input type="text" name="agency_employee_no" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>15. CITIZENSHIP</label>
+                    <div style="margin-top: 5px;">
+                        <label class="checkbox-group">
+                            <input type="radio" name="citizenship_type" value="Filipino"> Filipino
+                        </label>
+                        <label class="checkbox-group">
+                            <input type="radio" name="citizenship_type" value="Dual Citizenship"> Dual Citizenship
+                        </label>
+                    </div>
+                    <input type="text" name="citizenship_country" class="input-line" placeholder="If dual, indicate country" style="margin-top: 5px;">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>16. RESIDENTIAL ADDRESS <span class="required">*</span></label>
+                    <input type="text" name="address" class="input-line" placeholder="House/Block/Lot No., Street" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>SUBDIVISION/VILLAGE</label>
+                    <input type="text" name="subdivision" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>BARANGAY</label>
+                    <input type="text" name="barangay" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>CITY/MUNICIPALITY</label>
+                    <input type="text" name="city" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>PROVINCE</label>
+                    <input type="text" name="province" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>ZIP CODE</label>
+                    <input type="text" name="zip_code" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>17. PERMANENT ADDRESS</label>
+                    <input type="text" name="permanent_address" class="input-line" placeholder="House/Block/Lot No., Street">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>SUBDIVISION/VILLAGE</label>
+                    <input type="text" name="perm_subdivision" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>BARANGAY</label>
+                    <input type="text" name="perm_barangay" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>CITY/MUNICIPALITY</label>
+                    <input type="text" name="perm_city" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>PROVINCE</label>
+                    <input type="text" name="perm_province" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>ZIP CODE</label>
+                    <input type="text" name="perm_zip_code" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>18. TELEPHONE NO.</label>
+                    <input type="text" name="telephone" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>19. MOBILE NO. <span class="required">*</span></label>
+                    <input type="text" name="phone" class="input-line" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>20. E-MAIL ADDRESS <span class="required">*</span></label>
+                    <input type="email" name="email" class="input-line" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">II. Family Background</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>21. SPOUSE'S SURNAME</label>
+                    <input type="text" name="spouse_surname" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>FIRST NAME</label>
+                    <input type="text" name="spouse_firstname" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>MIDDLE NAME</label>
+                    <input type="text" name="spouse_middlename" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>OCCUPATION</label>
+                    <input type="text" name="spouse_occupation" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>EMPLOYER/BUSINESS NAME</label>
+                    <input type="text" name="spouse_employer" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>BUSINESS ADDRESS</label>
+                    <input type="text" name="spouse_business_address" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>TELEPHONE NO.</label>
+                    <input type="text" name="spouse_telephone" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>22. FATHER'S SURNAME</label>
+                    <input type="text" name="father_surname" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>FIRST NAME</label>
+                    <input type="text" name="father_firstname" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>MIDDLE NAME</label>
+                    <input type="text" name="father_middlename" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>23. MOTHER'S MAIDEN NAME</label>
+                    <input type="text" name="mother_surname" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>FIRST NAME</label>
+                    <input type="text" name="mother_firstname" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>MIDDLE NAME</label>
+                    <input type="text" name="mother_middlename" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>24. CHILDREN (Write full name and list all)</label>
+                    <table style="margin-top: 5px;">
+                        <thead>
+                            <tr>
+                                <th>NAME</th>
+                                <th>DATE OF BIRTH (mm/dd/yyyy)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><input type="text" name="child_name[]"></td><td><input type="date" name="child_birthdate[]"></td></tr>
+                            <tr><td><input type="text" name="child_name[]"></td><td><input type="date" name="child_birthdate[]"></td></tr>
+                            <tr><td><input type="text" name="child_name[]"></td><td><input type="date" name="child_birthdate[]"></td></tr>
+                            <tr><td><input type="text" name="child_name[]"></td><td><input type="date" name="child_birthdate[]"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">III. Educational Background</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">LEVEL</th>
+                        <th rowspan="2">NAME OF SCHOOL<br>(Write in full)</th>
+                        <th rowspan="2">BASIC EDUCATION/DEGREE/COURSE<br>(Write in full)</th>
+                        <th colspan="2">PERIOD OF ATTENDANCE</th>
+                        <th rowspan="2">HIGHEST LEVEL/UNITS EARNED<br>(if not graduated)</th>
+                        <th rowspan="2">YEAR GRADUATED</th>
+                        <th rowspan="2">SCHOLARSHIP/ACADEMIC HONORS RECEIVED</th>
+                    </tr>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>ELEMENTARY</strong></td>
+                        <td><input type="text" name="elem_school"></td>
+                        <td><input type="text" name="elem_course"></td>
+                        <td><input type="text" name="elem_from"></td>
+                        <td><input type="text" name="elem_to"></td>
+                        <td><input type="text" name="elem_units"></td>
+                        <td><input type="text" name="elem_year"></td>
+                        <td><input type="text" name="elem_honors"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>SECONDARY</strong></td>
+                        <td><input type="text" name="secondary_school"></td>
+                        <td><input type="text" name="secondary_course"></td>
+                        <td><input type="text" name="secondary_from"></td>
+                        <td><input type="text" name="secondary_to"></td>
+                        <td><input type="text" name="secondary_units"></td>
+                        <td><input type="text" name="secondary_year"></td>
+                        <td><input type="text" name="secondary_honors"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>VOCATIONAL/TRADE COURSE</strong></td>
+                        <td><input type="text" name="vocational_school"></td>
+                        <td><input type="text" name="vocational_course"></td>
+                        <td><input type="text" name="vocational_from"></td>
+                        <td><input type="text" name="vocational_to"></td>
+                        <td><input type="text" name="vocational_units"></td>
+                        <td><input type="text" name="vocational_year"></td>
+                        <td><input type="text" name="vocational_honors"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>COLLEGE</strong></td>
+                        <td><input type="text" name="college_school"></td>
+                        <td><input type="text" name="college_course"></td>
+                        <td><input type="text" name="college_from"></td>
+                        <td><input type="text" name="college_to"></td>
+                        <td><input type="text" name="college_units"></td>
+                        <td><input type="text" name="college_year"></td>
+                        <td><input type="text" name="college_honors"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>GRADUATE STUDIES</strong></td>
+                        <td><input type="text" name="graduate_school"></td>
+                        <td><input type="text" name="graduate_course"></td>
+                        <td><input type="text" name="graduate_from"></td>
+                        <td><input type="text" name="graduate_to"></td>
+                        <td><input type="text" name="graduate_units"></td>
+                        <td><input type="text" name="graduate_year"></td>
+                        <td><input type="text" name="graduate_honors"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">IV. Civil Service Eligibility</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>CAREER SERVICE/RA 1080 (BOARD/BAR) UNDER SPECIAL LAWS/CES/CSEE BARANGAY ELIGIBILITY/DRIVER'S LICENSE</th>
+                        <th>RATING (If Applicable)</th>
+                        <th>DATE OF EXAMINATION/CONFERMENT</th>
+                        <th>PLACE OF EXAMINATION/CONFERMENT</th>
+                        <th>LICENSE NUMBER & VALIDITY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="eligibility_1"></td>
+                        <td><input type="text" name="eligibility_rating_1"></td>
+                        <td><input type="date" name="eligibility_date_1"></td>
+                        <td><input type="text" name="eligibility_place_1"></td>
+                        <td><input type="text" name="eligibility_license_1"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="eligibility_2"></td>
+                        <td><input type="text" name="eligibility_rating_2"></td>
+                        <td><input type="date" name="eligibility_date_2"></td>
+                        <td><input type="text" name="eligibility_place_2"></td>
+                        <td><input type="text" name="eligibility_license_2"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="eligibility_3"></td>
+                        <td><input type="text" name="eligibility_rating_3"></td>
+                        <td><input type="date" name="eligibility_date_3"></td>
+                        <td><input type="text" name="eligibility_place_3"></td>
+                        <td><input type="text" name="eligibility_license_3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">V. Work Experience</div>
+            <p style="font-size: 9px; font-style: italic;">(Include private employment. Start from your recent work) Description of duties should be indicated in the attached Work Experience sheet.</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">INCLUSIVE DATES</th>
+                        <th rowspan="2">POSITION TITLE<br>(Write in full/Do not abbreviate)</th>
+                        <th rowspan="2">DEPARTMENT/AGENCY/OFFICE/COMPANY<br>(Write in full/Do not abbreviate)</th>
+                        <th rowspan="2">MONTHLY SALARY</th>
+                        <th rowspan="2">SALARY/JOB/PAY GRADE & STEP INCREMENT</th>
+                        <th rowspan="2">STATUS OF APPOINTMENT</th>
+                        <th rowspan="2">GOV'T SERVICE (Y/N)</th>
+                    </tr>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="date" name="work_from_1"></td>
+                        <td><input type="date" name="work_to_1"></td>
+                        <td><input type="text" name="work_position_1"></td>
+                        <td><input type="text" name="work_company_1"></td>
+                        <td><input type="text" name="work_salary_1"></td>
+                        <td><input type="text" name="work_grade_1"></td>
+                        <td><input type="text" name="work_status_1"></td>
+                        <td><input type="text" name="work_govt_1"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="date" name="work_from_2"></td>
+                        <td><input type="date" name="work_to_2"></td>
+                        <td><input type="text" name="work_position_2"></td>
+                        <td><input type="text" name="work_company_2"></td>
+                        <td><input type="text" name="work_salary_2"></td>
+                        <td><input type="text" name="work_grade_2"></td>
+                        <td><input type="text" name="work_status_2"></td>
+                        <td><input type="text" name="work_govt_2"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="date" name="work_from_3"></td>
+                        <td><input type="date" name="work_to_3"></td>
+                        <td><input type="text" name="work_position_3"></td>
+                        <td><input type="text" name="work_company_3"></td>
+                        <td><input type="text" name="work_salary_3"></td>
+                        <td><input type="text" name="work_grade_3"></td>
+                        <td><input type="text" name="work_status_3"></td>
+                        <td><input type="text" name="work_govt_3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">VI. Voluntary Work or Involvement in Civic/Non-Government/People/Voluntary Organization/s</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>NAME & ADDRESS OF ORGANIZATION<br>(Write in full)</th>
+                        <th colspan="2">INCLUSIVE DATES</th>
+                        <th>NUMBER OF HOURS</th>
+                        <th>POSITION/NATURE OF WORK</th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="volunteer_org_1"></td>
+                        <td><input type="date" name="volunteer_from_1"></td>
+                        <td><input type="date" name="volunteer_to_1"></td>
+                        <td><input type="text" name="volunteer_hours_1"></td>
+                        <td><input type="text" name="volunteer_position_1"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="volunteer_org_2"></td>
+                        <td><input type="date" name="volunteer_from_2"></td>
+                        <td><input type="date" name="volunteer_to_2"></td>
+                        <td><input type="text" name="volunteer_hours_2"></td>
+                        <td><input type="text" name="volunteer_position_2"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">VII. Learning and Development (L&D) Interventions/Training Programs Attended</div>
+            <p style="font-size: 9px; font-style: italic;">(Start from the most recent L&D/training program and include only the relevant L&D/training taken for the last five (5) years for Division Chief/Executive/Managerial positions)</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>TITLE OF LEARNING AND DEVELOPMENT INTERVENTIONS/TRAINING PROGRAMS<br>(Write in full)</th>
+                        <th colspan="2">INCLUSIVE DATES</th>
+                        <th>NUMBER OF HOURS</th>
+                        <th>TYPE OF LD<br>(Managerial/Supervisory/Technical/etc)</th>
+                        <th>CONDUCTED/SPONSORED BY<br>(Write in full)</th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="training_title_1"></td>
+                        <td><input type="date" name="training_from_1"></td>
+                        <td><input type="date" name="training_to_1"></td>
+                        <td><input type="text" name="training_hours_1"></td>
+                        <td><input type="text" name="training_type_1"></td>
+                        <td><input type="text" name="training_sponsor_1"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="training_title_2"></td>
+                        <td><input type="date" name="training_from_2"></td>
+                        <td><input type="date" name="training_to_2"></td>
+                        <td><input type="text" name="training_hours_2"></td>
+                        <td><input type="text" name="training_type_2"></td>
+                        <td><input type="text" name="training_sponsor_2"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="training_title_3"></td>
+                        <td><input type="date" name="training_from_3"></td>
+                        <td><input type="date" name="training_to_3"></td>
+                        <td><input type="text" name="training_hours_3"></td>
+                        <td><input type="text" name="training_type_3"></td>
+                        <td><input type="text" name="training_sponsor_3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">VIII. Other Information</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>25. SPECIAL SKILLS and HOBBIES</label>
+                    <textarea name="special_skills" class="input-line" style="height: 60px; width: 100%; border: 1px solid #000; padding: 5px;"></textarea>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>26. NON-ACADEMIC DISTINCTIONS/RECOGNITION (Write in full)</label>
+                    <textarea name="distinctions" class="input-line" style="height: 60px; width: 100%; border: 1px solid #000; padding: 5px;"></textarea>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>27. MEMBERSHIP IN ASSOCIATION/ORGANIZATION (Write in full)</label>
+                    <textarea name="memberships" class="input-line" style="height: 60px; width: 100%; border: 1px solid #000; padding: 5px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">IX. Additional Information for Application</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>CURRENT POSITION/TITLE</label>
+                    <input type="text" name="current_position" class="input-line">
+                </div>
+                <div class="form-group">
+                    <label>CURRENT COMPANY/EMPLOYER</label>
+                    <input type="text" name="current_company" class="input-line">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>NOTICE PERIOD</label>
+                    <input type="text" name="notice_period" class="input-line" placeholder="e.g., 30 days, Immediate">
+                </div>
+                <div class="form-group">
+                    <label>EXPECTED SALARY</label>
+                    <input type="number" name="expected_salary" class="input-line" step="0.01" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>HOW DID YOU HEAR ABOUT THIS POSITION?</label>
+                    <select name="source" class="input-line" style="border: 1px solid #000; padding: 5px;">
+                        <option value="">-- Select Source --</option>
+                        <option value="Job Portal">Job Portal</option>
+                        <option value="Company Website">Company Website</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Social Media">Social Media</option>
+                        <option value="Walk-in">Walk-in</option>
+                        <option value="Newspaper">Newspaper</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>UPLOAD RESUME/CV <span class="required">*</span></label>
+                    <input type="file" name="resume" accept=".pdf,.doc,.docx" required style="padding: 5px; border: 1px solid #000;">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>UPLOAD COVER LETTER (Optional)</label>
+                    <input type="file" name="cover_letter" accept=".pdf,.doc,.docx" style="padding: 5px; border: 1px solid #000;">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">X. Character References</div>
+            <p style="font-size: 9px; font-style: italic;">Person not related by consanguinity or affinity to applicant/appointee</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>NAME</th>
+                        <th>ADDRESS</th>
+                        <th>TEL. NO.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="reference_name_1"></td>
+                        <td><input type="text" name="reference_address_1"></td>
+                        <td><input type="text" name="reference_tel_1"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="reference_name_2"></td>
+                        <td><input type="text" name="reference_address_2"></td>
+                        <td><input type="text" name="reference_tel_2"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="reference_name_3"></td>
+                        <td><input type="text" name="reference_address_3"></td>
+                        <td><input type="text" name="reference_tel_3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Declaration</div>
+            
+            <p style="font-size: 10px; text-align: justify;">
+                I declare under oath that I have personally accomplished this Personal Data Sheet which is a true, correct and complete statement pursuant to the provisions of pertinent laws, rules and regulations of the Republic of the Philippines. I authorize the agency head/authorized representative to verify/validate the contents stated herein. I agree that any misrepresentation made in this document and its attachments shall cause the filing of administrative/criminal case/s against me.
+            </p>
+            
+            <div style="margin-top: 20px;">
+                <label style="display: flex; align-items: center;">
+                    <input type="checkbox" name="declaration" required style="margin-right: 10px;">
+                    <span>I agree to the above declaration <span class="required">*</span></span>
+                </label>
+            </div>
+
+            <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+                <div style="width: 45%;">
+                    <div style="border-bottom: 1px solid #000; height: 40px;"></div>
+                    <p style="text-align: center; margin-top: 5px; font-size: 10px;"><strong>Signature</strong> (Sign above the printed name)</p>
+                    <input type="text" name="signature_name" class="input-line" placeholder="Print your full name" style="margin-top: 10px;">
+                </div>
+                <div style="width: 45%;">
+                    <div style="border-bottom: 1px solid #000; height: 40px;"></div>
+                    <p style="text-align: center; margin-top: 5px; font-size: 10px;"><strong>Date Accomplished</strong></p>
+                    <input type="date" name="date_accomplished" class="input-line" style="margin-top: 10px;">
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button type="submit" class="submit-btn">SUBMIT APPLICATION</button>
+        </div>
+    </form>
+
+    <div style="margin-top: 30px; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd;">
+        <p style="text-align: center; font-size: 10px; color: #666; margin: 0;">
+            <strong>CS FORM 212 (Revised 2017), Page 1 of 4</strong><br>
+            Fields marked with <span class="required">*</span> are required for submission.
+        </p>
+    </div>
+    
+    <script>
+        document.getElementById('pdsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Collect all form data
+            const formData = new FormData(this);
+            const data = {};
+            
+            // Convert FormData to JSON object
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            // Validate required fields
+            if (!data.first_name || !data.last_name || !data.email || !data.phone) {
+                alert('Please fill in all required fields (First Name, Last Name, Email, Mobile No.)');
+                return;
+            }
+            
+            // Generate base filename
+            const baseFilename = 'PDS_' + data.last_name + '_' + data.first_name + '_' + new Date().toISOString().slice(0,10).replace(/-/g,'');
+            
+            // 1. Create and download JSON file (for data extraction)
+            const jsonBlob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const jsonLink = document.createElement('a');
+            jsonLink.href = URL.createObjectURL(jsonBlob);
+            jsonLink.download = baseFilename + '.json';
+            jsonLink.click();
+            
+            // 2. Generate HTML for PDF printing
+            const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Personal Data Sheet - ${data.first_name} ${data.last_name}</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
+        h2 { text-align: center; margin-bottom: 5px; }
+        h3 { background-color: #d3d3d3; padding: 8px; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table, th, td { border: 1px solid black; }
+        th, td { padding: 5px; text-align: left; }
+        th { background-color: #d3d3d3; font-weight: bold; }
+        .label { font-weight: bold; width: 30%; }
+        .value { width: 70%; }
+        @media print { body { margin: 0; } }
+    </style>
+</head>
+<body>
+    <h2>PERSONAL DATA SHEET</h2>
+    <p style="text-align: center; font-size: 9px;">CS FORM NO. 212 (Revised 2017)</p>
+    <p style="text-align: center;"><strong>Republic of the Philippines</strong></p>
+    
+    <h3>I. PERSONAL INFORMATION</h3>
+    <table>
+        <tr><td class="label">SURNAME:</td><td class="value">${data.last_name || ''}</td></tr>
+        <tr><td class="label">FIRST NAME:</td><td class="value">${data.first_name || ''}</td></tr>
+        <tr><td class="label">MIDDLE NAME:</td><td class="value">${data.middle_name || ''}</td></tr>
+        <tr><td class="label">DATE OF BIRTH:</td><td class="value">${data.date_of_birth || ''}</td></tr>
+        <tr><td class="label">PLACE OF BIRTH:</td><td class="value">${data.place_of_birth || ''}</td></tr>
+        <tr><td class="label">SEX:</td><td class="value">${data.sex || ''}</td></tr>
+        <tr><td class="label">CIVIL STATUS:</td><td class="value">${data.civil_status || ''}</td></tr>
+        <tr><td class="label">RESIDENTIAL ADDRESS:</td><td class="value">${data.address || ''}</td></tr>
+        <tr><td class="label">MOBILE NO.:</td><td class="value">${data.phone || ''}</td></tr>
+        <tr><td class="label">EMAIL ADDRESS:</td><td class="value">${data.email || ''}</td></tr>
+    </table>
+    
+    <h3>II. CURRENT EMPLOYMENT</h3>
+    <table>
+        <tr><td class="label">CURRENT POSITION:</td><td class="value">${data.current_position || ''}</td></tr>
+        <tr><td class="label">CURRENT COMPANY:</td><td class="value">${data.current_company || ''}</td></tr>
+        <tr><td class="label">NOTICE PERIOD:</td><td class="value">${data.notice_period || ''}</td></tr>
+        <tr><td class="label">EXPECTED SALARY:</td><td class="value">${data.expected_salary || ''}</td></tr>
+        <tr><td class="label">SOURCE:</td><td class="value">${data.source || ''}</td></tr>
+    </table>
+    
+    <p style="margin-top: 30px; text-align: center; font-size: 10px;">
+        <strong>Instructions:</strong> Use your browser's Print function (Ctrl+P or Cmd+P) and select "Save as PDF"
+    </p>
+</body>
+</html>`;
+            
+            // Open HTML in new window for printing to PDF
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            
+            // Show success message
+            setTimeout(() => {
+                alert('SUCCESS!\n\n1. JSON file downloaded: ' + baseFilename + '.json\n2. Print window opened - Press Ctrl+P to save as PDF\n\nUpload BOTH files when applying for a job.');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

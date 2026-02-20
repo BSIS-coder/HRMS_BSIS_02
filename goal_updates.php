@@ -1,368 +1,529 @@
 <?php
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-session_start();
-
-// Check if the user is logged in, if not then redirect to login page
+// Check if user is logged in and has HR role
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+    header("Location: login.php");
     exit;
 }
 
-// Include database connection
-require_once 'config.php';
-
-if ($conn === null) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'Database connection failed.']);
-        exit;
-    } else {
-        die('Database connection failed.');
-    }
+// Check user role - only HR and admin can access
+$user_role = $_SESSION['role'] ?? '';
+if (!in_array($user_role, ['admin', 'hr'])) {
+    header("Location: unauthorized.php");
+    exit;
 }
 
-$user_id = $_SESSION['user_id'];
-$user_role = $_SESSION['role'] ?? 'employee';
+// Include database connection and helper functions
+require_once 'dp.php';
 
-// Get employee_id from users table
+// Database connection
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
 try {
-    $stmt = $conn->prepare("SELECT employee_id FROM users WHERE user_id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-    $employee_id = $user['employee_id'] ?? null;
-    // Allow users with roles employee, manager, hr to manage goal updates
-    $allowed_roles = ['employee', 'manager', 'hr'];
-    $is_employee = in_array($user_role, $allowed_roles);
-} catch (PDOException $e) {
-    die("Error fetching employee profile: " . $e->getMessage());
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
 }
 
-// Handle AJAX requests
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    header('Content-Type: application/json');
-    $response = ['success' => false, 'message' => ''];
+// Handle form submissions
+$message = '';
+$messageType = '';
 
-    if (!$is_employee) {
-        $response['message'] = 'Only employees can manage goal updates.';
-        echo json_encode($response);
-        exit;
-    }
-
+// Helper function to add goal update with full tracking
+function addGoalUpdate($pdo, $goal_id, $progress, $comments, $user_id = null, $status_change = null) {
     try {
+        // First, try with full columns. If it fails, fall back to basic columns
+        $current_status = null;
+        
+        if ($status_change) {
+            $stmt_status = $pdo->prepare("SELECT status FROM goals WHERE goal_id = ?");
+            $stmt_status->execute([$goal_id]);
+            $current_status = $stmt_status->fetchColumn();
+        }
+        
+        $status_before = $current_status;
+        $status_after = $status_change ?? null;
+        $updated_by = $user_id ?? $_SESSION['user_id'] ?? null;
+        
+        // Try to insert with all columns
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO goal_updates (
+                    goal_id,
+                    update_date,
+                    progress,
+                    comments,
+                    updated_by,
+                    status_before,
+                    status_after
+                ) VALUES (?, CURDATE(), ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $goal_id,
+                $progress,
+                $comments,
+                $updated_by,
+                $status_before,
+                $status_after
+            ]);
+        } catch (PDOException $e) {
+            // If that fails, try without the new columns
+            if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                $stmt = $pdo->prepare("
+                    INSERT INTO goal_updates (
+                        goal_id,
+                        update_date,
+                        progress,
+                        comments
+                    ) VALUES (?, CURDATE(), ?, ?)
+                ");
+                
+                $stmt->execute([
+                    $goal_id,
+                    $progress,
+                    $comments
+                ]);
+            } else {
+                throw $e;
+            }
+        }
+        
+        return true;
+    } catch (PDOException $e) {
+        throw new Exception("Error adding update: " . $e->getMessage());
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
         switch ($_POST['action']) {
-            case 'add_update':
-                $goal_id = intval($_POST['goal_id']);
-                $update_text = trim($_POST['update_text']);
-                $progress = min(100, max(0, intval($_POST['progress'] ?? 0)));
-                $status = $_POST['status'] ?? 'in_progress';
-
-                if (!$goal_id || !$update_text) {
-                    $response['message'] = 'Goal ID and update text are required.';
-                } else {
-                    // Verify goal belongs to employee
-                    $stmt = $conn->prepare("SELECT goal_id FROM goals WHERE goal_id = ? AND employee_id = ?");
-                    $stmt->execute([$goal_id, $employee_id]);
-                    if (!$stmt->fetch()) {
-                        $response['message'] = 'Goal not found or access denied.';
-                    } else {
-                        $stmt = $conn->prepare("INSERT INTO goal_updates (goal_id, update_text, progress, status, update_date) VALUES (?, ?, ?, ?, NOW())");
-                        $stmt->execute([$goal_id, $update_text, $progress, $status]);
-                        $response['success'] = true;
-                        $response['message'] = 'Goal update added successfully.';
-                    }
-                }
-                break;
-            case 'fetch_goals':
-                // Fetch goals for the logged-in employee for the add modal dropdown
-                $stmt = $conn->prepare("SELECT goal_id, title FROM goals WHERE employee_id = ? ORDER BY created_at DESC");
-                $stmt->execute([$employee_id]);
-                $goals = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                $response['success'] = true;
-                $response['goals'] = $goals;
-                break;
-
-            case 'edit_update':
-                $update_id = intval($_POST['update_id']);
-                $update_text = trim($_POST['update_text']);
-                $progress = min(100, max(0, intval($_POST['progress'] ?? 0)));
-                $status = $_POST['status'] ?? 'in_progress';
-
-                if (!$update_id || !$update_text) {
-                    $response['message'] = 'Update ID and text are required.';
-                } else {
-                    // Verify update belongs to employee's goal
-                    $stmt = $conn->prepare("SELECT gu.update_id FROM goal_updates gu JOIN goals g ON gu.goal_id = g.goal_id WHERE gu.update_id = ? AND g.employee_id = ?");
-                    $stmt->execute([$update_id, $employee_id]);
-                    if (!$stmt->fetch()) {
-                        $response['message'] = 'Update not found or access denied.';
-                    } else {
-                        $stmt = $conn->prepare("UPDATE goal_updates SET update_text = ?, progress = ?, status = ?, update_date = NOW() WHERE update_id = ?");
-                        $stmt->execute([$update_text, $progress, $status, $update_id]);
-                        $response['success'] = true;
-                        $response['message'] = 'Goal update updated successfully.';
-                    }
+            case 'add_comment':
+                // Add comment to goal update with tracking
+                try {
+                    $goal_id = $_POST['goal_id'];
+                    $comment = $_POST['comment'];
+                    
+                    // Get current progress
+                    $stmt = $pdo->prepare("SELECT progress FROM goals WHERE goal_id = ?");
+                    $stmt->execute([$goal_id]);
+                    $progress = $stmt->fetchColumn();
+                    
+                    addGoalUpdate($pdo, $goal_id, $progress, $comment);
+                    
+                    $message = "Comment added successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "Error adding comment: " . $e->getMessage();
+                    $messageType = "error";
                 }
                 break;
 
-            case 'complete_update':
-                $update_id = intval($_POST['update_id']);
-                // Verify update belongs to employee's goal
-                $stmt = $conn->prepare("SELECT gu.update_id FROM goal_updates gu JOIN goals g ON gu.goal_id = g.goal_id WHERE gu.update_id = ? AND g.employee_id = ?");
-                $stmt->execute([$update_id, $employee_id]);
-                if (!$stmt->fetch()) {
-                    $response['message'] = 'Update not found or access denied.';
-                } else {
-                    $stmt = $conn->prepare("UPDATE goal_updates SET status = 'completed', update_date = NOW() WHERE update_id = ?");
-                    $stmt->execute([$update_id]);
-                    $response['success'] = true;
-                    $response['message'] = 'Goal update marked as completed.';
+            case 'update_goal_status':
+                // Update goal status with tracking
+                try {
+                    $goal_id = $_POST['goal_id'];
+                    $new_status = $_POST['status'];
+                    
+                    // Get current progress
+                    $stmt = $pdo->prepare("SELECT progress FROM goals WHERE goal_id = ?");
+                    $stmt->execute([$goal_id]);
+                    $progress = $stmt->fetchColumn();
+                    
+                    // Update status in goals table
+                    $stmt = $pdo->prepare("UPDATE goals SET status = ? WHERE goal_id = ?");
+                    $stmt->execute([$new_status, $goal_id]);
+                    
+                    // Track the status change
+                    addGoalUpdate($pdo, $goal_id, $progress, "Status changed to: " . $new_status, null, $new_status);
+                    
+                    $message = "Goal status updated successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "Error updating goal status: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+            case 'update_progress':
+                // Update goal progress
+                try {
+                    $goal_id = $_POST['goal_id'];
+                    $new_progress = $_POST['progress'];
+                    $comment = $_POST['comment'] ?? '';
+                    
+                    // Update progress in goals table
+                    $stmt = $pdo->prepare("UPDATE goals SET progress = ? WHERE goal_id = ?");
+                    $stmt->execute([$new_progress, $goal_id]);
+                    
+                    // Track the progress change
+                    $update_comment = "Progress updated to: " . $new_progress . "%";
+                    if ($comment) {
+                        $update_comment .= " - " . $comment;
+                    }
+                    
+                    addGoalUpdate($pdo, $goal_id, $new_progress, $update_comment);
+                    
+                    $message = "Goal progress updated successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "Error updating progress: " . $e->getMessage();
+                    $messageType = "error";
                 }
                 break;
 
             case 'delete_update':
-                $update_id = intval($_POST['update_id']);
-                // Verify update belongs to employee's goal
-                $stmt = $conn->prepare("SELECT gu.update_id FROM goal_updates gu JOIN goals g ON gu.goal_id = g.goal_id WHERE gu.update_id = ? AND g.employee_id = ?");
-                $stmt->execute([$update_id, $employee_id]);
-                if (!$stmt->fetch()) {
-                    $response['message'] = 'Update not found or access denied.';
-                } else {
-                    $stmt = $conn->prepare("DELETE FROM goal_updates WHERE update_id = ?");
-                    $stmt->execute([$update_id]);
-                    $response['success'] = true;
-                    $response['message'] = 'Goal update deleted successfully.';
+                // Delete an update (only admins or the person who created it)
+                try {
+                    $update_id = $_POST['update_id'];
+                    
+                    // Try to get updated_by, handling both old and new column names
+                    try {
+                        $stmt = $pdo->prepare("SELECT updated_by FROM goal_updates WHERE goal_update_id = ?");
+                        $stmt->execute([$update_id]);
+                        $update_creator = $stmt->fetchColumn();
+                    } catch (PDOException $e) {
+                        // If goal_update_id doesn't exist, try update_id
+                        $stmt = $pdo->prepare("SELECT updated_by FROM goal_updates WHERE update_id = ?");
+                        $stmt->execute([$update_id]);
+                        $update_creator = $stmt->fetchColumn();
+                    }
+                    
+                    // Verify authorization
+                    $user_id = $_SESSION['user_id'] ?? null;
+                    if ($_SESSION['role'] !== 'admin' && $update_creator != $user_id) {
+                        throw new Exception("You don't have permission to delete this update");
+                    }
+                    
+                    // Try to delete using goal_update_id first, then update_id
+                    try {
+                        $stmt = $pdo->prepare("DELETE FROM goal_updates WHERE goal_update_id = ?");
+                        $stmt->execute([$update_id]);
+                    } catch (PDOException $e) {
+                        $stmt = $pdo->prepare("DELETE FROM goal_updates WHERE update_id = ?");
+                        $stmt->execute([$update_id]);
+                    }
+                    
+                    $message = "Update deleted successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "Error deleting update: " . $e->getMessage();
+                    $messageType = "error";
                 }
                 break;
-
-            default:
-                $response['message'] = 'Invalid action.';
         }
-    } catch (PDOException $e) {
-        $response['message'] = 'Database error: ' . $e->getMessage();
-    }
-
-    echo json_encode($response);
-    exit;
-}
-
-// Fetch goal updates for employee
-$goal_updates = [];
-if ($is_employee) {
-    try {
-        $stmt = $conn->prepare("SELECT gu.*, g.title as goal_title FROM goal_updates gu JOIN goals g ON gu.goal_id = g.goal_id WHERE g.employee_id = ? ORDER BY gu.update_date DESC");
-        $stmt->execute([$employee_id]);
-        $goal_updates = $stmt->fetchAll();
-    } catch (PDOException $e) {
-        die("Error fetching goal updates: " . $e->getMessage());
     }
 }
+
+// Get filter parameters
+$employee_filter = $_GET['employee'] ?? '';
+$status_filter = $_GET['status'] ?? '';
+$department_filter = $_GET['department'] ?? '';
+
+// Build query for goals with filters
+$query = "
+    SELECT
+        g.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        pi.first_name,
+        pi.last_name,
+        jr.title as job_title,
+        jr.department,
+        d.department_name,
+        (SELECT COUNT(*) FROM goal_updates WHERE goal_id = g.goal_id) as update_count,
+        (SELECT update_date FROM goal_updates WHERE goal_id = g.goal_id ORDER BY update_date DESC LIMIT 1) as last_update_date,
+        (SELECT comments FROM goal_updates WHERE goal_id = g.goal_id ORDER BY update_date DESC LIMIT 1) as last_comment
+    FROM goals g
+    LEFT JOIN employee_profiles ep ON g.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+    LEFT JOIN departments d ON jr.department = d.department_name
+    WHERE 1=1
+";
+
+$params = [];
+
+if ($employee_filter) {
+    $query .= " AND (CONCAT(pi.first_name, ' ', pi.last_name) LIKE ? OR ep.employee_number LIKE ?)";
+    $params[] = "%$employee_filter%";
+    $params[] = "%$employee_filter%";
+}
+
+if ($status_filter) {
+    $query .= " AND g.status = ?";
+    $params[] = $status_filter;
+}
+
+if ($department_filter) {
+    $query .= " AND d.department_name = ?";
+    $params[] = $department_filter;
+}
+
+$query .= " ORDER BY g.created_at DESC";
+
+$stmt = $pdo->prepare($query);
+$stmt->execute($params);
+$goals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get departments for filter dropdown
+$stmt = $pdo->query("SELECT DISTINCT department_name FROM departments ORDER BY department_name");
+$departments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get goal statuses for filter
+$statuses = ['Not Started', 'In Progress', 'Completed', 'Cancelled'];
 
 // Calculate statistics
-$total_updates = count($goal_updates);
-$completed_updates = 0;
-$in_progress_updates = 0;
-$blocked_updates = 0;
-
-foreach ($goal_updates as $update) {
-    $status = strtolower($update['status']);
-    if ($status === 'completed') {
-        $completed_updates++;
-    } elseif ($status === 'in_progress') {
-        $in_progress_updates++;
-    } elseif ($status === 'blocked') {
-        $blocked_updates++;
-    }
-}
-
-// Get employee name
-$employee_name = 'N/A';
-if ($is_employee) {
-    try {
-        $stmt = $conn->prepare("SELECT first_name, last_name FROM employee_profiles WHERE employee_id = ?");
-        $stmt->execute([$employee_id]);
-        $employee = $stmt->fetch();
-        $employee_name = $employee ? $employee['first_name'] . ' ' . $employee['last_name'] : 'Unknown';
-    } catch (PDOException $e) {
-        $employee_name = 'Unknown';
-    }
-}
-
-/**
- * Process goal update data without database changes
- * This function validates and formats goal update information
- *
- * @param array $updateData The goal update data to process
- * @return array Processed and validated update data
- */
-function processGoalUpdate($updateData) {
-    $processed = [];
-
-    // Validate required fields
-    if (!isset($updateData['goal_id']) || empty($updateData['goal_id'])) {
-        return ['error' => 'Goal ID is required'];
-    }
-
-    if (!isset($updateData['update_text']) || empty($updateData['update_text'])) {
-        return ['error' => 'Update text is required'];
-    }
-
-    // Process and format the data
-    $processed['goal_id'] = intval($updateData['goal_id']);
-    $processed['update_text'] = trim($updateData['update_text']);
-    $processed['progress'] = isset($updateData['progress']) ? min(100, max(0, intval($updateData['progress']))) : 0;
-    $processed['status'] = isset($updateData['status']) ? $updateData['status'] : 'in_progress';
-    $processed['timestamp'] = date('Y-m-d H:i:s');
-
-    // Additional processing logic without database operations
-    $processed['word_count'] = str_word_count($processed['update_text']);
-    $processed['is_valid'] = true;
-
-    return $processed;
-}
+$totalGoals = count($goals);
+$completedGoals = count(array_filter($goals, function($goal) { return $goal['status'] === 'Completed'; }));
+$inProgressGoals = count(array_filter($goals, function($goal) { return $goal['status'] === 'In Progress'; }));
+$overdueGoals = count(array_filter($goals, function($goal) {
+    return $goal['status'] !== 'Completed' && $goal['end_date'] < date('Y-m-d');
+}));
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goal Updates - HR Management System</title>
+    <title>Goal Updates Management - HR System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Custom styles for goal updates page */
-        .update-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: none;
-            border-radius: 15px;
-            overflow: hidden;
-            margin-bottom: 20px;
+        :root {
+            --azure-blue: #E91E63;
+            --azure-blue-light: #F06292;
+            --azure-blue-dark: #C2185B;
+            --azure-blue-lighter: #F8BBD0;
+            --azure-blue-pale: #FCE4EC;
         }
 
-        .update-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .update-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-        }
-
-        .update-content {
-            padding: 20px;
-        }
-
-        .update-meta {
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-bottom: 10px;
-        }
-
-        .update-status {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        .section-title {
+            color: var(--azure-blue);
+            margin-bottom: 30px;
             font-weight: 600;
         }
 
-        .status-progress { background-color: #fff3cd; color: #856404; }
-        .status-completed { background-color: #d4edda; color: #155724; }
-        .status-blocked { background-color: #f8d7da; color: #721c24; }
-
-        .update-actions {
-            opacity: 1;
-            transition: opacity 0.3s ease;
+        body {
+            background: var(--azure-blue-pale);
         }
 
-        .add-update-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .main-content {
+            background: var(--azure-blue-pale);
+            padding: 20px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--azure-blue);
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--azure-blue);
+        }
+
+        .goal-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .goal-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .goal-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-not-started { background: #e9ecef; color: #6c757d; }
+        .status-in-progress { background: #cce5ff; color: #0066cc; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 8px 16px;
             border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+        }
+
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+
+        .filter-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 14px;
             transition: all 0.3s ease;
         }
 
-        .add-update-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        .form-control:focus {
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.2);
         }
 
-        .update-stats {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
+        .alert {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
         }
 
-        .stats-icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .update-timeline {
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .timeline {
             position: relative;
             padding-left: 30px;
         }
 
-        .update-timeline::before {
+        .timeline-item {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .timeline-item:before {
             content: '';
             position: absolute;
-            left: 15px;
-            top: 0;
-            bottom: 0;
+            left: -35px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--azure-blue);
+        }
+
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: -31px;
+            top: 15px;
             width: 2px;
+            height: calc(100% + 10px);
             background: #e9ecef;
         }
 
-        .timeline-item {
-            position: relative;
-            margin-bottom: 20px;
+        .timeline-item:last-child:after {
+            display: none;
         }
 
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -22px;
-            top: 8px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #667eea;
-            border: 3px solid white;
-            box-shadow: 0 0 0 2px #667eea;
+        .overdue {
+            border-left: 4px solid #dc3545 !important;
         }
 
-        .progress-indicator {
-            width: 100%;
-            height: 6px;
-            background-color: #e9ecef;
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
+        @media (max-width: 768px) {
+            .stats-card {
+                margin-bottom: 15px;
+            }
 
-        .progress-bar-custom {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745, #20c997);
-            transition: width 0.6s ease;
-        }
-
-        .goal-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .goal-link:hover {
-            text-decoration: underline;
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
         }
     </style>
 </head>
@@ -371,454 +532,410 @@ function processGoalUpdate($updateData) {
         <?php include 'navigation.php'; ?>
         <div class="row">
             <?php include 'sidebar.php'; ?>
-            <div class="main-content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="section-title mb-0">
-                        <i class="fas fa-tasks mr-3"></i>
-                        Goal Updates 
-                    </h2>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-primary">
-                            <i class="fas fa-filter mr-2"></i>Filter
-                        </button>
-                        <button class="btn btn-outline-secondary">
-                            <i class="fas fa-sort mr-2"></i>Sort
-                        </button>
+            <div class="col-md-10 main-content">
+                <h2 class="section-title"><i class="fas fa-tasks"></i> Goal Updates Management</h2>
+
+                <?php if ($message): ?>
+                    <div class="alert alert-<?= $messageType ?>">
+                        <?= htmlspecialchars($message) ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Total Goals</h6>
+                                    <div class="stats-number"><?= $totalGoals ?></div>
+                                </div>
+                                <i class="fas fa-target fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Completed</h6>
+                                    <div class="stats-number text-success"><?= $completedGoals ?></div>
+                                </div>
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">In Progress</h6>
+                                    <div class="stats-number text-primary"><?= $inProgressGoals ?></div>
+                                </div>
+                                <i class="fas fa-clock fa-2x text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Overdue</h6>
+                                    <div class="stats-number text-danger"><?= $overdueGoals ?></div>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Updates Statistics -->
-                <div class="update-stats">
-                    <div class="row text-center">
+                <!-- Filters -->
+                <div class="filter-section">
+                    <form method="GET" class="row">
                         <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-clock"></i>
+                            <div class="form-group">
+                                <label for="employee">Employee</label>
+                                <input type="text" id="employee" name="employee" class="form-control"
+                                       value="<?= htmlspecialchars($employee_filter) ?>"
+                                       placeholder="Search by name or ID">
                             </div>
-                            <h3 class="mb-1"><?php echo $total_updates; ?></h3>
-                            <p class="mb-0">Total Updates</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-spinner"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $in_progress_updates; ?></h3>
-                            <p class="mb-0">In Progress</p>
                         </div>
                         <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-check-circle"></i>
+                            <div class="form-group">
+                                <label for="status">Status</label>
+                                <select id="status" name="status" class="form-control">
+                                    <option value="">All Statuses</option>
+                                    <?php foreach ($statuses as $status): ?>
+                                    <option value="<?= $status ?>" <?= $status_filter === $status ? 'selected' : '' ?>>
+                                        <?= $status ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
-                            <h3 class="mb-1"><?php echo $completed_updates; ?></h3>
-                            <p class="mb-0">Completed</p>
                         </div>
                         <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $blocked_updates; ?></h3>
-                            <p class="mb-0">Blocked</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Updates Grid -->
-                <div class="row">
-                    <?php if (empty($goal_updates)): ?>
-                        <div class="col-12">
-                            <div class="alert alert-info text-center">
-                                <i class="fas fa-info-circle fa-3x mb-3"></i>
-                                <h4>No Goal Updates Found</h4>
-                                <p>You haven't added any goal updates yet. Click the + button to add your first update!</p>
+                            <div class="form-group">
+                                <label for="department">Department</label>
+                                <select id="department" name="department" class="form-control">
+                                    <option value="">All Departments</option>
+                                    <?php foreach ($departments as $dept): ?>
+                                    <option value="<?= $dept['department_name'] ?>" <?= $department_filter === $dept['department_name'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($dept['department_name']) ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
-                    <?php else: ?>
-                        <?php foreach ($goal_updates as $update): ?>
-                            <div class="col-md-6 col-lg-4 mb-4">
-                                <div class="card update-card h-100">
-                                    <div class="update-header">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <h5 class="mb-1"><?php echo htmlspecialchars($update['goal_title']); ?> Update</h5>
-                                                <small>Goal: <?php echo htmlspecialchars($update['goal_title']); ?></small>
-                                            </div>
-                                            <span class="update-status status-<?php echo strtolower(str_replace('_', '-', $update['status'])); ?>">
-                                                <?php echo ucwords(str_replace('_', ' ', $update['status'])); ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="update-content">
-                                        <div class="update-meta">
-                                            <i class="fas fa-user mr-1"></i> <?php echo htmlspecialchars($employee_name); ?>
-                                            <i class="fas fa-calendar ml-3 mr-1"></i> <?php echo date('M j, Y', strtotime($update['update_date'])); ?>
-                                        </div>
-                                        <p class="text-muted mb-3"><?php echo htmlspecialchars($update['update_text']); ?></p>
-
-                                        <div class="mb-3">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <small>Goal Progress</small>
-                                                <small><?php echo $update['progress']; ?>%</small>
-                                            </div>
-                                            <div class="progress-indicator">
-                                                <div class="progress-bar-custom" style="width: <?php echo $update['progress']; ?>%"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="row text-center mb-3">
-                                            <div class="col-6">
-                                                <small class="text-muted d-block">Status</small>
-                                                <strong><?php echo ucwords(str_replace('_', ' ', $update['status'])); ?></strong>
-                                            </div>
-                                            <div class="col-6">
-                                                <small class="text-muted d-block">Last Updated</small>
-                                                <strong><?php echo date('M j', strtotime($update['update_date'])); ?></strong>
-                                            </div>
-                                        </div>
-
-                                        <div class="update-actions text-center">
-                                            <button class="btn btn-sm btn-outline-primary mr-2 edit-update-btn" data-update-id="<?php echo $update['update_id']; ?>" data-goal-id="<?php echo $update['goal_id']; ?>" data-text="<?php echo htmlspecialchars($update['update_text']); ?>" data-progress="<?php echo $update['progress']; ?>" data-status="<?php echo $update['status']; ?>">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <?php if ($update['status'] !== 'completed'): ?>
-                                                <button class="btn btn-sm btn-outline-success mr-2 complete-update-btn" data-update-id="<?php echo $update['update_id']; ?>">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                            <button class="btn btn-sm btn-outline-danger delete-update-btn" data-update-id="<?php echo $update['update_id']; ?>">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <div>
+                                    <button type="submit" class="btn btn-primary mr-2">
+                                        <i class="fas fa-search"></i> Filter
+                                    </button>
+                                    <a href="goal_updates.php" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Clear
+                                    </a>
                                 </div>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Goals List -->
+                <div id="goalsContainer">
+                    <?php foreach ($goals as $goal): ?>
+                    <div class="goal-card <?= ($goal['status'] !== 'Completed' && $goal['end_date'] < date('Y-m-d')) ? 'overdue' : '' ?>">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="flex-grow-1">
+                                <h5 class="mb-2">
+                                    <?= htmlspecialchars($goal['title']) ?>
+                                    <small class="text-muted">(ID: <?= $goal['goal_id'] ?>)</small>
+                                </h5>
+                                <p class="text-muted mb-2"><?= htmlspecialchars($goal['description']) ?></p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="goal-status status-<?= strtolower(str_replace(' ', '-', $goal['status'])) ?> mr-3">
+                                        <?= htmlspecialchars($goal['status']) ?>
+                                    </span>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user"></i> <?= htmlspecialchars($goal['employee_name']) ?> |
+                                        <i class="fas fa-building"></i> <?= htmlspecialchars($goal['department']) ?> |
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <?= date('M d, Y', strtotime($goal['start_date'])) ?> - <?= date('M d, Y', strtotime($goal['end_date'])) ?>
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-info" onclick="viewUpdates(<?= $goal['goal_id'] ?>)">
+                                    <i class="fas fa-history"></i> Updates (<?= $goal['update_count'] ?>)
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="updateProgress(<?= $goal['goal_id'] ?>, <?= $goal['progress'] ?>)">
+                                    <i class="fas fa-chart-line"></i> Progress
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="addComment(<?= $goal['goal_id'] ?>)">
+                                    <i class="fas fa-comment"></i> Comment
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="updateStatus(<?= $goal['goal_id'] ?>, '<?= $goal['status'] ?>')">
+                                    <i class="fas fa-edit"></i> Status
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Progress</small>
+                                <small class="text-muted"><?= $goal['progress'] ?>%</small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-<?= $goal['progress'] >= 100 ? 'success' : ($goal['progress'] >= 50 ? 'primary' : 'warning') ?>"
+                                     style="width: <?= $goal['progress'] ?>%"></div>
+                            </div>
+                        </div>
+
+                        <?php if ($goal['last_update_date']): ?>
+                        <div class="text-muted">
+                            <small>Last updated: <?= date('M d, Y', strtotime($goal['last_update_date'])) ?>
+                            <?php if ($goal['last_comment']): ?>
+                                - <?= htmlspecialchars(substr($goal['last_comment'], 0, 50)) ?><?php if (strlen($goal['last_comment']) > 50): ?>...<?php endif; ?>
+                            <?php endif; ?>
+                            </small>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if ($goal['status'] !== 'Completed' && $goal['end_date'] < date('Y-m-d')): ?>
+                        <div class="mt-2">
+                            <span class="badge badge-danger">Overdue</span>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+
+                    <?php if (empty($goals)): ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                        <h4>No goals found</h4>
+                        <p class="text-muted">Try adjusting your filters or check back later for new goals.</p>
+                    </div>
                     <?php endif; ?>
                 </div>
-
-                <!-- Updates Timeline -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-history mr-2"></i>
-                            Recent Goal Update Activities
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="update-timeline">
-                            <?php if (empty($goal_updates)): ?>
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-clock fa-2x mb-2"></i>
-                                    <p>No recent activities to display.</p>
-                                </div>
-                            <?php else: ?>
-                                <?php foreach (array_slice($goal_updates, 0, 10) as $update): ?>
-                                    <div class="timeline-item">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h6 class="mb-1">
-                                                    <a href="#" class="goal-link"><?php echo htmlspecialchars($update['goal_title']); ?></a> <?php echo strtolower($update['status']) === 'completed' ? 'completed' : 'updated'; ?>
-                                                </h6>
-                                                <p class="text-muted mb-0"><?php echo htmlspecialchars(substr($update['update_text'], 0, 100) . (strlen($update['update_text']) > 100 ? '...' : '')); ?></p>
-                                            </div>
-                                            <small class="text-muted"><?php echo date('M j, Y', strtotime($update['update_date'])); ?></small>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Update Button -->
-    <button class="btn btn-primary add-update-btn" data-toggle="tooltip" title="Add New Goal Update">
-        <i class="fas fa-plus"></i>
-    </button>
+    <!-- Comment Modal -->
+    <div id="commentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add Comment</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="commentForm" method="POST">
+                    <input type="hidden" name="action" value="add_comment">
+                    <input type="hidden" id="comment_goal_id" name="goal_id">
 
-    <!-- Edit Update Modal -->
-    <div class="modal fade" id="editUpdateModal" tabindex="-1" role="dialog" aria-labelledby="editUpdateModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editUpdateModalLabel">Edit Goal Update</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <form id="editUpdateForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="editUpdateId" name="update_id">
-                        <input type="hidden" id="editGoalId" name="goal_id">
-                        <div class="form-group">
-                            <label for="editUpdateText">Update Text</label>
-                            <textarea class="form-control" id="editUpdateText" name="update_text" rows="3" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="editProgress">Progress (%)</label>
-                            <input type="number" class="form-control" id="editProgress" name="progress" min="0" max="100" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editStatus">Status</label>
-                            <select class="form-control" id="editStatus" name="status" required>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="blocked">Blocked</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="comment">Comment</label>
+                        <textarea id="comment" name="comment" class="form-control" rows="4" required
+                                  placeholder="Add your feedback or notes about this goal..."></textarea>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary mr-2" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Comment</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Status Update Modal -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Update Goal Status</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm" method="POST">
+                    <input type="hidden" name="action" value="update_goal_status">
+                    <input type="hidden" id="status_goal_id" name="goal_id">
+
+                    <div class="form-group">
+                        <label for="goal_status">Status</label>
+                        <select id="goal_status" name="status" class="form-control" required>
+                            <option value="Not Started">Not Started</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary mr-2" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">Update Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Update Modal -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Update Goal Progress</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="progressForm" method="POST">
+                    <input type="hidden" name="action" value="update_progress">
+                    <input type="hidden" id="progress_goal_id" name="goal_id">
+
+                    <div class="form-group">
+                        <label for="goal_progress">Progress (%)</label>
+                        <input type="range" id="goal_progress" name="progress" class="form-control" 
+                               min="0" max="100" value="50" oninput="updateProgressValue(this.value)">
+                        <div class="mt-2">
+                            <span id="progressValue">50</span>%
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="progress_comment">Comment (Optional)</label>
+                        <textarea id="progress_comment" name="comment" class="form-control" rows="3"
+                                  placeholder="Add notes about this progress update..."></textarea>
+                    </div>
+
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary mr-2" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">Update Progress</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Updates History Modal -->
+    <div id="updatesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Goal Updates History</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="updatesContent">
+                    <!-- Updates will be loaded here via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip();
-        });
-
-        /**
-         * Show success message
-         * @param {string} message The message to display
-         */
-        function showSuccess(message) {
-            // Simple alert for now, could be replaced with toast notifications
-            alert('Success: ' + message);
+        function addComment(goalId) {
+            const modal = document.getElementById('commentModal');
+            document.getElementById('comment_goal_id').value = goalId;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
-        /**
-         * Show error message
-         * @param {string} message The message to display
-         */
-        function showError(message) {
-            alert('Error: ' + message);
+        function updateStatus(goalId, currentStatus) {
+            const modal = document.getElementById('statusModal');
+            document.getElementById('status_goal_id').value = goalId;
+            document.getElementById('goal_status').value = currentStatus;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
-        /**
-         * Handle edit button click for goal updates
-         * @param {Event} event The click event
-         */
-        function editGoalUpdate(event) {
-            event.preventDefault();
-            const button = event.target.closest('.edit-update-btn');
-            const updateId = button.getAttribute('data-update-id');
-            const goalId = button.getAttribute('data-goal-id');
-            const updateText = button.getAttribute('data-text');
-            const progress = button.getAttribute('data-progress');
-            const status = button.getAttribute('data-status');
-
-            $('#editUpdateId').val(updateId);
-            $('#editGoalId').val(goalId);
-            $('#editUpdateText').val(updateText);
-            $('#editProgress').val(progress);
-            $('#editStatus').val(status);
-
-            $('#editUpdateModal').modal('show');
+        function updateProgress(goalId, currentProgress) {
+            const modal = document.getElementById('progressModal');
+            document.getElementById('progress_goal_id').value = goalId;
+            document.getElementById('goal_progress').value = currentProgress;
+            document.getElementById('progressValue').textContent = currentProgress;
+            document.getElementById('progress_comment').value = '';
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
-        /**
-         * Handle complete button click for goal updates
-         * @param {Event} event The click event
-         */
-        function completeGoalUpdate(event) {
-            event.preventDefault();
-            const button = event.target.closest('.complete-update-btn');
-            const updateId = button.getAttribute('data-update-id');
+        function updateProgressValue(value) {
+            document.getElementById('progressValue').textContent = value;
+        }
 
-            if (confirm('Mark this goal update as completed?')) {
-                $.post('goal_updates.php', {
-                    action: 'complete_update',
-                    update_id: updateId
-                }, function(response) {
-                    if (response.success) {
-                        showSuccess(response.message);
-                        location.reload(); // Refresh to show updated data
-                    } else {
-                        showError(response.message);
-                    }
-                }, 'json').fail(function() {
-                    showError('Failed to complete update. Please try again.');
-                });
+        function deleteUpdate(updateId, goalId) {
+            if (confirm('Are you sure you want to delete this update? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = '<input type="hidden" name="action" value="delete_update"><input type="hidden" name="update_id" value="' + updateId + '">';
+                document.body.appendChild(form);
+                form.submit();
             }
         }
 
-        /**
-         * Handle delete button click for goal updates
-         * @param {Event} event The click event
-         */
-        function deleteGoalUpdate(event) {
-            event.preventDefault();
-            const button = event.target.closest('.delete-update-btn');
-            const updateId = button.getAttribute('data-update-id');
-
-            if (confirm('Delete this goal update? This action cannot be undone.')) {
-                $.post('goal_updates.php', {
-                    action: 'delete_update',
-                    update_id: updateId
-                }, function(response) {
-                    if (response.success) {
-                        showSuccess(response.message);
-                        location.reload(); // Refresh to show updated data
-                    } else {
-                        showError(response.message);
-                    }
-                }, 'json').fail(function() {
-                    showError('Failed to delete update. Please try again.');
-                });
+        function deleteUpdateConfirm(updateId) {
+            if (confirm('Are you sure you want to delete this update? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = '<input type="hidden" name="action" value="delete_update"><input type="hidden" name="update_id" value="' + updateId + '">';
+                document.body.appendChild(form);
+                form.submit();
             }
         }
 
-        /**
-         * Handle add update button click
-         * @param {Event} event The click event
-         */
-        function addNewGoalUpdate(event) {
-            event.preventDefault();
-            // Fetch goals for dropdown and show modal
-            $.post('goal_updates.php', { action: 'fetch_goals' }, function(response) {
-                if (response.success) {
-                    const goals = response.goals;
-                    const select = $('#addGoalId');
-                    select.empty();
-                    if (goals.length === 0) {
-                        select.append('<option disabled>No goals found</option>');
-                    } else {
-                        goals.forEach(goal => {
-                            select.append(`<option value="${goal.goal_id}">${goal.title}</option>`);
-                        });
-                    }
-                    $('#addUpdateModal').modal('show');
-                } else {
-                    showError('Failed to fetch goals for adding update.');
-                }
-            }, 'json').fail(function() {
-                showError('Failed to fetch goals for adding update.');
+        function viewUpdates(goalId) {
+            const modal = document.getElementById('updatesModal');
+            const content = document.getElementById('updatesContent');
+
+            // Load updates via AJAX
+            fetch(`get_goal_updates.php?goal_id=${goalId}`)
+                .then(response => response.text())
+                .then(data => {
+                    content.innerHTML = data;
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                })
+                .catch(error => {
+                    content.innerHTML = '<p class="text-danger">Error loading updates: ' + error.message + '</p>';
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('commentModal').style.display = 'none';
+            document.getElementById('statusModal').style.display = 'none';
+            document.getElementById('progressModal').style.display = 'none';
+            document.getElementById('updatesModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const commentModal = document.getElementById('commentModal');
+            const statusModal = document.getElementById('statusModal');
+            const progressModal = document.getElementById('progressModal');
+            const updatesModal = document.getElementById('updatesModal');
+
+            if (event.target === commentModal || event.target === statusModal || 
+                event.target === progressModal || event.target === updatesModal) {
+                closeModal();
+            }
+        }
+
+        // Auto-hide alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.remove();
+                }, 500);
             });
-        }
-
-        // Attach event listeners to buttons
-        $(document).ready(function() {
-            $('[data-toggle="tooltip"]').tooltip();
-
-            // Edit buttons
-            $(document).on('click', '.edit-update-btn', editGoalUpdate);
-
-            // Complete buttons
-            $(document).on('click', '.complete-update-btn', completeGoalUpdate);
-
-            // Delete buttons
-            $(document).on('click', '.delete-update-btn', deleteGoalUpdate);
-
-            // Add update button
-            $('.add-update-btn').on('click', addNewGoalUpdate);
-
-            // Edit form submission
-            $('#editUpdateForm').on('submit', function(e) {
-                e.preventDefault();
-
-                const formData = new FormData(this);
-                formData.append('action', 'edit_update');
-
-                $.ajax({
-                    url: 'goal_updates.php',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.success) {
-                            $('#editUpdateModal').modal('hide');
-                            showSuccess(response.message);
-                            location.reload(); // Refresh to show updated data
-                        } else {
-                            showError(response.message);
-                        }
-                    },
-                    error: function() {
-                        showError('Failed to update goal update. Please try again.');
-                    }
-                });
-            });
-        });
-        // Add form submission
-$('#addUpdateForm').on('submit', function(e) {
-    e.preventDefault();
-
-    const formData = new FormData(this);
-    formData.append('action', 'add_update');
-
-    $.ajax({
-        url: 'goal_updates.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            if (response.success) {
-                $('#addUpdateModal').modal('hide');
-                showSuccess(response.message);
-                location.reload(); // reload updates list
-            } else {
-                showError(response.message);
-            }
-        },
-        error: function() {
-            showError('Failed to add goal update. Please try again.');
-        }
-    });
-});
-
+        }, 5000);
     </script>
 
-    <!-- Add Update Modal -->
-    <div class="modal fade" id="addUpdateModal" tabindex="-1" role="dialog" aria-labelledby="addUpdateModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <form id="addUpdateForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addUpdateModalLabel">Add New Goal Update</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="addGoalId">Select Goal</label>
-                            <select class="form-control" id="addGoalId" name="goal_id" required>
-                                <option value="" disabled selected>Select a goal</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="addUpdateText">Update Text</label>
-                            <textarea class="form-control" id="addUpdateText" name="update_text" rows="3" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="addProgress">Progress (%)</label>
-                            <input type="number" class="form-control" id="addProgress" name="progress" min="0" max="100" value="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="addStatus">Status</label>
-                            <select class="form-control" id="addStatus" name="status" required>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="blocked">Blocked</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Update</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

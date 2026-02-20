@@ -87,15 +87,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Build the query with filters and role-based access
-$sql = "SELECT p.*, pt.gross_pay, pt.net_pay, pt.processed_date, pc.cycle_name, pc.pay_period_start, pc.pay_period_end,
-               ep.employee_number, pi.first_name, pi.last_name, jr.title as job_title, d.department_name
+$sql = "SELECT 
+            p.*, 
+            pt.gross_pay, pt.net_pay, pt.tax_deductions, 
+            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'gsis' THEN sd.deduction_amount END), 0) AS gsis_contribution,
+            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'philhealth' THEN sd.deduction_amount END), 0) AS philhealth_contribution,
+            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'pag-ibig' THEN sd.deduction_amount END), 0) AS pagibig_contribution,
+            COALESCE(SUM(sd.deduction_amount), 0) AS statutory_deductions,
+            ep.employee_number, pi.first_name, pi.last_name,
+            jr.title AS job_title, d.department_name, 
+            pc.cycle_name, pc.pay_period_start, pc.pay_period_end
         FROM payslips p
         JOIN payroll_transactions pt ON p.payroll_transaction_id = pt.payroll_transaction_id
-        JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
         JOIN employee_profiles ep ON p.employee_id = ep.employee_id
         JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
         LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
         LEFT JOIN departments d ON jr.department = d.department_name
+        LEFT JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
+        LEFT JOIN statutory_deductions sd ON sd.employee_id = ep.employee_id
         WHERE 1=1";
 
 $params = [];
@@ -127,6 +136,8 @@ if ($year_filter) {
     $sql .= " AND YEAR(pt.processed_date) = ?";
     $params[] = $year_filter;
 }
+
+$sql .= " GROUP BY p.payslip_id";
 
 $sql .= " ORDER BY pt.processed_date DESC, pi.first_name ASC";
 
@@ -177,7 +188,7 @@ try {
         }
         .sidebar {
             height: 100vh;
-            background-color: #800000;
+            background-color: #E91E63;
             color: #fff;
             padding-top: 20px;
             position: fixed;
@@ -186,14 +197,14 @@ try {
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #fff #800000;
+            scrollbar-color: #fff #E91E63;
             z-index: 1030;
         }
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #800000;
+            background: #E91E63;
         }
         .sidebar::-webkit-scrollbar-thumb {
             background-color: #fff;
@@ -216,7 +227,7 @@ try {
         }
         .sidebar .nav-link.active {
             background-color: #fff;
-            color: #800000;
+            color: #E91E63;
         }
         .sidebar .nav-link i {
             margin-right: 10px;
@@ -246,17 +257,17 @@ try {
             border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding: 15px 20px;
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .card-header i {
-            color: #800000;
+            color: #E91E63;
         }
         .card-body {
             padding: 20px;
         }
         .table th {
             border-top: none;
-            color: #800000;
+            color: #E91E63;
             font-weight: 600;
         }
         .table td {
@@ -265,12 +276,12 @@ try {
             border-color: rgba(128, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #800000;
-            border-color: #800000;
+            background-color: #E91E63;
+            border-color: #E91E63;
         }
         .btn-primary:hover {
-            background-color: #660000;
-            border-color: #660000;
+            background-color: #be0945ff;
+            border-color: #be0945ff;
         }
         .top-navbar {
             background: #fff;
@@ -287,17 +298,17 @@ try {
             justify-content: flex-end;
         }
         .section-title {
-            color: #800000;
+            color: #E91E63;
             margin-bottom: 25px;
             font-weight: 600;
         }
         .form-control:focus {
-            border-color: #800000;
+            border-color: #E91E63;
             box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
         }
         .salary-amount {
             font-weight: bold;
-            color: #800000;
+            color: #E91E63;
         }
         .badge-generated {
             background-color: #17a2b8;
@@ -329,7 +340,7 @@ try {
             box-shadow: 0 4px 15px rgba(128, 0, 0, 0.1);
         }
         .payslip-header {
-            border-bottom: 2px solid #800000;
+            border-bottom: 2px solid #E91E63;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
@@ -487,14 +498,14 @@ try {
                                             <div class="pay-summary">
                                                 <div>
                                                     <div class="pay-label">Gross Pay</div>
-                                                    <div class="pay-amount">₱<?php echo number_format($payslip['gross_pay'], 2); ?></div>
+                                                    <div class="pay-amount">Confidential</div>
                                                 </div>
                                                 <div class="text-center">
-                                                    <i class="fas fa-arrow-right" style="color: #800000; font-size: 1.5rem;"></i>
+                                                    <i class="fas fa-lock" style="color: #800000; font-size: 1.2rem;"></i>
                                                 </div>
                                                 <div class="text-right">
                                                     <div class="pay-label">Net Pay</div>
-                                                    <div class="pay-amount">₱<?php echo number_format($payslip['net_pay'], 2); ?></div>
+                                                    <div class="pay-amount">Confidential</div>
                                                 </div>
                                             </div>
                                             
@@ -572,8 +583,8 @@ try {
                                             <th>Department</th>
                                             <th>Payroll Cycle</th>
                                             <th>Pay Period</th>
-                                            <th>Gross Pay</th>
-                                            <th>Net Pay</th>
+                                            <!-- Gross/Net hidden for privacy; use View Details -->
+                                            <th class="text-muted">Amounts (hidden)</th>
                                             <th>Generated Date</th>
                                             <th>Status</th>
                                             <th>Actions</th>
@@ -581,7 +592,14 @@ try {
                                     </thead>
                                     <tbody>
                                         <?php if (!empty($payslips)): ?>
-                                            <?php foreach ($payslips as $payslip): ?>
+                                            <?php foreach ($payslips as $payslip): 
+                                                // Calculate net pay dynamically: Gross - Tax - Statutory - Other
+                                                $gross = floatval($payslip['gross_pay']);
+                                                $tax = floatval($payslip['tax_deductions'] ?? 0);
+                                                $statutory = floatval($payslip['statutory_deductions'] ?? 0);
+                                                $other = floatval($payslip['other_deductions'] ?? 0);
+                                                $calculated_net = $gross - $tax - $statutory - $other;
+                                            ?>
                                                 <tr>
                                                     <td><?php echo htmlspecialchars($payslip['first_name'] . ' ' . $payslip['last_name']); ?></td>
                                                     <td><?php echo htmlspecialchars($payslip['employee_number']); ?></td>
@@ -591,8 +609,7 @@ try {
                                                         <?php echo date('M d', strtotime($payslip['pay_period_start'])); ?> - 
                                                         <?php echo date('M d, Y', strtotime($payslip['pay_period_end'])); ?>
                                                     </td>
-                                                    <td class="salary-amount">₱<?php echo number_format($payslip['gross_pay'], 2); ?></td>
-                                                    <td class="salary-amount">₱<?php echo number_format($payslip['net_pay'], 2); ?></td>
+                                                    <td class="text-muted">Confidential</td>
                                                     <td><?php echo date('M d, Y g:i A', strtotime($payslip['generated_date'])); ?></td>
                                                     <td>
                                                         <?php 
@@ -643,66 +660,129 @@ try {
         </div>
     </div>
 
-    <!-- Payslip Details Modal -->
-    <div class="modal fade" id="payslipDetailsModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Payslip Details</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Employee Information</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Name:</strong></td><td id="detail_employee_name"></td></tr>
-                                <tr><td><strong>Employee #:</strong></td><td id="detail_employee_number"></td></tr>
-                                <tr><td><strong>Department:</strong></td><td id="detail_department"></td></tr>
-                                <tr><td><strong>Job Title:</strong></td><td id="detail_job_title"></td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Payroll Information</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Cycle:</strong></td><td id="detail_cycle_name"></td></tr>
-                                <tr><td><strong>Pay Period:</strong></td><td id="detail_pay_period"></td></tr>
-                                <tr><td><strong>Generated:</strong></td><td id="detail_generated_date"></td></tr>
-                                <tr><td><strong>Status:</strong></td><td id="detail_status"></td></tr>
-                            </table>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h6>Pay Summary</h6>
-                            <div class="pay-summary">
-                                <div>
-                                    <div class="pay-label">Gross Pay</div>
-                                    <div class="pay-amount" id="detail_gross_pay"></div>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-arrow-right" style="color: #800000; font-size: 1.5rem;"></i>
-                                </div>
-                                <div class="text-right">
-                                    <div class="pay-label">Net Pay</div>
-                                    <div class="pay-amount" id="detail_net_pay"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="modal_download_btn">
-                        <i class="fas fa-download mr-2"></i>Download Payslip
-                    </button>
-                </div>
-            </div>
+    <!-- Enhanced Payslip Details Modal (Professional Black/Gray Layout) -->
+<div class="modal fade" id="payslipDetailsModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content" style="font-family: 'Segoe UI', sans-serif; color: #333;">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title font-weight-bold text-dark">
+          
+        </h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Header with Logo and Municipality Info -->
+        <div class="text-center mb-3">
+          <img src="image/GARAY.jpg" alt="Municipality Logo" style="width: 60px; height: 60px;">
+          <h5 class="mt-2 mb-0 font-weight-bold text-uppercase">Municipality of Norzagaray, Bulacan</h5>
+          <small class="text-muted">Payroll Division – Official Payslip</small>
+          <hr style="border: 1px solid #ccc;">
         </div>
+
+        <!-- Employee & Payroll Info -->
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="font-weight-bold text-dark">Employee Information</h6>
+            <table class="table table-sm table-borderless text-muted mb-3">
+              <tr><td><strong>Name:</strong></td><td id="detail_employee_name"></td></tr>
+              <tr><td><strong>Employee #:</strong></td><td id="detail_employee_number"></td></tr>
+              <tr><td><strong>Department:</strong></td><td id="detail_department"></td></tr>
+              <tr><td><strong>Job Title:</strong></td><td id="detail_job_title"></td></tr>
+              <tr><td><strong>Salary Grade:</strong></td><td id="detail_salary_grade">N/A</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6 class="font-weight-bold text-dark">Payroll Information</h6>
+            <table class="table table-sm table-borderless text-muted mb-3">
+              <tr><td><strong>Cycle:</strong></td><td id="detail_cycle_name"></td></tr>
+              <tr><td><strong>Pay Period:</strong></td><td id="detail_pay_period"></td></tr>
+              <tr><td><strong>Generated:</strong></td><td id="detail_generated_date"></td></tr>
+              <tr><td><strong>Status:</strong></td><td id="detail_status"></td></tr>
+              <tr><td><strong>Reference No.:</strong></td><td id="detail_reference_no"></td></tr>
+            </table>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Earnings and Deductions Breakdown -->
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="font-weight-bold text-dark">Earnings</h6>
+            <table class="table table-sm table-bordered text-center">
+              <thead class="thead-light">
+                <tr><th>Description</th><th>Amount (₱)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Basic Pay</td><td id="detail_basic_pay">0.00</td></tr>
+                <tr><td>Allowances</td><td id="detail_allowances">0.00</td></tr>
+                <tr><td>Overtime / Bonuses</td><td id="detail_overtime">0.00</td></tr>
+                <tr class="font-weight-bold bg-light">
+                  <td>Total Gross</td><td id="detail_gross_total">0.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="col-md-6">
+            <h6 class="font-weight-bold text-dark">Deductions</h6>
+            <table class="table table-sm table-bordered text-center">
+              <thead class="thead-light">
+                <tr><th>Description</th><th>Amount (₱)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Tax</td><td id="detail_tax">0.00</td></tr>
+                <tr><td>GSIS</td><td id="detail_gsis">0.00</td></tr>
+                <tr><td>PhilHealth</td><td id="detail_philhealth">0.00</td></tr>
+                <tr><td>Pag-IBIG</td><td id="detail_pagibig">0.00</td></tr>
+                <tr><td>Other Deductions</td><td id="detail_other_deductions">0.00</td></tr>
+                <tr class="font-weight-bold bg-light">
+                  <td>Total Deductions</td><td id="detail_total_deductions">0.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Net Pay Summary -->
+        <div class="text-center my-3">
+          <h5 class="font-weight-bold text-dark">Net Pay</h5>
+          <h3 id="detail_net_pay" class="font-weight-bold text-success">₱0.00</h3>
+          <small class="text-muted">(After all deductions)</small>
+        </div>
+
+        <!-- Remarks Section -->
+        <div class="mt-4">
+          <h6 class="font-weight-bold text-dark">Remarks / Notes:</h6>
+          <p id="detail_remarks" class="border p-2 text-muted" style="min-height: 40px;">N/A</p>
+        </div>
+
+        <!-- Signatures Section -->
+        <div class="mt-5">
+          <div class="row text-center">
+            <div class="col-md-6">
+              <hr style="border: 1px solid #666; width: 80%;">
+              <p class="mb-0 font-weight-bold">Prepared by</p>
+            </div>
+            <div class="col-md-6">
+              <hr style="border: 1px solid #666; width: 80%;">
+              <p class="mb-0 font-weight-bold">Approved by</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-dark" id="modal_download_btn">
+          <i class="fas fa-download mr-2"></i>Download Payslip
+        </button>
+      </div>
     </div>
+  </div>
+</div>
+
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
@@ -724,7 +804,11 @@ try {
             
             $('#detail_gross_pay').text('₱' + parseFloat(payslip.gross_pay).toLocaleString('en-US', {minimumFractionDigits: 2}));
             $('#detail_net_pay').text('₱' + parseFloat(payslip.net_pay).toLocaleString('en-US', {minimumFractionDigits: 2}));
-            
+            $('#detail_tax').text('₱' + (payslip.tax_deductions ? parseFloat(payslip.tax_deductions).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
+            $('#detail_gsis').text('₱' + (payslip.gsis_contribution ? parseFloat(payslip.gsis_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
+            $('#detail_philhealth').text('₱' + (payslip.philhealth_contribution ? parseFloat(payslip.philhealth_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
+            $('#detail_pagibig').text('₱' + (payslip.pagibig_contribution ? parseFloat(payslip.pagibig_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
+            $('#detail_total_deductions').text('₱' + (payslip.statutory_deductions ? parseFloat(payslip.statutory_deductions).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#modal_download_btn').onclick = function() { viewPayslip(payslip.payslip_id); };
             
             $('#payslipDetailsModal').modal('show');

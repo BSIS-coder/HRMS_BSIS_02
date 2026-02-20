@@ -11,9 +11,20 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
-$pdo = connectToDatabase();
+// Database connection
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Create uploads directory if it doesn't exist
 $uploadsDir = 'uploads/documents/';
@@ -108,23 +119,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             
             case 'delete':
-                // Delete document record only (do not delete physical file)
+                // Archive document instead of permanent delete
                 try {
-                    // Get file path before deleting record
-                    $stmt = $pdo->prepare("SELECT file_path FROM document_management WHERE document_id=?");
-                    $stmt->execute([$_POST['document_id']]);
-                    $document = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $pdo->beginTransaction();
                     
-                    // Delete the database record
-                    $stmt = $pdo->prepare("DELETE FROM document_management WHERE document_id=?");
-                    $stmt->execute([$_POST['document_id']]);
+                    // Fetch the complete document record to be archived
+                    $fetchStmt = $pdo->prepare("SELECT * FROM document_management WHERE document_id = ?");
+                    $fetchStmt->execute([$_POST['document_id']]);
+                    $recordToArchive = $fetchStmt->fetch(PDO::FETCH_ASSOC);
                     
-                    // Note: Per requirement, do not delete the physical file from the server
-                    
-                    $message = "Document deleted successfully!";
-                    $messageType = "success";
+                    if ($recordToArchive) {
+                        // Get current user ID from session
+                        $archived_by = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+                        
+                        // Get employee_id from the document record
+                        $employeeId = $recordToArchive['employee_id'] ?? null;
+                        
+                        // Determine archive reason based on document status or expiry
+                        $archiveReason = 'Data Cleanup';
+                        $archiveReasonDetails = 'Document record deleted by user';
+                        
+                        if (!empty($recordToArchive['expiry_date']) && strtotime($recordToArchive['expiry_date']) < time()) {
+                            $archiveReason = 'Expired Document';
+                            $archiveReasonDetails = 'Document expired and archived';
+                        }
+                        
+                        // Archive the record
+                        $archiveStmt = $pdo->prepare("INSERT INTO archive_storage (
+                            source_table, 
+                            record_id, 
+                            employee_id, 
+                            archive_reason, 
+                            archive_reason_details, 
+                            archived_by, 
+                            archived_at, 
+                            can_restore, 
+                            record_data, 
+                            notes
+                        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, ?, ?)");
+                        
+                        $archiveStmt->execute([
+                            'document_management',
+                            $recordToArchive['document_id'],
+                            $employeeId,
+                            $archiveReason,
+                            $archiveReasonDetails,
+                            $archived_by,
+                            json_encode($recordToArchive, JSON_PRETTY_PRINT),
+                            'Document archived on deletion. Physical file preserved at: ' . ($recordToArchive['file_path'] ?? 'N/A')
+                        ]);
+                        
+                        // Delete from document_management table
+                        $deleteStmt = $pdo->prepare("DELETE FROM document_management WHERE document_id=?");
+                        $deleteStmt->execute([$_POST['document_id']]);
+                        
+                        $pdo->commit();
+                        $message = "Document archived successfully! You can view it in Archive Storage.";
+                        $messageType = "success";
+                    } else {
+                        $pdo->rollBack();
+                        $message = "Error: Document record not found!";
+                        $messageType = "error";
+                    }
                 } catch (PDOException $e) {
-                    $message = "Error deleting document: " . $e->getMessage();
+                    $pdo->rollBack();
+                    $message = "Error archiving document: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
@@ -1331,7 +1390,7 @@ $documentStatuses = ['Active', 'Inactive', 'Expired', 'Pending'];
             const selectedDocument = documentsData.find(doc => doc.document_id == documentId);
             const fileName = selectedDocument && selectedDocument.file_path ? selectedDocument.file_path.split('/').pop() : 'this document';
             
-            if (confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone and will also delete the physical file if it exists.`)) {
+            if (confirm(`Are you sure you want to archive "${fileName}"? The record will be moved to Archive Storage and can be restored later. The physical file will be preserved.`)) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = `

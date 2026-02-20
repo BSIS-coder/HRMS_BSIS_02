@@ -63,19 +63,13 @@ if (!$is_logged_in || $user_role !== 'employee') {
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('leave_requests.php'); ?>" href="leave_requests.php">
-                <i class="fas fa-calendar-alt"></i> Leave Requests
+            <a class="nav-link <?php echo isActiveMenu('employee_leave.php'); ?>" href="employee_leave.php">
+                <i class="fas fa-calendar-alt"></i> Leave Management
             </a>
         </li>
-        
+
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('leave_balances.php'); ?>" href="leave_balances.php">
-                <i class="fas fa-balance-scale"></i> Leave Balance
-            </a>
-        </li>
-        
-        <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('attendance.php'); ?>" href="attendance.php">
+            <a class="nav-link <?php echo isActiveMenu('employee_attendance.php'); ?>" href="employee_attendance.php">
                 <i class="fas fa-calendar-check"></i> My Attendance
             </a>
         </li>
@@ -87,7 +81,7 @@ if (!$is_logged_in || $user_role !== 'employee') {
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('performance_reviews.php'); ?>" href="performance_reviews.php">
+            <a class="nav-link <?php echo isActiveMenu('my_performance_reviews.php'); ?>" href="my_performance_reviews.php">
                 <i class="fas fa-chart-line"></i> Performance Reviews
             </a>
         </li>
@@ -125,6 +119,12 @@ if (!$is_logged_in || $user_role !== 'employee') {
         <li class="nav-item">
             <a class="nav-link <?php echo isActiveMenu('employee_settings.php'); ?>" href="employee_settings.php">
                 <i class="fas fa-cog"></i> Settings
+            </a>
+        </li>
+        
+        <li class="nav-item">
+            <a class="nav-link <?php echo isActiveMenu('file_resignation.php'); ?>" href="file_resignation.php">
+                <i class="fas fa-sign-out-alt"></i> File Resignation
             </a>
         </li>
         

@@ -1,94 +1,83 @@
 <?php
 session_start();
-
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+    header("Location: login.php");
     exit;
 }
 
-require_once 'config.php';
+require_once 'db_connect.php';
 
-// Handle form submissions
+$message = '';
+$messageType = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
-            case 'create_task':
-                $task_name = $_POST['task_name'];
-                $description = $_POST['description'];
-                $department_id = $_POST['department_id'] ?: null;
-                $task_type = $_POST['task_type'];
-                $is_mandatory = isset($_POST['is_mandatory']) ? 1 : 0;
-                $default_due_days = $_POST['default_due_days'];
-                
-                $stmt = $conn->prepare("INSERT INTO onboarding_tasks (task_name, description, department_id, task_type, is_mandatory, default_due_days) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$task_name, $description, $department_id, $task_type, $is_mandatory, $default_due_days]);
+            case 'add_task':
+                try {
+                    $task_name = $_POST['task_name'] ?? '';
+                    $description = $_POST['task_description'] ?? '';
+                    $task_type = $_POST['task_type'] ?? 'Administrative';
+                    $department_id = $_POST['department_id'] ?? null;
+                    
+                    // If department is empty, set to NULL
+                    if (empty($department_id)) {
+                        $department_id = null;
+                    }
+                    
+                    $stmt = $conn->prepare("INSERT INTO onboarding_tasks (task_name, description, task_type, department_id) VALUES (?, ?, ?, ?)");
+                    $stmt->bind_param('sssi', $task_name, $description, $task_type, $department_id);
+                    $stmt->execute();
+                    
+                    $message = "✅ Task created successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "❌ Error adding task: " . $e->getMessage();
+                    $messageType = "error";
+                }
                 break;
-                
-            case 'update_task':
-                $task_id = $_POST['task_id'];
-                $task_name = $_POST['task_name'];
-                $description = $_POST['description'];
-                $department_id = $_POST['department_id'] ?: null;
-                $task_type = $_POST['task_type'];
-                $is_mandatory = isset($_POST['is_mandatory']) ? 1 : 0;
-                $default_due_days = $_POST['default_due_days'];
-                
-                $stmt = $conn->prepare("UPDATE onboarding_tasks SET task_name = ?, description = ?, department_id = ?, task_type = ?, is_mandatory = ?, default_due_days = ? WHERE task_id = ?");
-                $stmt->execute([$task_name, $description, $department_id, $task_type, $is_mandatory, $default_due_days, $task_id]);
-                break;
-                
+            
             case 'delete_task':
-                $task_id = $_POST['task_id'];
-                $stmt = $conn->prepare("DELETE FROM onboarding_tasks WHERE task_id = ?");
-                $stmt->execute([$task_id]);
+                try {
+                    $stmt = $conn->prepare("DELETE FROM onboarding_tasks WHERE task_id = ?");
+                    $stmt->bind_param('i', $_POST['task_id']);
+                    $stmt->execute();
+                    
+                    $message = "✅ Task deleted successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "❌ Error deleting task: " . $e->getMessage();
+                    $messageType = "error";
+                }
                 break;
         }
-        header('Location: onboarding_tasks_modern.php');
-        exit;
     }
 }
 
-// Get onboarding tasks
-try {
-    $tasks_query = "SELECT ot.*, d.department_name,
-                    COUNT(eot.employee_task_id) as usage_count
-                    FROM onboarding_tasks ot
-                    LEFT JOIN departments d ON ot.department_id = d.department_id
-                    LEFT JOIN employee_onboarding_tasks eot ON ot.task_id = eot.task_id
-                    GROUP BY ot.task_id
-                    ORDER BY ot.task_type, ot.task_name";
-    
-    $tasks = $conn->query($tasks_query)->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $tasks = [];
-}
+// Fetch all tasks
+$result = $conn->query("SELECT ot.*, d.department_name 
+                       FROM onboarding_tasks ot 
+                       LEFT JOIN departments d ON ot.department_id = d.department_id 
+                       ORDER BY 
+                           CASE WHEN ot.department_id IS NOT NULL THEN 0 ELSE 1 END,
+                           d.department_name ASC,
+                           ot.task_name ASC");
+$all_tasks = $result->fetch_all(MYSQLI_ASSOC);
 
-// Get departments
-try {
-    $departments = $conn->query("SELECT * FROM departments ORDER BY department_name")->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $departments = [];
-}
-
-// Get statistics
-$stats = ['total_tasks' => 0, 'mandatory_tasks' => 0, 'by_type' => [], 'most_used' => 0];
-try {
-    $stmt = $conn->query("SELECT COUNT(*) as count FROM onboarding_tasks");
-    $stats['total_tasks'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-    $stmt = $conn->query("SELECT COUNT(*) as count FROM onboarding_tasks WHERE is_mandatory = 1");
-    $stats['mandatory_tasks'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-    
-    $type_stats = $conn->query("SELECT task_type, COUNT(*) as count FROM onboarding_tasks GROUP BY task_type")->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($type_stats as $type) {
-        $stats['by_type'][$type['task_type']] = $type['count'];
+// Separate into department-specific and general tasks
+$dept_tasks = [];
+$general_tasks = [];
+foreach ($all_tasks as $task) {
+    if ($task['department_id'] !== null) {
+        $dept_tasks[] = $task;
+    } else {
+        $general_tasks[] = $task;
     }
-    
-    $stmt = $conn->query("SELECT MAX(usage_count) as max_usage FROM (SELECT COUNT(eot.employee_task_id) as usage_count FROM onboarding_tasks ot LEFT JOIN employee_onboarding_tasks eot ON ot.task_id = eot.task_id GROUP BY ot.task_id) as usage_stats");
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $stats['most_used'] = $result['max_usage'] ?? 0;
-} catch (Exception $e) {
-    // Keep default values
 }
+
+// Fetch all departments
+$result = $conn->query("SELECT department_id, department_name FROM departments ORDER BY department_name");
+$departments = $result->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -96,47 +85,10 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onboarding Tasks - HR Management System</title>
+    <title>Onboarding Task Management - HR System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
-    <style>
-        .task-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(233, 30, 99, 0.1);
-            margin-bottom: 20px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15);
-        }
-        
-        .task-type-badge {
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .type-administrative { background: #007bff; color: white; }
-        .type-equipment { background: #6f42c1; color: white; }
-        .type-training { background: #28a745; color: white; }
-        .type-introduction { background: #fd7e14; color: white; }
-        .type-documentation { background: #20c997; color: white; }
-        .type-other { background: #6c757d; color: white; }
-        
-        .mandatory-badge {
-            background: #dc3545;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-        }
-    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -145,263 +97,170 @@ try {
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-clipboard-list text-rose"></i> Onboarding Tasks Management</h2>
-                    <button class="btn btn-rose" data-toggle="modal" data-target="#createTaskModal">
-                        <i class="fas fa-plus"></i> Create Task
-                    </button>
-                </div>
-
-                <!-- Statistics -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body text-center">
-                                <h3><?php echo $stats['total_tasks']; ?></h3>
-                                <p>Total Tasks</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-danger text-white">
-                            <div class="card-body text-center">
-                                <h3><?php echo $stats['mandatory_tasks']; ?></h3>
-                                <p>Mandatory Tasks</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-success text-white">
-                            <div class="card-body text-center">
-                                <h3><?php echo count($stats['by_type']); ?></h3>
-                                <p>Task Categories</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info text-white">
-                            <div class="card-body text-center">
-                                <h3><?php echo $stats['most_used']; ?></h3>
-                                <p>Most Used Task</p>
-                            </div>
-                        </div>
+                    <h2 class="section-title">⚙️ Onboarding Task Management</h2>
+                    <div>
+                        <a href="onboarding.php" class="btn btn-success ml-2">
+                            <i class="fas fa-arrow-left"></i> Back to Onboarding
+                        </a>
                     </div>
                 </div>
 
-                <!-- Tasks List -->
-                <div class="row">
-                    <?php foreach ($tasks as $task): ?>
-                    <div class="col-md-6">
-                        <div class="task-card">
-                            <div class="card-header bg-light">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1"><?php echo htmlspecialchars($task['task_name']); ?></h6>
-                                        <div>
-                                            <span class="task-type-badge type-<?php echo strtolower($task['task_type']); ?>">
-                                                <?php echo $task['task_type']; ?>
-                                            </span>
-                                            <?php if ($task['is_mandatory']): ?>
-                                            <span class="mandatory-badge ml-1">Mandatory</span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <small class="text-muted">Used <?php echo $task['usage_count']; ?> times</small>
+                <?php if ($message): ?>
+                    <div class="alert alert-<?php echo $messageType === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show">
+                        <?php echo htmlspecialchars($message); ?>
+                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Add New Task Card -->
+                <div class="card mb-4" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <div class="card-header bg-success text-white" style="border-radius: 15px 15px 0 0;">
+                        <h5 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Create New Onboarding Task</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="add_task">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="task_name"><strong>Task Name:</strong></label>
+                                        <input type="text" id="task_name" name="task_name" class="form-control" placeholder="e.g., Complete HR Orientation" required>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="task_type"><strong>Task Type:</strong></label>
+                                        <select id="task_type" name="task_type" class="form-control">
+                                            <option value="Administrative">Administrative</option>
+                                            <option value="Training">Training</option>
+                                            <option value="Technical">Technical</option>
+                                            <option value="Security">Security</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="department_id"><strong>Department (Optional):</strong></label>
+                                        <select id="department_id" name="department_id" class="form-control">
+                                            <option value="">-- General Task (All Departments) --</option>
+                                            <?php foreach ($departments as $dept): ?>
+                                                <option value="<?php echo $dept['department_id']; ?>">
+                                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small class="form-text text-muted">Leave empty to apply to all new hires</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="task_description"><strong>Description:</strong></label>
+                                        <input type="text" id="task_description" name="task_description" class="form-control" placeholder="Brief description of the task" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg" style="width: 100%;">
+                                <i class="fas fa-save mr-2"></i>Create Task
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Department-Specific Tasks -->
+                    <div class="col-lg-6">
+                        <div class="card" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(233, 30, 99, 0.1); border-left: 5px solid #E91E63;">
+                            <div class="card-header" style="background: linear-gradient(135deg, #E91E63 0%, #F06292 100%); border-radius: 15px 15px 0 0; color: white;">
+                                <h5 class="mb-0"><i class="fas fa-sitemap mr-2"></i>Department-Specific Tasks</h5>
                             </div>
                             <div class="card-body">
-                                <?php if ($task['description']): ?>
-                                <p class="mb-2"><?php echo htmlspecialchars($task['description']); ?></p>
-                                <?php endif; ?>
-                                
-                                <div class="row">
-                                    <div class="col-6">
-                                        <strong>Department:</strong><br>
-                                        <small><?php echo $task['department_name'] ?: 'All Departments'; ?></small>
-                                    </div>
-                                    <div class="col-6">
-                                        <strong>Default Due:</strong><br>
-                                        <small><?php echo $task['default_due_days']; ?> days</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <button class="btn btn-sm btn-outline-rose" data-toggle="modal" data-target="#editTaskModal<?php echo $task['task_id']; ?>">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this task?')">
-                                        <input type="hidden" name="action" value="delete_task">
-                                        <input type="hidden" name="task_id" value="<?php echo $task['task_id']; ?>">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Edit Task Modal -->
-                    <div class="modal fade" id="editTaskModal<?php echo $task['task_id']; ?>" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header bg-rose text-white">
-                                    <h5 class="modal-title">Edit Onboarding Task</h5>
-                                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                                </div>
-                                <form method="POST">
-                                    <div class="modal-body">
-                                        <input type="hidden" name="action" value="update_task">
-                                        <input type="hidden" name="task_id" value="<?php echo $task['task_id']; ?>">
-                                        
-                                        <div class="form-group">
-                                            <label>Task Name</label>
-                                            <input type="text" name="task_name" class="form-control" value="<?php echo htmlspecialchars($task['task_name']); ?>" required>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label>Description</label>
-                                            <textarea name="description" class="form-control" rows="3"><?php echo htmlspecialchars($task['description']); ?></textarea>
-                                        </div>
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Department</label>
-                                                    <select name="department_id" class="form-control">
-                                                        <option value="">All Departments</option>
-                                                        <?php foreach ($departments as $dept): ?>
-                                                        <option value="<?php echo $dept['department_id']; ?>" <?php echo $task['department_id'] == $dept['department_id'] ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars($dept['department_name']); ?>
-                                                        </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Task Type</label>
-                                                    <select name="task_type" class="form-control" required>
-                                                        <option value="Administrative" <?php echo $task['task_type'] === 'Administrative' ? 'selected' : ''; ?>>Administrative</option>
-                                                        <option value="Equipment" <?php echo $task['task_type'] === 'Equipment' ? 'selected' : ''; ?>>Equipment</option>
-                                                        <option value="Training" <?php echo $task['task_type'] === 'Training' ? 'selected' : ''; ?>>Training</option>
-                                                        <option value="Introduction" <?php echo $task['task_type'] === 'Introduction' ? 'selected' : ''; ?>>Introduction</option>
-                                                        <option value="Documentation" <?php echo $task['task_type'] === 'Documentation' ? 'selected' : ''; ?>>Documentation</option>
-                                                        <option value="Other" <?php echo $task['task_type'] === 'Other' ? 'selected' : ''; ?>>Other</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Default Due Days</label>
-                                                    <input type="number" name="default_due_days" class="form-control" value="<?php echo $task['default_due_days']; ?>" min="1" required>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <div class="form-check mt-4">
-                                                        <input class="form-check-input" type="checkbox" name="is_mandatory" id="mandatory<?php echo $task['task_id']; ?>" <?php echo $task['is_mandatory'] ? 'checked' : ''; ?>>
-                                                        <label class="form-check-label" for="mandatory<?php echo $task['task_id']; ?>">
-                                                            Mandatory Task
-                                                        </label>
+                                <?php if (!empty($dept_tasks)): ?>
+                                    <div class="list-group">
+                                        <?php foreach ($dept_tasks as $task): ?>
+                                            <div class="list-group-item">
+                                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <?php echo htmlspecialchars($task['task_name']); ?>
+                                                            <span class="badge badge-primary ml-2"><?php echo htmlspecialchars($task['task_type']); ?></span>
+                                                        </h6>
+                                                        <p class="mb-1 text-muted small"><?php echo htmlspecialchars($task['description']); ?></p>
+                                                        <small class="text-info"><i class="fas fa-building"></i> <?php echo htmlspecialchars($task['department_name']); ?></small>
                                                     </div>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this task?');">
+                                                        <input type="hidden" name="action" value="delete_task">
+                                                        <input type="hidden" name="task_id" value="<?php echo $task['task_id']; ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm ml-2">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-rose">Update Task</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Create Task Modal -->
-    <div class="modal fade" id="createTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-rose text-white">
-                    <h5 class="modal-title">Create Onboarding Task</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="create_task">
-                        
-                        <div class="form-group">
-                            <label>Task Name</label>
-                            <input type="text" name="task_name" class="form-control" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea name="description" class="form-control" rows="3"></textarea>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Department</label>
-                                    <select name="department_id" class="form-control">
-                                        <option value="">All Departments</option>
-                                        <?php foreach ($departments as $dept): ?>
-                                        <option value="<?php echo $dept['department_id']; ?>">
-                                            <?php echo htmlspecialchars($dept['department_name']); ?>
-                                        </option>
                                         <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Task Type</label>
-                                    <select name="task_type" class="form-control" required>
-                                        <option value="Administrative">Administrative</option>
-                                        <option value="Equipment">Equipment</option>
-                                        <option value="Training">Training</option>
-                                        <option value="Introduction">Introduction</option>
-                                        <option value="Documentation">Documentation</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Default Due Days</label>
-                                    <input type="number" name="default_due_days" class="form-control" value="7" min="1" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <div class="form-check mt-4">
-                                        <input class="form-check-input" type="checkbox" name="is_mandatory" id="mandatoryNew">
-                                        <label class="form-check-label" for="mandatoryNew">
-                                            Mandatory Task
-                                        </label>
                                     </div>
-                                </div>
+                                <?php else: ?>
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <p>No department-specific tasks yet</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-rose">Create Task</button>
+
+                    <!-- General Tasks -->
+                    <div class="col-lg-6">
+                        <div class="card" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(76, 175, 80, 0.1); border-left: 5px solid #4CAF50;">
+                            <div class="card-header" style="background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); border-radius: 15px 15px 0 0; color: white;">
+                                <h5 class="mb-0"><i class="fas fa-globe mr-2"></i>General Tasks (All Departments)</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php if (!empty($general_tasks)): ?>
+                                    <div class="list-group">
+                                        <?php foreach ($general_tasks as $task): ?>
+                                            <div class="list-group-item">
+                                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <?php echo htmlspecialchars($task['task_name']); ?>
+                                                            <span class="badge badge-success ml-2"><?php echo htmlspecialchars($task['task_type']); ?></span>
+                                                        </h6>
+                                                        <p class="mb-1 text-muted small"><?php echo htmlspecialchars($task['description']); ?></p>
+                                                        <small class="text-success"><i class="fas fa-check-circle"></i> Applies to all departments</small>
+                                                    </div>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this task?');">
+                                                        <input type="hidden" name="action" value="delete_task">
+                                                        <input type="hidden" name="task_id" value="<?php echo $task['task_id']; ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm ml-2">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <p>No general tasks yet</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle"></i> <strong>Information:</strong> 
+                    <ul class="mb-0 mt-2">
+                        <li>Department-specific tasks will be assigned only to applicants from that department</li>
+                        <li>General tasks will be assigned to all new hires regardless of department</li>
+                        <li>Tasks are automatically assigned when you use the "Assign" button on the Applicant Onboarding page</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>

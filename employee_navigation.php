@@ -5,7 +5,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'dp.php';
 
 // Employee-specific helper functions
 function getEmployeeNotificationCount($employee_id) {
@@ -316,215 +316,38 @@ $last_login = getEmployeeLastLoginTime($employee_id);
 
 <!-- Additional CSS for employee navigation -->
 <style>
-.employee-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border-bottom: 2px solid #e9ecef;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
+/* Employee navbar container positioning */
 .navbar-brand-section {
     display: flex;
     align-items: center;
     gap: 15px;
+    padding-left: 1rem;
 }
 
 .navbar-logo {
-    width: 45px;
-    height: 45px;
-    object-fit: contain;
-    border-radius: 8px;
-    border: 2px solid #E91E63;
-    padding: 2px;
-}
-
-.navbar-title h4 {
-    color: #E91E63;
-    font-weight: 600;
-    margin: 0;
-    font-size: 1.1rem;
-}
-
-.navbar-title small {
-    font-size: 0.85rem;
-}
-
-.system-status {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #28a745;
-    animation: pulse 2s infinite;
-}
-
-.status-online {
-    background: #28a745;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.datetime-display {
-    padding: 5px 10px;
-    background: rgba(233, 30, 99, 0.1);
-    border-radius: 15px;
-}
-
-.stat-badge, .notification-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #dc3545;
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
-
-.nav-link-custom {
-    position: relative;
-    color: #495057;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.nav-link-custom:hover {
-    background: rgba(233, 30, 99, 0.1);
-    color: #E91E63;
-    text-decoration: none;
-}
-
-.user-profile-link {
-    gap: 10px;
-}
-
-.profile-image {
     width: 35px;
     height: 35px;
     border-radius: 50%;
-    border: 2px solid #E91E63;
 }
 
-.profile-image-large {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: 2px solid #E91E63;
+.navbar-title h4 {
+    font-size: 0.95rem;
+    margin: 0;
 }
 
-.user-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+.navbar-title small {
+    font-size: 0.8rem;
 }
 
-.username {
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.user-role {
-    font-size: 0.75rem;
-    color: #6c757d;
-}
-
-.user-dropdown-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px 20px;
-    background: #f8f9fa;
-    margin: -5px -5px 0 -5px;
-}
-
-.notification-dropdown {
-    width: 350px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.notification-item {
-    padding: 10px 15px;
-    border-bottom: 1px solid #f1f1f1;
-}
-
-.notification-item:last-of-type {
-    border-bottom: none;
-}
-
-.notification-content {
-    width: 100%;
-}
-
-.user-dropdown {
-    width: 280px;
-}
-
-.logout-item {
-    color: #dc3545 !important;
-}
-
-.logout-item:hover {
-    background: rgba(220, 53, 69, 0.1) !important;
-}
-
-.badge-sm {
-    font-size: 0.6rem;
-    padding: 2px 6px;
-}
-
-/* Animation for notifications */
-.notification-item {
-    transition: all 0.3s ease;
-}
-
-.notification-item:hover {
-    background-color: rgba(233, 30, 99, 0.1);
-    transform: translateX(5px);
-}
-
-/* Loading animation for stats */
-.stat-badge {
-    animation: pulse 2s infinite;
+/* Keep navbar items aligned to the right */
+.employee-navbar .nav {
+    margin-bottom: 0;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .navbar-title h4 {
-        font-size: 1rem;
-    }
-    
-    .navbar-title small {
-        font-size: 0.75rem;
-    }
-    
-    .notification-dropdown {
-        width: 300px;
-    }
-    
-    .user-dropdown {
-        width: 250px;
+    .navbar-brand-section {
+        display: none;
     }
 }
 </style>

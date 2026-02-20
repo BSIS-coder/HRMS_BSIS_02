@@ -1,239 +1,380 @@
 <?php
-session_start();
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Check if the user is logged in, if not then redirect to login page
+// Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+    header("Location: login.php");
     exit;
 }
 
-// Include database connection
-require_once 'config.php';
-
-$user_id = $_SESSION['user_id'];
-
-// Get employee_id from users table
-try {
-    $stmt = $conn->prepare("SELECT employee_id FROM users WHERE user_id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-    $employee_id = $user['employee_id'] ?? null;
-    $is_employee = $employee_id !== null;
-} catch (PDOException $e) {
-    die("Error fetching employee profile: " . $e->getMessage());
+// Check if user is an employee (only employees can access goals)
+$user_role = $_SESSION['role'] ?? 'user';
+if ($user_role !== 'employee') {
+    header("Location: index.php");
+    exit;
 }
 
-// Handle new goal submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_goal') {
-    if (!$is_employee) {
-        $error = "Only employees can add goals.";
-    } else {
-        $title = trim($_POST['goal_name']);
-        $description = trim($_POST['goal_description']);
-        $start_date = date('Y-m-d'); // Current date as start date
-        $end_date = $_POST['due_date'];
-        $status = $_POST['goal_status'];
-        $progress = 0; // New goals start at 0%
-        $weight = 100; // Default weight
+// Include database connection and helper functions
+require_once 'dp.php';
 
-        if ($title && $description && $end_date && $status) {
-            try {
-                $insert = $conn->prepare("INSERT INTO goals (employee_id, title, description, start_date, end_date, status, progress, weight, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-                $insert->execute([$employee_id, $title, $description, $start_date, $end_date, $status, $progress, $weight]);
-                header("Location: goals.php");
-                exit;
-            } catch (PDOException $e) {
-                $error = "Error adding goal: " . $e->getMessage();
-            }
-        } else {
-            $error = "Please fill in all required fields.";
+// Database connection
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+
+// Get current user info
+$user_id = $_SESSION['user_id'] ?? null;
+$employee_id = null;
+
+// Get employee_id from users table
+if ($user_id) {
+    $stmt = $pdo->prepare("SELECT employee_id FROM users WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $employee_id = $user['employee_id'] ?? null;
+}
+
+// Handle form submissions
+$message = '';
+$messageType = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        switch ($_POST['action']) {
+            case 'add':
+                // Add new goal
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO goals (employee_id, title, description, start_date, end_date, status, progress, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([
+                        $employee_id,
+                        $_POST['title'],
+                        $_POST['description'],
+                        $_POST['start_date'],
+                        $_POST['end_date'],
+                        $_POST['status'],
+                        $_POST['progress'] ?? 0,
+                        $_POST['weight'] ?? 100
+                    ]);
+                    $message = "Goal added successfully!";
+                    $messageType = "success";
+                } catch (PDOException $e) {
+                    $message = "Error adding goal: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+            case 'update':
+                // Update goal
+                try {
+                    $stmt = $pdo->prepare("UPDATE goals SET title=?, description=?, start_date=?, end_date=?, status=?, progress=?, weight=? WHERE goal_id=? AND employee_id=?");
+                    $stmt->execute([
+                        $_POST['title'],
+                        $_POST['description'],
+                        $_POST['start_date'],
+                        $_POST['end_date'],
+                        $_POST['status'],
+                        $_POST['progress'] ?? 0,
+                        $_POST['weight'] ?? 100,
+                        $_POST['goal_id'],
+                        $employee_id
+                    ]);
+                    $message = "Goal updated successfully!";
+                    $messageType = "success";
+                } catch (PDOException $e) {
+                    $message = "Error updating goal: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+
+
+            case 'delete':
+                // Delete goal
+                try {
+                    $stmt = $pdo->prepare("DELETE FROM goals WHERE goal_id=? AND employee_id=?");
+                    $stmt->execute([$_POST['goal_id'], $employee_id]);
+                    $message = "Goal deleted successfully!";
+                    $messageType = "success";
+                } catch (PDOException $e) {
+                    $message = "Error deleting goal: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
         }
     }
 }
 
-// Fetch goals for employee
+// Fetch goals for current employee
 $goals = [];
-if ($is_employee) {
-    try {
-        $stmt = $conn->prepare("SELECT * FROM goals WHERE employee_id = ? ORDER BY created_at DESC");
-        $stmt->execute([$employee_id]);
-        $goals = $stmt->fetchAll();
-    } catch (PDOException $e) {
-        die("Error fetching goals: " . $e->getMessage());
-    }
+$goalUpdates = [];
+
+if ($employee_id) {
+    // Fetch goals
+    $stmt = $pdo->prepare("
+        SELECT g.*,
+               (SELECT comments FROM goal_updates WHERE goal_id = g.goal_id ORDER BY update_date DESC LIMIT 1) as last_comment,
+               (SELECT update_date FROM goal_updates WHERE goal_id = g.goal_id ORDER BY update_date DESC LIMIT 1) as last_update
+        FROM goals g
+        WHERE g.employee_id = ?
+        ORDER BY g.created_at DESC
+    ");
+    $stmt->execute([$employee_id]);
+    $goals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch goal updates for progress history
+    $stmt = $pdo->prepare("
+        SELECT gu.*, g.title as goal_title
+        FROM goal_updates gu
+        JOIN goals g ON gu.goal_id = g.goal_id
+        WHERE g.employee_id = ?
+        ORDER BY gu.update_date DESC, gu.created_at DESC
+        LIMIT 10
+    ");
+    $stmt->execute([$employee_id]);
+    $goalUpdates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Fetch goal updates for timeline
-$goal_updates = [];
-if ($is_employee) {
-    try {
-        $stmt = $conn->prepare("SELECT gu.*, g.title FROM goal_updates gu JOIN goals g ON gu.goal_id = g.goal_id WHERE g.employee_id = ? ORDER BY gu.update_date DESC LIMIT 10");
-        $stmt->execute([$employee_id]);
-        $goal_updates = $stmt->fetchAll();
-    } catch (PDOException $e) {
-        die("Error fetching goal updates: " . $e->getMessage());
-    }
-}
-
-// Calculate statistics
-$total_goals = count($goals);
-$completed_goals = 0;
-$in_progress_goals = 0;
-$pending_goals = 0;
-$total_progress = 0.0;
-
-foreach ($goals as $goal) {
-    $status = strtolower($goal['status']);
-    if ($status === 'completed') {
-        $completed_goals++;
-    } elseif ($status === 'in progress') {
-        $in_progress_goals++;
-    } elseif ($status === 'not started' || $status === 'pending') {
-        $pending_goals++;
-    }
-    $total_progress += floatval($goal['progress']);
-}
-
-$average_progress = $total_goals > 0 ? round($total_progress / $total_goals, 1) : 0;
-$success_rate = $total_goals > 0 ? round(($completed_goals / $total_goals) * 100, 1) : 0;
-
-// Get employee name for display
-$employee_name = 'N/A';
-if ($is_employee) {
-    try {
-        $stmt = $conn->prepare("SELECT first_name, last_name FROM employee_profiles WHERE employee_id = ?");
-        $stmt->execute([$employee_id]);
-        $employee = $stmt->fetch();
-        $employee_name = $employee ? $employee['first_name'] . ' ' . $employee['last_name'] : 'Unknown';
-    } catch (PDOException $e) {
-        $employee_name = 'Unknown';
-    }
-}
+// Calculate goal statistics
+$totalGoals = count($goals);
+$completedGoals = count(array_filter($goals, function($goal) { return $goal['status'] === 'Completed'; }));
+$inProgressGoals = count(array_filter($goals, function($goal) { return $goal['status'] === 'In Progress'; }));
+$averageProgress = $totalGoals > 0 ? array_sum(array_column($goals, 'progress')) / $totalGoals : 0;
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Goals - HR Management System</title>
+    <title>My Goals - HR System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Custom styles for goals page */
-        .goal-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: none;
-            border-radius: 15px;
-            overflow: hidden;
+        :root {
+            --azure-blue: #E91E63;
+            --azure-blue-light: #F06292;
+            --azure-blue-dark: #C2185B;
+            --azure-blue-lighter: #F8BBD0;
+            --azure-blue-pale: #FCE4EC;
         }
 
-        .goal-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .goal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-        }
-
-        .goal-progress {
-            height: 8px;
-            border-radius: 4px;
-            background-color: #e9ecef;
-            overflow: hidden;
-        }
-
-        .goal-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745, #20c997);
-            transition: width 0.6s ease;
-        }
-
-        .goal-status {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        .section-title {
+            color: var(--azure-blue);
+            margin-bottom: 30px;
             font-weight: 600;
         }
 
-        .status-completed { background-color: #d4edda; color: #155724; }
-        .status-in-progress { background-color: #fff3cd; color: #856404; }
-        .status-pending { background-color: #f8d7da; color: #721c24; }
-
-        .goal-actions {
-            opacity: 0;
-            transition: opacity 0.3s ease;
+        body {
+            background: var(--azure-blue-pale);
         }
 
-        .goal-card:hover .goal-actions {
-            opacity: 1;
+        .main-content {
+            background: var(--azure-blue-pale);
+            padding: 20px;
         }
 
-        .add-goal-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--azure-blue);
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--azure-blue);
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .goal-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .goal-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .goal-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-not-started { background: #e9ecef; color: #6c757d; }
+        .status-in-progress { background: #cce5ff; color: #0066cc; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+
+        .btn {
+            padding: 8px 16px;
             border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+        }
+
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 14px;
             transition: all 0.3s ease;
         }
 
-        .add-goal-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        .form-control:focus {
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.2);
         }
 
-        .goal-stats {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
+        .alert {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
         }
 
-        .stats-icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .goal-timeline {
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .timeline {
             position: relative;
             padding-left: 30px;
         }
 
-        .goal-timeline::before {
+        .timeline-item {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .timeline-item:before {
             content: '';
             position: absolute;
-            left: 15px;
-            top: 0;
-            bottom: 0;
+            left: -35px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--azure-blue);
+        }
+
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: -31px;
+            top: 15px;
             width: 2px;
+            height: calc(100% + 10px);
             background: #e9ecef;
         }
 
-        .timeline-item {
-            position: relative;
-            margin-bottom: 20px;
+        .timeline-item:last-child:after {
+            display: none;
         }
 
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -22px;
-            top: 8px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #667eea;
-            border: 3px solid white;
-            box-shadow: 0 0 0 2px #667eea;
+        @media (max-width: 768px) {
+            .stats-card {
+                margin-bottom: 15px;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
         }
     </style>
 </head>
@@ -241,250 +382,391 @@ if ($is_employee) {
     <div class="container-fluid">
         <?php include 'navigation.php'; ?>
         <div class="row">
-            <?php include 'sidebar.php'; ?>
-            <div class="main-content">
+            <?php include 'employee_sidebar.php'; ?>
+            <div class="col-md-10 main-content">
+                <h2 class="section-title"><i class="fas fa-bullseye"></i> My Goals</h2>
+
+                <?php if ($message): ?>
+                    <div class="alert alert-<?= $messageType ?>">
+                        <?= htmlspecialchars($message) ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Total Goals</h6>
+                                    <div class="stats-number"><?= $totalGoals ?></div>
+                                </div>
+                                <i class="fas fa-target fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Completed</h6>
+                                    <div class="stats-number text-success"><?= $completedGoals ?></div>
+                                </div>
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">In Progress</h6>
+                                    <div class="stats-number text-primary"><?= $inProgressGoals ?></div>
+                                </div>
+                                <i class="fas fa-clock fa-2x text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Avg Progress</h6>
+                                    <div class="stats-number text-info"><?= number_format($averageProgress, 1) ?>%</div>
+                                </div>
+                                <i class="fas fa-chart-line fa-2x text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="section-title mb-0">
-                        <i class="fas fa-bullseye mr-3"></i>
-                        Employee Goals 
-                    </h2>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-primary">
-                            <i class="fas fa-filter mr-2"></i>Filter
-                        </button>
-                        <button class="btn btn-outline-secondary">
-                            <i class="fas fa-sort mr-2"></i>Sort
-                        </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary active" onclick="filterGoals('all')">All</button>
+                        <button class="btn btn-outline-primary" onclick="filterGoals('in-progress')">In Progress</button>
+                        <button class="btn btn-outline-success" onclick="filterGoals('completed')">Completed</button>
+                        <button class="btn btn-outline-warning" onclick="filterGoals('not-started')">Not Started</button>
                     </div>
+                    <button class="btn btn-primary" onclick="openModal('add')">
+                        <i class="fas fa-plus"></i> Add New Goal
+                    </button>
                 </div>
 
-                <?php if (!$is_employee): ?>
-                <div class="alert alert-info mb-4">
-                    <i class="fas fa-info-circle"></i> Goals are only available for employees. Please contact HR if you believe this is an error.
-                </div>
-                <?php endif; ?>
-
-                <?php if (isset($error)): ?>
-                <div class="alert alert-danger mb-4">
-                    <?php echo htmlspecialchars($error); ?>
-                </div>
-                <?php endif; ?>
-
-                <!-- Goals Statistics -->
-                <div class="goal-stats">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $completed_goals; ?></h3>
-                            <p>Completed Goals</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-spinner"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $in_progress_goals; ?></h3>
-                            <p>In Progress Goals</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-hourglass-half"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $pending_goals; ?></h3>
-                            <p>Pending Goals</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stats-icon mb-2">
-                                <i class="fas fa-tachometer-alt"></i>
-                            </div>
-                            <h3 class="mb-1"><?php echo $average_progress; ?>%</h3>
-                            <p>Average Progress</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Goals Grid -->
-                <div class="row">
+                <!-- Goals List -->
+                <div id="goalsContainer">
                     <?php foreach ($goals as $goal): ?>
-                        <?php
-                            $statusClass = 'status-pending';
-                            $statusText = 'Pending';
-                            $progressPercent = 0;
-                            $statusLower = strtolower($goal['status']);
-                            if ($statusLower === 'completed') {
-                                $statusClass = 'status-completed';
-                                $statusText = 'Completed';
-                                $progressPercent = 100;
-                            } elseif ($statusLower === 'in progress') {
-                                $statusClass = 'status-in-progress';
-                                $statusText = 'In Progress';
-                                $progressPercent = 50;
-                            } elseif ($statusLower === 'pending' || $statusLower === 'not started') {
-                                $statusClass = 'status-pending';
-                                $statusText = 'Pending';
-                                $progressPercent = 0;
-                            }
-                        ?>
-                        <div class="col-md-6 col-lg-4 mb-4">
-                            <div class="card goal-card h-100">
-                                <div class="goal-header">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h5 class="mb-1"><?php echo htmlspecialchars($goal['title']); ?></h5>
-                                            <small>Department: N/A</small>
-                                        </div>
-                                        <span class="goal-status <?php echo $statusClass; ?>"><?php echo $statusText; ?></span>
-                                    </div>
+                    <div class="goal-card" data-status="<?= strtolower(str_replace(' ', '-', $goal['status'])) ?>">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="flex-grow-1">
+                                <h5 class="mb-2"><?= htmlspecialchars($goal['title']) ?></h5>
+                                <p class="text-muted mb-2"><?= htmlspecialchars($goal['description']) ?></p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="goal-status status-<?= strtolower(str_replace(' ', '-', $goal['status'])) ?> mr-3">
+                                        <?= htmlspecialchars($goal['status']) ?>
+                                    </span>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <?= date('M d, Y', strtotime($goal['start_date'])) ?> - <?= date('M d, Y', strtotime($goal['end_date'])) ?>
+                                    </small>
                                 </div>
-                                <div class="card-body">
-                                    <p class="text-muted mb-3"><?php echo nl2br(htmlspecialchars($goal['description'])); ?></p>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-warning" onclick="editGoal(<?= $goal['goal_id'] ?>)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteGoal(<?= $goal['goal_id'] ?>)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
 
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <small>Progress</small>
-                                            <small><?php echo $progressPercent; ?>%</small>
-                                        </div>
-                                        <div class="goal-progress">
-                                            <div class="goal-progress-bar" style="width: <?php echo $progressPercent; ?>%"></div>
-                                        </div>
-                                    </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Progress</small>
+                                <small class="text-muted"><?= $goal['progress'] ?>%</small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-<?= $goal['progress'] >= 100 ? 'success' : ($goal['progress'] >= 50 ? 'primary' : 'warning') ?>"
+                                     style="width: <?= $goal['progress'] ?>%"></div>
+                            </div>
+                        </div>
 
-                                    <div class="row text-center mb-3">
-                                        <div class="col-6">
-                                            <small class="text-muted d-block">Due Date</small>
-                                            <strong><?php echo date('M d, Y', strtotime($goal['end_date'])); ?></strong>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted d-block">Owner</small>
-                                            <strong><?php echo htmlspecialchars($employee_name); ?></strong>
-                                        </div>
-                                    </div>
+                        <?php if ($goal['last_update']): ?>
+                        <div class="text-muted">
+                            <small>Last updated: <?= date('M d, Y', strtotime($goal['last_update'])) ?>
+                            <?php if ($goal['last_comment']): ?>
+                                - <?= htmlspecialchars(substr($goal['last_comment'], 0, 50)) ?><?php if (strlen($goal['last_comment']) > 50): ?>...<?php endif; ?>
+                            <?php endif; ?>
+                            </small>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
 
-                                    <div class="goal-actions text-center">
-                                        <button class="btn btn-sm btn-outline-primary mr-2" title="Edit Goal">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-success mr-2" title="Mark as Completed">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" title="Delete Goal">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                    <?php if (empty($goals)): ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-bullseye fa-4x text-muted mb-3"></i>
+                        <h4>No goals yet</h4>
+                        <p class="text-muted">Start by setting your first goal to track your progress and achievements.</p>
+                        <button class="btn btn-primary" onclick="openModal('add')">
+                            <i class="fas fa-plus"></i> Create Your First Goal
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Recent Updates -->
+                <?php if (!empty($goalUpdates)): ?>
+                <div class="mt-5">
+                    <h4 class="mb-3"><i class="fas fa-history"></i> Recent Progress Updates</h4>
+                    <div class="timeline">
+                        <?php foreach ($goalUpdates as $update): ?>
+                        <div class="timeline-item">
+                            <div class="bg-light p-3 rounded">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1"><?= htmlspecialchars($update['goal_title']) ?></h6>
+                                        <p class="mb-1 text-muted small">
+                                            Progress updated to <?= $update['progress'] ?>%
+                                            <?php if ($update['comments']): ?>
+                                                - <?= htmlspecialchars($update['comments']) ?>
+                                            <?php endif; ?>
+                                        </p>
                                     </div>
+                                    <small class="text-muted">
+                                        <?= date('M d, Y', strtotime($update['update_date'])) ?>
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <!-- Goals Timeline -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-history mr-2"></i>
-                            Recent Goal Activities
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="goal-timeline">
-                            <?php if (count($goal_updates) > 0): ?>
-                                <?php foreach ($goal_updates as $update): ?>
-                                    <div class="timeline-item">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h6 class="mb-1">Goal "<?php echo htmlspecialchars($update['title']); ?>" updated</h6>
-                                                <p class="text-muted mb-0">Progress increased to <?php echo htmlspecialchars($update['progress']); ?>%</p>
-                                            </div>
-                                            <small class="text-muted"><?php echo date('M d, Y', strtotime($update['update_date'])); ?></small>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <p>No recent goal activities.</p>
-                            <?php endif; ?>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 
-    <!-- Add Goal Button -->
-    <?php if ($is_employee): ?>
-    <button class="btn btn-primary add-goal-btn" data-toggle="tooltip" title="Add New Goal" onclick="showAddGoalModal()">
-        <i class="fas fa-plus"></i>
-    </button>
-    <?php endif; ?>
+    <!-- Add/Edit Goal Modal -->
+    <div id="goalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modalTitle">Add New Goal</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="goalForm" method="POST">
+                    <input type="hidden" id="action" name="action" value="add">
+                    <input type="hidden" id="goal_id" name="goal_id">
 
-    <!-- Add Goal Modal -->
-    <div class="modal fade" id="goalModal" tabindex="-1" role="dialog" aria-labelledby="goalModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="goalModalLabel">Add New Goal</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <form id="goalForm" method="POST" action="goals.php">
-                    <input type="hidden" name="action" value="add_goal">
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="goal_name">Goal Name</label>
-                            <input type="text" class="form-control" id="goal_name" name="goal_name" required>
-                        </div>
+                    <div class="form-group">
+                        <label for="title">Goal Title *</label>
+                        <input type="text" id="title" name="title" class="form-control" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label for="goal_description">Description</label>
-                            <textarea class="form-control" id="goal_description" name="goal_description" rows="3" required></textarea>
-                        </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                    </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="due_date">Due Date</label>
-                                    <input type="date" class="form-control" id="due_date" name="due_date" required>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="start_date">Start Date *</label>
+                                <input type="date" id="start_date" name="start_date" class="form-control" required>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="goal_status">Status</label>
-                                    <select class="form-control" id="goal_status" name="goal_status" required>
-                                        <option value="pending">Pending</option>
-                                        <option value="in progress">In Progress</option>
-                                        <option value="completed">Completed</option>
-                                    </select>
-                                </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="end_date">End Date *</label>
+                                <input type="date" id="end_date" name="end_date" class="form-control" required>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Goal</button>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="status">Status *</label>
+                                <select id="status" name="status" class="form-control" required>
+                                    <option value="Not Started">Not Started</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="progress">Progress (%)</label>
+                                <input type="number" id="progress" name="progress" class="form-control" min="0" max="100" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weight">Weight (Importance)</label>
+                        <input type="number" id="weight" name="weight" class="form-control" min="1" max="100" value="100">
+                        <small class="form-text text-muted">Higher weight means more important goal (1-100)</small>
+                    </div>
+
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary mr-2" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Goal</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- Progress Update Modal -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Update Progress</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="progressForm" method="POST">
+                    <input type="hidden" name="action" value="update_progress">
+                    <input type="hidden" id="progress_goal_id" name="goal_id">
+
+                    <div class="form-group">
+                        <label for="progress_value">Progress (%)</label>
+                        <input type="number" id="progress_value" name="progress" class="form-control" min="0" max="100" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="progress_comments">Comments (Optional)</label>
+                        <textarea id="progress_comments" name="comments" class="form-control" rows="3" placeholder="Describe what you've accomplished..."></textarea>
+                    </div>
+
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary mr-2" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">Update Progress</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let goalsData = <?= json_encode($goals) ?>;
+
+        function openModal(mode, goalId = null) {
+            const modal = document.getElementById('goalModal');
+            const form = document.getElementById('goalForm');
+            const title = document.getElementById('modalTitle');
+            const action = document.getElementById('action');
+
+            if (mode === 'add') {
+                title.textContent = 'Add New Goal';
+                action.value = 'add';
+                form.reset();
+                document.getElementById('goal_id').value = '';
+            } else if (mode === 'edit' && goalId) {
+                title.textContent = 'Edit Goal';
+                action.value = 'update';
+                document.getElementById('goal_id').value = goalId;
+                populateEditForm(goalId);
+            }
+
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('goalModal').style.display = 'none';
+            document.getElementById('progressModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function populateEditForm(goalId) {
+            const goal = goalsData.find(g => g.goal_id == goalId);
+            if (goal) {
+                document.getElementById('title').value = goal.title || '';
+                document.getElementById('description').value = goal.description || '';
+                document.getElementById('start_date').value = goal.start_date || '';
+                document.getElementById('end_date').value = goal.end_date || '';
+                document.getElementById('status').value = goal.status || '';
+                document.getElementById('progress').value = goal.progress || 0;
+                document.getElementById('weight').value = goal.weight || 100;
+            }
+        }
+
+        function editGoal(goalId) {
+            openModal('edit', goalId);
+        }
+
+        function requestProgressUpdate(goalId) {
+            if (confirm('Are you sure you want to request a progress update from HR?')) {
+                // Here you could add AJAX call to notify HR
+                alert('Progress update request sent to HR. They will review and update your goal progress.');
+            }
+        }
+
+        function deleteGoal(goalId) {
+            if (confirm('Are you sure you want to delete this goal? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="goal_id" value="${goalId}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function filterGoals(status) {
+            const cards = document.querySelectorAll('.goal-card');
+            const buttons = document.querySelectorAll('.btn-group .btn');
+
+            // Update button states
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            cards.forEach(card => {
+                if (status === 'all') {
+                    card.style.display = 'block';
+                } else {
+                    const cardStatus = card.getAttribute('data-status');
+                    card.style.display = cardStatus === status ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const goalModal = document.getElementById('goalModal');
+            const progressModal = document.getElementById('progressModal');
+            if (event.target === goalModal) {
+                closeModal();
+            }
+            if (event.target === progressModal) {
+                closeModal();
+            }
+        }
+
+        // Auto-hide alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.remove();
+                }, 500);
+            });
+        }, 5000);
+
+        // Set default start date to today
+        document.getElementById('start_date').valueAsDate = new Date();
+    </script>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-        var isEmployee = <?php echo $is_employee ? 'true' : 'false'; ?>;
-
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip();
-        });
-
-        function showAddGoalModal() {
-            if (!isEmployee) {
-                alert("Only employees can add goals.");
-                return;
-            }
-            $('#goalModal').modal('show');
-        }
-    </script>
 </body>
 </html>

@@ -1,1917 +1,3647 @@
--- ===============================
--- CORE USER AND EMPLOYEE TABLES
--- ===============================
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Jan 27, 2026 at 06:36 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
--- Create user table (Admin, HR, and Employee access)
-CREATE TABLE users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    role ENUM('admin', 'hr', 'employee') NOT NULL,
-    employee_id INT NULL, -- Links to employee_profiles for employee users
-    is_active BOOLEAN DEFAULT TRUE,
-    last_login DATETIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create user roles table
-    CREATE TABLE `user_roles` (
-    role_id int(11) NOT NULL AUTO_INCREMENT,
-    role_name varchar(50) NOT NULL,
-    description text,
-    PRIMARY KEY (`role_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
 
--- Create personal_information table
-CREATE TABLE personal_information (
-    personal_info_id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    date_of_birth DATE NOT NULL,
-    gender ENUM('Male', 'Female', 'Non-binary', 'Prefer not to say') NOT NULL,
-    marital_status ENUM('Single', 'Married', 'Divorced', 'Widowed') NOT NULL,
-    nationality VARCHAR(50) NOT NULL,
-    tax_id VARCHAR(20),
-    social_security_number VARCHAR(20),
-    phone_number VARCHAR(20) NOT NULL,
-    emergency_contact_name VARCHAR(100),
-    emergency_contact_relationship VARCHAR(50),
-    emergency_contact_phone VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
-CREATE TABLE job_roles (
-    job_role_id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(100) NOT NULL,
-    description TEXT NOT NULL,
-    department VARCHAR(150) NOT NULL,  -- Changed from 50 to 150
-    min_salary DECIMAL(10,2),
-    max_salary DECIMAL(10,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+--
+-- Database: `hr_system`
+--
 
--- Create employee_profiles table (no manager references)
-CREATE TABLE employee_profiles (
-    employee_id INT AUTO_INCREMENT PRIMARY KEY,
-    personal_info_id INT UNIQUE,
-    job_role_id INT,
-    employee_number VARCHAR(20) NOT NULL UNIQUE,
-    hire_date DATE NOT NULL,
-    employment_status ENUM('Full-time', 'Part-time', 'Contract', 'Intern', 'Terminated') NOT NULL,
-    current_salary DECIMAL(10,2) NOT NULL,
-    work_email VARCHAR(100) UNIQUE,
-    work_phone VARCHAR(20),
-    location VARCHAR(100),
-    remote_work BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (personal_info_id) REFERENCES personal_information(personal_info_id) ON DELETE SET NULL,
-    FOREIGN KEY (job_role_id) REFERENCES job_roles(job_role_id) ON DELETE SET NULL
-);
-
--- Add foreign key constraint to users table after employee_profiles is created
--- ALTER TABLE users ADD FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE SET NULL;
-
--- Create departments table (no manager references)
-CREATE TABLE departments (
-    department_id INT AUTO_INCREMENT PRIMARY KEY,
-    department_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    location VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- New Employment History Table
-CREATE TABLE employment_history (
-    history_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_clearance_status` (IN `p_checklist_id` INT)   BEGIN
+    DECLARE v_status VARCHAR(20);
+    DECLARE v_approval VARCHAR(20);
     
-    -- Core employment details
-    job_title VARCHAR(150) NOT NULL,               -- Job Position / Title
-    department_id INT,                             -- Department / Division (FK to departments table)
-    employment_type ENUM('Full-time','Part-time','Contractual','Project-based','Casual','Intern') NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE,
-    employment_status ENUM('Active','Resigned','Terminated','Retired','End of Contract','Transferred') NOT NULL,
+    SELECT status, approval_status INTO v_status, v_approval
+    FROM exit_checklist
+    WHERE checklist_id = p_checklist_id;
     
-    -- Reporting and assignment
-    reporting_manager_id INT,                      -- Supervisor (FK to employee_profiles)
-    location VARCHAR(150),                         -- Office/Branch/Remote
-    
-    -- Compensation
-    base_salary DECIMAL(10,2) NOT NULL,
-    allowances DECIMAL(10,2) DEFAULT 0.00,
-    bonuses DECIMAL(10,2) DEFAULT 0.00,
-    salary_adjustments DECIMAL(10,2) DEFAULT 0.00,
-    
-    -- Career movement
-    reason_for_change VARCHAR(255),                -- Promotion, resignation, transfer, etc.
-    promotions_transfers TEXT,                     -- Notes about movement history
-    
-    -- Performance & Training
-    duties_responsibilities TEXT,
-    performance_evaluations TEXT,
-    training_certifications TEXT,
-    
-    -- Contract & Notes
-    contract_details TEXT,                         -- Contract type, duration, renewals
-    remarks TEXT,
-    
-    -- Timestamps
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Foreign Keys
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL,
-    FOREIGN KEY (reporting_manager_id) REFERENCES employee_profiles(employee_id) ON DELETE SET NULL
+    IF v_status = 'Completed' AND v_approval = 'Approved' THEN
+        UPDATE exit_checklist
+        SET clearance_status = 'Cleared',
+            clearance_date = CURDATE(),
+            cleared_by = COALESCE(approved_by, 'System')
+        WHERE checklist_id = p_checklist_id;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `archive_storage`
+--
+
+CREATE TABLE `archive_storage` (
+  `archive_id` int(11) NOT NULL,
+  `source_table` enum('employee_profiles','personal_information','employment_history','document_management') NOT NULL,
+  `record_id` int(11) NOT NULL COMMENT 'Original primary key from source table',
+  `employee_id` int(11) DEFAULT NULL COMMENT 'Employee reference for all archived records',
+  `record_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'JSON containing all original data',
+  `archive_reason` enum('Termination','Resignation','Retirement','Data Cleanup','System Migration','Expired Document','Other') NOT NULL,
+  `archive_reason_details` text DEFAULT NULL,
+  `archived_by` int(11) NOT NULL COMMENT 'User ID who archived the record',
+  `archived_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `can_restore` tinyint(1) DEFAULT 1 COMMENT 'Whether this record can be restored',
+  `restored_at` timestamp NULL DEFAULT NULL,
+  `restored_by` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ;
+
+--
+-- Dumping data for table `archive_storage`
+--
+
+INSERT INTO `archive_storage` (`archive_id`, `source_table`, `record_id`, `employee_id`, `record_data`, `archive_reason`, `archive_reason_details`, `archived_by`, `archived_at`, `can_restore`, `restored_at`, `restored_by`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 'employee_profiles', 16, 16, '{\r\n  \"employee_id\": 16,\r\n  \"personal_info_id\": 16,\r\n  \"job_role_id\": 29,\r\n  \"employee_number\": \"MUN016\",\r\n  \"hire_date\": \"2018-03-15\",\r\n  \"employment_status\": \"Terminated\",\r\n  \"current_salary\": 30000.00,\r\n  \"work_email\": \"pedro.santos@municipality.gov.ph\",\r\n  \"work_phone\": \"034-123-0016\",\r\n  \"location\": \"Municipal Civil Registrar\'s Office\",\r\n  \"remote_work\": 0,\r\n  \"created_at\": \"2018-03-15 02:00:00\",\r\n  \"updated_at\": \"2025-08-14 05:20:00\"\r\n}', 'Termination', 'Employee terminated due to prolonged absence without notice (AWOL)', 1, '2025-08-15 08:30:00', 0, NULL, NULL, 'Final clearance completed. All equipment returned.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(2, 'personal_information', 16, 16, '{\r\n  \"personal_info_id\": 16,\r\n  \"first_name\": \"Pedro\",\r\n  \"last_name\": \"Santos\",\r\n  \"date_of_birth\": \"1985-05-20\",\r\n  \"gender\": \"Male\",\r\n  \"marital_status\": \"Single\",\r\n  \"nationality\": \"Filipino\",\r\n  \"tax_id\": \"678-91-2345\",\r\n  \"social_security_number\": \"678912345\",\r\n  \"phone_number\": \"0917-680-1234\",\r\n  \"emergency_contact_name\": \"Maria Santos\",\r\n  \"emergency_contact_relationship\": \"Sister\",\r\n  \"emergency_contact_phone\": \"0917-024-5678\",\r\n  \"created_at\": \"2018-03-15 02:00:00\",\r\n  \"updated_at\": \"2022-06-10 03:15:00\"\r\n}', 'Termination', 'Personal information archived with employee termination', 1, '2025-08-15 08:30:00', 0, NULL, NULL, 'Sensitive data retained as per retention policy.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(3, 'employment_history', 16, 16, '{\r\n  \"history_id\": 16,\r\n  \"employee_id\": 16,\r\n  \"job_title\": \"Clerk\",\r\n  \"department_id\": 8,\r\n  \"employment_type\": \"Full-time\",\r\n  \"start_date\": \"2018-03-15\",\r\n  \"end_date\": \"2025-08-14\",\r\n  \"employment_status\": \"Terminated\",\r\n  \"reporting_manager_id\": null,\r\n  \"location\": \"Municipal Civil Registrar\'s Office\",\r\n  \"base_salary\": 30000.00,\r\n  \"allowances\": 1000.00,\r\n  \"bonuses\": 0.00,\r\n  \"salary_adjustments\": 0.00,\r\n  \"reason_for_change\": \"Terminated due to AWOL\",\r\n  \"promotions_transfers\": null,\r\n  \"duties_responsibilities\": \"Maintained registry records, assisted clients with civil documents.\",\r\n  \"performance_evaluations\": \"Last rating was Satisfactory in 2024 review\",\r\n  \"training_certifications\": \"Civil Registration Training\",\r\n  \"contract_details\": \"Fixed-term contract terminated early\",\r\n  \"remarks\": \"Multiple written warnings for attendance issues before termination\",\r\n  \"created_at\": \"2018-03-15 02:00:00\",\r\n  \"updated_at\": \"2025-08-14 05:20:00\"\r\n}', 'Termination', 'Employment history archived upon termination', 1, '2025-08-15 08:30:00', 0, NULL, NULL, 'Complete employment record preserved for legal compliance.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(4, 'document_management', 33, 16, '{\r\n  \"document_id\": 33,\r\n  \"employee_id\": 16,\r\n  \"document_type\": \"Contract\",\r\n  \"document_name\": \"Employment Contract - Clerk\",\r\n  \"file_path\": \"/documents/contracts/pedro_santos_contract.pdf\",\r\n  \"upload_date\": \"2018-03-15 02:00:00\",\r\n  \"expiry_date\": \"2025-03-15\",\r\n  \"document_status\": \"Expired\",\r\n  \"notes\": \"Civil registrar office clerk contract\",\r\n  \"created_at\": \"2018-03-15 02:00:00\",\r\n  \"updated_at\": \"2025-08-14 05:20:00\"\r\n}', 'Expired Document', 'Document archived after employee termination and contract expiry', 1, '2025-08-15 08:30:00', 0, NULL, NULL, 'Physical document retained in secure storage.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(5, 'employee_profiles', 17, 17, '{\r\n  \"employee_id\": 17,\r\n  \"personal_info_id\": 17,\r\n  \"job_role_id\": 34,\r\n  \"employee_number\": \"MUN017\",\r\n  \"hire_date\": \"1995-06-01\",\r\n  \"employment_status\": \"Full-time\",\r\n  \"current_salary\": 25000.00,\r\n  \"work_email\": \"ramon.reyes@municipality.gov.ph\",\r\n  \"work_phone\": \"034-123-0017\",\r\n  \"location\": \"General Services Office\",\r\n  \"remote_work\": 0,\r\n  \"created_at\": \"1995-06-01 02:00:00\",\r\n  \"updated_at\": \"2025-06-29 08:00:00\"\r\n}', 'Retirement', 'Employee retired after 30 years of exemplary service', 2, '2025-06-30 16:00:00', 0, NULL, NULL, 'Retirement ceremony held on June 28, 2025. Plaque of appreciation awarded.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(6, 'personal_information', 17, 17, '{\r\n  \"personal_info_id\": 17,\r\n  \"first_name\": \"Ramon\",\r\n  \"last_name\": \"Reyes\",\r\n  \"date_of_birth\": \"1960-02-15\",\r\n  \"gender\": \"Male\",\r\n  \"marital_status\": \"Married\",\r\n  \"nationality\": \"Filipino\",\r\n  \"tax_id\": \"789-02-3456\",\r\n  \"social_security_number\": \"789023456\",\r\n  \"phone_number\": \"0917-791-2345\",\r\n  \"emergency_contact_name\": \"Elena Reyes\",\r\n  \"emergency_contact_relationship\": \"Spouse\",\r\n  \"emergency_contact_phone\": \"0917-135-6789\",\r\n  \"created_at\": \"1995-06-01 02:00:00\",\r\n  \"updated_at\": \"2020-03-10 04:20:00\"\r\n}', 'Retirement', 'Personal information archived upon retirement', 2, '2025-06-30 16:00:00', 0, NULL, NULL, 'Contact information maintained for pension processing.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(7, 'document_management', 35, 11, '{\r\n  \"document_id\": 35,\r\n  \"employee_id\": 11,\r\n  \"document_type\": \"Resume\",\r\n  \"document_name\": \"Resume - Ana Morales (2020 Version)\",\r\n  \"file_path\": \"/documents/resumes/ana_morales_resume_2020.pdf\",\r\n  \"upload_date\": \"2020-04-15 02:00:00\",\r\n  \"expiry_date\": null,\r\n  \"document_status\": \"Active\",\r\n  \"notes\": \"Outdated resume replaced with newer version\",\r\n  \"created_at\": \"2020-04-15 02:00:00\",\r\n  \"updated_at\": \"2025-10-01 03:15:00\"\r\n}', 'Data Cleanup', 'Old version archived after employee submitted updated resume', 2, '2025-10-01 10:00:00', 1, NULL, NULL, 'Previous version archived for historical records.', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(8, 'employment_history', 18, 18, '{\r\n  \"history_id\": 18,\r\n  \"employee_id\": 18,\r\n  \"job_title\": \"Budget Analyst\",\r\n  \"department_id\": 4,\r\n  \"employment_type\": \"Full-time\",\r\n  \"start_date\": \"2019-09-01\",\r\n  \"end_date\": \"2025-09-30\",\r\n  \"employment_status\": \"Resigned\",\r\n  \"reporting_manager_id\": null,\r\n  \"location\": \"Municipal Budget Office\",\r\n  \"base_salary\": 42000.00,\r\n  \"allowances\": 3000.00,\r\n  \"bonuses\": 5000.00,\r\n  \"salary_adjustments\": 2000.00,\r\n  \"reason_for_change\": \"Resigned for career advancement opportunity abroad\",\r\n  \"promotions_transfers\": \"Promoted from Administrative Aide in 2021\",\r\n  \"duties_responsibilities\": \"Analyzed budget data and prepared financial reports for municipal operations.\",\r\n  \"performance_evaluations\": \"Consistently rated Outstanding. Received Best Employee Award 2023.\",\r\n  \"training_certifications\": \"Financial Planning Certification, Advanced Excel Training\",\r\n  \"contract_details\": \"Regular plantilla position\",\r\n  \"remarks\": \"Excellent employee. Provided comprehensive turnover documentation. Eligible for rehire.\",\r\n  \"created_at\": \"2019-09-01 02:00:00\",\r\n  \"updated_at\": \"2025-09-30 10:15:00\"\r\n}', 'Resignation', 'Employee resigned in good standing for overseas employment', 1, '2025-09-30 14:00:00', 1, NULL, NULL, 'Exit clearance completed. Certificate of Employment issued.', '2026-01-20 02:55:57', '2026-01-20 02:55:57');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance`
+--
+
+CREATE TABLE `attendance` (
+  `attendance_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `attendance_date` date NOT NULL,
+  `clock_in` datetime DEFAULT NULL,
+  `clock_out` datetime DEFAULT NULL,
+  `status` enum('Present','Absent','Late','Half Day','On Leave') NOT NULL,
+  `working_hours` decimal(5,2) DEFAULT NULL,
+  `overtime_hours` decimal(5,2) DEFAULT 0.00,
+  `late_minutes` decimal(5,2) DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance_summary`
+--
+
+CREATE TABLE `attendance_summary` (
+  `summary_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `month` int(11) NOT NULL,
+  `year` year(4) NOT NULL,
+  `total_present` int(11) DEFAULT 0,
+  `total_absent` int(11) DEFAULT 0,
+  `total_late` int(11) DEFAULT 0,
+  `total_leave` int(11) DEFAULT 0,
+  `total_working_hours` decimal(7,2) DEFAULT 0.00,
+  `total_overtime_hours` decimal(5,2) DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `benefits_plans`
+--
+
+CREATE TABLE `benefits_plans` (
+  `benefit_plan_id` int(11) NOT NULL,
+  `plan_name` varchar(100) NOT NULL,
+  `plan_type` varchar(50) NOT NULL,
+  `description` text DEFAULT NULL,
+  `eligibility_criteria` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bonus_payments`
+--
+
+CREATE TABLE `bonus_payments` (
+  `bonus_payment_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `bonus_type` varchar(50) NOT NULL,
+  `bonus_amount` decimal(10,2) NOT NULL,
+  `payment_date` date NOT NULL,
+  `payroll_cycle_id` int(11) DEFAULT NULL,
+  `reason` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `candidates`
+--
+
+CREATE TABLE `candidates` (
+  `candidate_id` int(11) NOT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `resume_url` varchar(255) DEFAULT NULL,
+  `cover_letter_url` varchar(255) DEFAULT NULL,
+  `source` varchar(100) DEFAULT NULL,
+  `current_position` varchar(100) DEFAULT NULL,
+  `current_company` varchar(100) DEFAULT NULL,
+  `notice_period` varchar(50) DEFAULT NULL,
+  `expected_salary` decimal(10,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pds_data`
+--
+
+CREATE TABLE `pds_data` (
+  `pds_id` int(11) NOT NULL,
+  `candidate_id` int(11) NOT NULL,
+  
+  -- I. Personal Information
+  `surname` varchar(100) DEFAULT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `middle_name` varchar(100) DEFAULT NULL,
+  `name_extension` varchar(20) DEFAULT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `place_of_birth` varchar(255) DEFAULT NULL,
+  `sex` enum('Male','Female') DEFAULT NULL,
+  `civil_status` enum('Single','Married','Widowed','Separated') DEFAULT NULL,
+  `height` decimal(5,2) DEFAULT NULL,
+  `weight` decimal(5,2) DEFAULT NULL,
+  `blood_type` varchar(10) DEFAULT NULL,
+  
+  -- Government IDs
+  `gsis_id` varchar(50) DEFAULT NULL,
+  `pagibig_id` varchar(50) DEFAULT NULL,
+  `philhealth_no` varchar(50) DEFAULT NULL,
+  `sss_no` varchar(50) DEFAULT NULL,
+  `tin_no` varchar(50) DEFAULT NULL,
+  `agency_employee_no` varchar(50) DEFAULT NULL,
+  
+  -- Citizenship
+  `citizenship_type` varchar(50) DEFAULT NULL,
+  `citizenship_country` varchar(100) DEFAULT NULL,
+  
+  -- Residential Address
+  `residential_address` text DEFAULT NULL,
+  `residential_subdivision` varchar(100) DEFAULT NULL,
+  `residential_barangay` varchar(100) DEFAULT NULL,
+  `residential_city` varchar(100) DEFAULT NULL,
+  `residential_province` varchar(100) DEFAULT NULL,
+  `residential_zipcode` varchar(20) DEFAULT NULL,
+  
+  -- Permanent Address
+  `permanent_address` text DEFAULT NULL,
+  `permanent_subdivision` varchar(100) DEFAULT NULL,
+  `permanent_barangay` varchar(100) DEFAULT NULL,
+  `permanent_city` varchar(100) DEFAULT NULL,
+  `permanent_province` varchar(100) DEFAULT NULL,
+  `permanent_zipcode` varchar(20) DEFAULT NULL,
+  
+  -- Contact Information
+  `telephone` varchar(50) DEFAULT NULL,
+  `mobile` varchar(50) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  
+  -- II. Family Background
+  `spouse_surname` varchar(100) DEFAULT NULL,
+  `spouse_firstname` varchar(100) DEFAULT NULL,
+  `spouse_middlename` varchar(100) DEFAULT NULL,
+  `spouse_occupation` varchar(100) DEFAULT NULL,
+  `spouse_employer` varchar(255) DEFAULT NULL,
+  `spouse_business_address` text DEFAULT NULL,
+  `spouse_telephone` varchar(50) DEFAULT NULL,
+  
+  `father_surname` varchar(100) DEFAULT NULL,
+  `father_firstname` varchar(100) DEFAULT NULL,
+  `father_middlename` varchar(100) DEFAULT NULL,
+  
+  `mother_surname` varchar(100) DEFAULT NULL,
+  `mother_firstname` varchar(100) DEFAULT NULL,
+  `mother_middlename` varchar(100) DEFAULT NULL,
+  
+  -- Children (stored as JSON array)
+  `children` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`children`)),
+  
+  -- III. Educational Background (stored as JSON array)
+  `education` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`education`)),
+  
+  -- IV. Civil Service Eligibility (stored as JSON array)
+  `eligibility` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`eligibility`)),
+  
+  -- V. Work Experience (stored as JSON array)
+  `work_experience` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`work_experience`)),
+  
+  -- VI. Voluntary Work (stored as JSON array)
+  `voluntary_work` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`voluntary_work`)),
+  
+  -- VII. Learning and Development (stored as JSON array)
+  `training` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`training`)),
+  
+  -- VIII. Other Information
+  `special_skills` text DEFAULT NULL,
+  `distinctions` text DEFAULT NULL,
+  `memberships` text DEFAULT NULL,
+  
+  -- IX. Additional Application Info
+  `current_position` varchar(150) DEFAULT NULL,
+  `current_company` varchar(255) DEFAULT NULL,
+  `notice_period` varchar(100) DEFAULT NULL,
+  `expected_salary` decimal(10,2) DEFAULT NULL,
+  `application_source` varchar(100) DEFAULT NULL,
+  
+  -- X. Character References (stored as JSON array)
+  `references` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`references`)),
+  
+  -- File storage (PDF/JSON stored in database)
+  `pds_file_blob` longblob DEFAULT NULL COMMENT 'PDF file content stored in database',
+  `pds_file_name` varchar(255) DEFAULT NULL COMMENT 'Original filename',
+  `pds_file_type` varchar(50) DEFAULT NULL COMMENT 'MIME type (application/pdf, application/json)',
+  `pds_file_size` int(11) DEFAULT NULL COMMENT 'File size in bytes',
+  `json_file_blob` longblob DEFAULT NULL COMMENT 'JSON file content stored in database',
+  
+  -- File paths (optional - for backward compatibility)
+  `pds_file_path` varchar(255) DEFAULT NULL,
+  `json_file_path` varchar(255) DEFAULT NULL,
+  
+  -- Metadata
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `career_paths`
+--
+
+CREATE TABLE `career_paths` (
+  `path_id` int(11) NOT NULL,
+  `path_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `career_path_stages`
+--
+
+CREATE TABLE `career_path_stages` (
+  `stage_id` int(11) NOT NULL,
+  `path_id` int(11) NOT NULL,
+  `job_role_id` int(11) NOT NULL,
+  `stage_order` int(11) NOT NULL,
+  `minimum_time_in_role` int(11) DEFAULT NULL COMMENT 'In months',
+  `required_skills` text DEFAULT NULL,
+  `required_experience` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `compensation_packages`
+--
+
+CREATE TABLE `compensation_packages` (
+  `compensation_package_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `package_name` varchar(100) NOT NULL,
+  `base_salary` decimal(10,2) NOT NULL,
+  `variable_pay` decimal(10,2) DEFAULT 0.00,
+  `benefits_summary` text DEFAULT NULL,
+  `total_compensation` decimal(10,2) NOT NULL,
+  `effective_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `competencies`
+--
+
+CREATE TABLE `competencies` (
+  `competency_id` int(11) NOT NULL,
+  `job_role_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `category` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `competencies`
+--
+
+INSERT INTO `competencies` (`competency_id`, `job_role_id`, `name`, `description`, `category`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Leadership', 'Provides vision and direction for the municipality.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(2, 1, 'Strategic Planning', 'Develops and implements long-term municipal goals.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(3, 1, 'Public Relations', 'Represents the municipality in community and government affairs.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(4, 2, 'Legislative Management', 'Oversees the drafting and passage of local ordinances.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(5, 2, 'Conflict Resolution', 'Mediates disputes within the council and community.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(6, 2, 'Public Communication', 'Communicates effectively with citizens and stakeholders.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(7, 3, 'Policy Formulation', 'Creates and supports local policies and ordinances.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(8, 3, 'Community Outreach', 'Engages with the public to understand community needs.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(9, 3, 'Decision Making', 'Makes informed choices to benefit the local community.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(10, 4, 'Revenue Collection', 'Ensures efficient and transparent collection of taxes and fees.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(11, 4, 'Financial Reporting', 'Prepares accurate financial statements.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(12, 4, 'Accountability', 'Maintains transparency in handling municipal funds.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(13, 5, 'Budget Preparation', 'Prepares annual municipal budget in coordination with departments.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(14, 5, 'Fiscal Analysis', 'Analyzes financial data to ensure balanced budgeting.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(15, 5, 'Resource Allocation', 'Distributes resources effectively to meet objectives.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(16, 6, 'Financial Auditing', 'Conducts internal financial reviews for accuracy.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(17, 6, 'Compliance Monitoring', 'Ensures all transactions follow accounting standards.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(18, 6, 'Attention to Detail', 'Maintains precision in recording transactions.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(19, 7, 'Urban Planning', 'Designs and implements sustainable development projects.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(20, 7, 'Project Evaluation', 'Monitors and assesses progress of municipal plans.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(21, 7, 'Analytical Thinking', 'Uses data-driven analysis for development decisions.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(22, 8, 'Infrastructure Design', 'Creates engineering plans for municipal projects.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(23, 8, 'Construction Oversight', 'Supervises construction works for quality and safety.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(24, 8, 'Problem Solving', 'Resolves engineering and logistical challenges effectively.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(25, 9, 'Records Management', 'Manages vital records such as births, deaths, and marriages.', 'Administrative', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(26, 9, 'Data Accuracy', 'Ensures completeness and correctness of civil documents.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(27, 9, 'Customer Service', 'Provides courteous and efficient service to citizens.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(28, 10, 'Public Health Management', 'Oversees local health programs and facilities.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(29, 10, 'Epidemiology', 'Monitors and responds to health issues within the municipality.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(30, 10, 'Team Leadership', 'Leads and mentors municipal health staff.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(31, 11, 'Case Management', 'Handles cases involving vulnerable individuals and families.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(32, 11, 'Program Implementation', 'Executes social welfare programs efficiently.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(33, 11, 'Empathy', 'Demonstrates compassion in dealing with community members.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(34, 12, 'Crop Production Management', 'Promotes modern and sustainable farming techniques.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(35, 12, 'Farmer Training', 'Conducts training and workshops for farmers.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(36, 12, 'Environmental Awareness', 'Encourages eco-friendly agricultural practices.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(37, 13, 'Property Valuation', 'Determines fair property assessments.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(38, 13, 'Data Verification', 'Ensures accurate real property data.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(39, 13, 'Integrity', 'Upholds honesty in property assessments.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(40, 14, 'Recruitment and Selection', 'Manages hiring processes to attract qualified candidates.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(41, 14, 'Performance Evaluation', 'Implements employee appraisal systems.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(42, 14, 'Employee Relations', 'Builds a positive and inclusive workplace culture.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(43, 15, 'Disaster Preparedness', 'Develops and conducts disaster response plans.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(44, 15, 'Emergency Coordination', 'Leads emergency response teams during disasters.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(45, 15, 'Risk Assessment', 'Identifies and mitigates potential hazards.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(46, 16, 'Asset Management', 'Oversees the maintenance of municipal properties.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(47, 16, 'Procurement Planning', 'Ensures proper acquisition of goods and services.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(48, 16, 'Efficiency', 'Optimizes municipal logistics and operations.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(49, 17, 'Patient Care', 'Provides compassionate and professional nursing services.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(50, 17, 'Health Education', 'Promotes wellness and preventive healthcare.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(51, 17, 'Teamwork', 'Collaborates with other healthcare professionals effectively.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(52, 18, 'Maternal Care', 'Provides prenatal, delivery, and postnatal care.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(53, 18, 'Community Health', 'Educates mothers on health and hygiene practices.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(54, 18, 'Emergency Response', 'Responds effectively to maternal emergencies.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(55, 19, 'Health Inspection', 'Inspects sanitation facilities and waste management systems.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(56, 19, 'Public Safety Compliance', 'Ensures establishments follow sanitation laws.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(57, 19, 'Observation Skills', 'Identifies and corrects potential public health hazards.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(58, 20, 'Counseling', 'Provides emotional and practical support to clients.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(59, 20, 'Case Documentation', 'Maintains accurate client records.', 'Administrative', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(60, 20, 'Interpersonal Skills', 'Builds trust with individuals and families.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(61, 21, 'Soil Management', 'Analyzes soil quality and recommends treatments.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(62, 21, 'Field Monitoring', 'Assists in implementing agricultural projects.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(63, 21, 'Communication', 'Advises farmers on best agricultural practices.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(64, 22, 'Structural Design', 'Creates and verifies engineering blueprints.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(65, 22, 'Safety Compliance', 'Ensures all construction projects meet safety standards.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(66, 22, 'Critical Thinking', 'Analyzes problems and provides effective engineering solutions.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(67, 23, 'Technical Drafting', 'Prepares precise CAD drawings for projects.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(68, 23, 'Attention to Detail', 'Maintains accuracy in design documentation.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(69, 23, 'Collaboration', 'Works closely with engineers and architects.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(70, 24, 'Building Code Enforcement', 'Ensures structures comply with safety regulations.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(71, 24, 'Inspection Reporting', 'Prepares detailed inspection reports.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(72, 24, 'Integrity', 'Maintains impartiality during inspections.', 'Core', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(73, 25, 'Budget Evaluation', 'Analyzes and reviews budget requests for compliance.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(74, 25, 'Financial Forecasting', 'Predicts financial trends to guide budgeting decisions.', 'Technical', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(75, 25, 'Analytical Thinking', 'Interprets complex financial data accurately.', 'Behavioral', '2025-10-22 07:45:57', '2025-10-22 07:45:57'),
+(76, 26, 'Bookkeeping', 'Maintains accurate financial records and ledgers.', 'Technical', '2025-10-22 07:50:22', '2026-01-20 03:12:40'),
+(77, 26, 'Data Accuracy', 'Ensures precision when recording financial transactions.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(78, 26, 'Financial Reporting', 'Prepares monthly and annual financial reports.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(79, 27, 'Research and Data Analysis', 'Collects and interprets data for planning purposes.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(80, 27, 'Project Documentation', 'Prepares planning documents and proposals.', 'Administrative', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(81, 27, 'Collaboration', 'Works effectively with the planning coordinator and other departments.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(82, 28, 'Clerical Support', 'Assists with filing, record keeping, and basic office tasks.', 'Administrative', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(83, 28, 'Time Management', 'Completes assigned tasks promptly and efficiently.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(84, 28, 'Office Organization', 'Keeps documents and materials organized for easy retrieval.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(85, 29, 'Document Management', 'Files and retrieves official documents systematically.', 'Administrative', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(86, 29, 'Communication Skills', 'Coordinates effectively with internal and external clients.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(87, 29, 'Attention to Detail', 'Ensures accuracy in records and correspondence.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(88, 30, 'Cash Handling', 'Processes payments and receipts accurately and securely.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(89, 30, 'Customer Service', 'Provides courteous service when handling transactions.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(90, 30, 'Account Reconciliation', 'Balances daily cash collections and deposits.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(91, 31, 'Revenue Collection', 'Collects payments from citizens and businesses efficiently.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(92, 31, 'Record Accuracy', 'Maintains accurate records of collections and receipts.', 'Administrative', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(93, 31, 'Integrity', 'Handles municipal funds responsibly and ethically.', 'Core', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(94, 32, 'Inventory Management', 'Maintains records of all municipal assets.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(95, 32, 'Asset Security', 'Ensures safekeeping of government property and supplies.', 'Core', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(96, 32, 'Reporting', 'Prepares reports on equipment condition and usage.', 'Administrative', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(97, 33, 'Facility Maintenance', 'Performs repairs and upkeep of municipal buildings.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(98, 33, 'Safety Compliance', 'Follows safety standards when performing maintenance work.', 'Core', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(99, 33, 'Teamwork', 'Works cooperatively with maintenance and engineering teams.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(100, 34, 'Cleaning and Sanitation', 'Maintains cleanliness of municipal facilities.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(101, 34, 'Waste Management', 'Properly handles waste disposal and recycling.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(102, 34, 'Dependability', 'Performs assigned duties reliably and on time.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(103, 35, 'Vehicle Operation', 'Operates municipal vehicles safely and responsibly.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(104, 35, 'Vehicle Maintenance', 'Conducts basic checks and ensures vehicles are in good condition.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(105, 35, 'Punctuality', 'Adheres to schedules and assigned routes consistently.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(106, 36, 'Security Monitoring', 'Guards municipal premises and monitors access points.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(107, 36, 'Crisis Response', 'Responds quickly and appropriately to emergencies.', 'Core', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(108, 36, 'Discipline', 'Demonstrates professionalism and vigilance on duty.', 'Behavioral', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(109, 37, 'Research Assistance', 'Assists in gathering information for legislative measures.', 'Technical', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(110, 37, 'Documentation', 'Prepares and organizes legislative documents and minutes.', 'Administrative', '2025-10-22 07:50:22', '2025-10-22 07:50:22'),
+(111, 37, 'Confidentiality', 'Maintains discretion when handling official legislative matters.', 'Core', '2025-10-22 07:50:22', '2025-10-22 07:50:22');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `departments`
+--
+
+CREATE TABLE `departments` (
+  `department_id` int(11) NOT NULL,
+  `department_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `location` varchar(100) DEFAULT NULL,
+  `vacancy_limit` int(11) DEFAULT NULL COMMENT 'Maximum number of open job vacancies allowed for this department',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `departments`
+--
+
+INSERT INTO `departments` (`department_id`, `department_name`, `description`, `location`, `created_at`, `updated_at`) VALUES
+(1, 'Office of the Mayor', 'Executive office responsible for municipal governance and administration', 'City Hall - 2nd Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(2, 'Sangguniang Bayan', 'Municipal legislative body responsible for enacting local ordinances', 'City Hall - Session Hall', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(3, 'Municipal Treasurer\'s Office', 'Handles municipal revenue collection, treasury operations, and financial management', 'City Hall - 1st Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(4, 'Municipal Budget Office', 'Responsible for budget preparation, monitoring, and financial planning', 'City Hall - 1st Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(5, 'Municipal Accountant\'s Office', 'Manages municipal accounting, bookkeeping, and financial reporting', 'City Hall - 1st Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(6, 'Municipal Planning & Development Office', 'Handles municipal planning, development programs, and project management', 'City Hall - 3rd Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(7, 'Municipal Engineer\'s Office', 'Oversees infrastructure projects, public works, and engineering services', 'Engineering Building', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(8, 'Municipal Civil Registrar\'s Office', 'Manages civil registration services and vital statistics', 'City Hall - Ground Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(9, 'Municipal Health Office', 'Provides public health services and healthcare programs', 'Health Center Building', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(10, 'Municipal Social Welfare & Development Office', 'Administers social services and community development programs', 'Social Services Building', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(11, 'Municipal Agriculture Office', 'Supports agricultural development and provides farming assistance', 'Agriculture Extension Office', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(12, 'Municipal Assessor\'s Office', 'Conducts property assessment and real property taxation', 'City Hall - Ground Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(13, 'Municipal Human Resource & Administrative Office', 'Manages personnel administration and human resources', 'City Hall - 2nd Floor', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(14, 'Municipal Disaster Risk Reduction & Management Office', 'Coordinates disaster preparedness and emergency response', 'Emergency Operations Center', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(15, 'General Services Office', 'Provides general administrative support and facility management', 'City Hall - Basement', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `development_activities`
+--
+
+CREATE TABLE `development_activities` (
+  `activity_id` int(11) NOT NULL,
+  `plan_id` int(11) NOT NULL,
+  `activity_name` varchar(100) NOT NULL,
+  `activity_type` enum('Training','Mentoring','Project','Education','Other') NOT NULL,
+  `description` text DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `status` enum('Not Started','In Progress','Completed') DEFAULT 'Not Started',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `development_plans`
+--
+
+CREATE TABLE `development_plans` (
+  `plan_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `plan_name` varchar(100) NOT NULL,
+  `plan_description` text DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `status` enum('Draft','Active','Completed','Cancelled') DEFAULT 'Draft',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `document_management`
+--
+
+CREATE TABLE `document_management` (
+  `document_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `document_type` enum('Contract','ID','Resume','Certificate','Performance Review','Other') NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `upload_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `expiry_date` date DEFAULT NULL,
+  `document_status` enum('Active','Expired','Pending Review') DEFAULT 'Active',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `document_management`
+--
+
+INSERT INTO `document_management` (`document_id`, `employee_id`, `document_type`, `document_name`, `file_path`, `upload_date`, `expiry_date`, `document_status`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 1, '', 'Appointment Order - Municipal Treasurer', '/documents/appointments/maria_santos_appointment.pdf', '2025-09-09 02:00:16', NULL, 'Active', 'Appointed by Mayor per Civil Service guidelines', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(2, 1, 'Contract', 'Employment Contract - Municipal Treasurer', '/documents/contracts/maria_santos_contract.pdf', '2025-09-09 02:00:16', '2025-07-01', 'Active', 'Department head contract', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(3, 1, 'Resume', 'Resume - Maria Santos', '/documents/resumes/maria_santos_resume.pdf', '2025-09-09 02:00:16', NULL, 'Active', 'CPA with municipal finance experience', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(4, 2, '', 'Appointment Order - Municipal Engineer', '/documents/appointments/roberto_cruz_appointment.pdf', '2025-09-09 02:00:16', NULL, 'Active', 'Licensed Civil Engineer appointment', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(5, 2, 'Certificate', 'Professional Engineer License', '/documents/licenses/roberto_cruz_pe_license.pdf', '2025-09-09 02:00:16', '2025-12-31', 'Active', 'Updated PRC license', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(6, 2, 'Contract', 'Employment Contract - Municipal Engineer', '/documents/contracts/roberto_cruz_contract.pdf', '2025-09-09 02:00:16', '2024-06-15', 'Active', 'Engineering department head', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 3, 'Contract', 'Employment Contract - Nurse', '/documents/contracts/jennifer_reyes_contract.pdf', '2025-09-09 02:00:16', '2025-01-20', 'Active', 'Municipal health office nurse', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(8, 3, 'Certificate', 'Nursing License', '/documents/licenses/jennifer_reyes_rn_license.pdf', '2025-09-09 02:00:16', '2025-08-31', 'Active', 'Updated PRC nursing license', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(9, 3, 'Certificate', 'Basic Life Support Training', '/documents/certificates/jennifer_reyes_bls_cert.pdf', '2025-09-09 02:00:16', '2024-12-31', 'Active', 'Required medical certification', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(10, 4, 'Contract', 'Employment Contract - CAD Operator', '/documents/contracts/antonio_garcia_contract.pdf', '2025-09-09 02:00:16', '2024-03-10', 'Active', 'Engineering support staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(11, 4, 'Certificate', 'AutoCAD Certification', '/documents/certificates/antonio_garcia_autocad_cert.pdf', '2025-09-09 02:00:16', '2025-06-30', 'Active', 'Professional CAD certification', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(12, 5, 'Contract', 'Employment Contract - Social Worker', '/documents/contracts/lisa_mendoza_contract.pdf', '2025-09-09 02:00:16', '2024-09-05', 'Active', 'MSWDO social worker', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(13, 5, 'Certificate', 'Social Work License', '/documents/licenses/lisa_mendoza_sw_license.pdf', '2025-09-09 02:00:16', '2025-10-31', 'Active', 'Updated PRC social work license', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(14, 6, 'Contract', 'Employment Contract - Accounting Staff', '/documents/contracts/michael_torres_contract.pdf', '2025-09-09 02:00:16', '2025-11-12', 'Active', 'Municipal accountant office staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(15, 6, 'Certificate', 'Bookkeeping Certification', '/documents/certificates/michael_torres_bookkeeping_cert.pdf', '2025-09-09 02:00:16', '2024-12-31', 'Active', 'Professional bookkeeping certification', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(16, 7, 'Contract', 'Employment Contract - Clerk', '/documents/contracts/carmen_delacruz_contract.pdf', '2025-09-09 02:00:16', '2025-02-28', 'Active', 'Civil registrar office clerk', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(17, 7, '', 'Civil Registration Training', '/documents/training/carmen_delacruz_civil_reg_training.pdf', '2025-09-09 02:00:16', NULL, 'Active', 'Specialized civil registration procedures', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(18, 8, 'Contract', 'Employment Contract - Maintenance Worker', '/documents/contracts/ricardo_villanueva_contract.pdf', '2025-09-09 02:00:16', '2024-05-18', 'Active', 'General services maintenance', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(19, 8, 'Certificate', 'Electrical Safety Training', '/documents/certificates/ricardo_villanueva_electrical_safety.pdf', '2025-09-09 02:00:16', '2024-12-31', 'Active', 'Safety certification for maintenance work', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(20, 9, 'Contract', 'Employment Contract - Cashier', '/documents/contracts/sandra_pascual_contract.pdf', '2025-09-09 02:00:16', '2025-09-10', 'Active', 'Treasury office cashier', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(21, 9, '', 'Financial Management Training', '/documents/training/sandra_pascual_finance_training.pdf', '2025-09-09 02:00:16', NULL, 'Active', 'Municipal financial procedures training', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(22, 10, 'Contract', 'Employment Contract - Collection Officer', '/documents/contracts/jose_ramos_contract.pdf', '2025-09-09 02:00:16', '2024-12-01', 'Active', 'Revenue collection specialist', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(23, 10, '', 'Revenue Collection Procedures', '/documents/training/jose_ramos_collection_training.pdf', '2025-09-09 02:00:16', NULL, 'Active', 'Specialized revenue collection training', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(24, 11, 'Contract', 'Employment Contract - Administrative Aide', '/documents/contracts/ana_morales_contract.pdf', '2025-09-09 02:00:16', '2025-04-15', 'Active', 'HR office administrative support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(25, 12, 'Contract', 'Employment Contract - Agricultural Technician', '/documents/contracts/pablo_fernandez_contract.pdf', '2025-09-09 02:00:16', '2024-08-20', 'Active', 'Agriculture office technical staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(26, 12, 'Certificate', 'Agricultural Extension Training', '/documents/certificates/pablo_fernandez_agri_ext_cert.pdf', '2025-09-09 02:00:16', '2025-07-31', 'Active', 'Agricultural extension certification', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(27, 13, 'Contract', 'Employment Contract - Midwife', '/documents/contracts/grace_lopez_contract.pdf', '2025-09-09 02:00:16', '2025-06-30', 'Active', 'Municipal health office midwife', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(28, 13, 'Certificate', 'Midwifery License', '/documents/licenses/grace_lopez_midwife_license.pdf', '2025-09-09 02:00:16', '2025-09-30', 'Active', 'Updated PRC midwifery license', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(29, 14, 'Contract', 'Employment Contract - Driver', '/documents/contracts/eduardo_hernandez_contract.pdf', '2025-09-09 02:00:16', '2025-01-10', 'Active', 'Municipal vehicle operator', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(30, 14, 'Certificate', 'Professional Driver License', '/documents/licenses/eduardo_hernandez_driver_license.pdf', '2025-09-09 02:00:16', '2025-12-31', 'Active', 'Professional driver\'s license', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(31, 15, 'Contract', 'Employment Contract - Security Personnel', '/documents/contracts/rosario_gonzales_contract.pdf', '2025-09-09 02:00:16', '2024-11-05', 'Active', 'Municipal facility security', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(32, 15, 'Certificate', 'Security Guard License', '/documents/licenses/rosario_gonzales_security_license.pdf', '2025-09-09 02:00:16', '2025-08-31', 'Active', 'SOSIA security guard license', '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `educational_background`
+--
+
+CREATE TABLE `educational_background` (
+  `education_id` int(11) NOT NULL,
+  `personal_info_id` int(11) NOT NULL,
+  `education_level` enum('Elementary','High School','Vocational','Associate Degree','Bachelor''s Degree','Master''s Degree','Doctoral Degree','Other') NOT NULL,
+  `school_name` varchar(150) NOT NULL,
+  `course_degree` varchar(150) DEFAULT NULL COMMENT 'Course or degree program',
+  `major_specialization` varchar(100) DEFAULT NULL,
+  `year_started` year(4) DEFAULT NULL,
+  `year_graduated` year(4) DEFAULT NULL,
+  `honors_awards` varchar(255) DEFAULT NULL,
+  `is_highest_attainment` tinyint(1) DEFAULT 0,
+  `document_url` varchar(255) DEFAULT NULL COMMENT 'Diploma or certificate',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `educational_background`
+--
+
+INSERT INTO `educational_background` (`education_id`, `personal_info_id`, `education_level`, `school_name`, `course_degree`, `major_specialization`, `year_started`, `year_graduated`, `honors_awards`, `is_highest_attainment`, `document_url`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Bachelor\'s Degree', 'University of the Philippines', 'Bachelor of Science in Accountancy', 'Accountancy', '2003', '2007', 'Cum Laude', 1, '/documents/diplomas/maria_santos_bsa.pdf', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(2, 2, 'Bachelor\'s Degree', 'De La Salle University', 'Bachelor of Science in Civil Engineering', 'Civil Engineering', '1996', '2000', NULL, 1, '/documents/diplomas/roberto_cruz_bsce.pdf', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(3, 3, 'Bachelor\'s Degree', 'Far Eastern University', 'Bachelor of Science in Nursing', 'Nursing', '2006', '2010', NULL, 1, '/documents/diplomas/jennifer_reyes_bsn.pdf', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(4, 4, 'Vocational', 'Technical Education and Skills Development Authority', 'Computer-Aided Design', 'CAD Operations', '1993', '1995', NULL, 1, '/documents/certificates/antonio_garcia_cad_cert.pdf', '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(5, 5, 'Master\'s Degree', 'University of Santo Tomas', 'Master of Social Work', 'Community Development', '2008', '2012', NULL, 1, '/documents/diplomas/lisa_mendoza_msw.pdf', '2026-01-20 02:55:57', '2026-01-20 02:55:57');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_benefits`
+--
+
+CREATE TABLE `employee_benefits` (
+  `benefit_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `benefit_plan_id` int(11) NOT NULL,
+  `enrollment_date` date NOT NULL,
+  `benefit_amount` decimal(10,2) DEFAULT NULL,
+  `status` enum('Active','Inactive') DEFAULT 'Active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_career_paths`
+--
+
+CREATE TABLE `employee_career_paths` (
+  `employee_path_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `path_id` int(11) NOT NULL,
+  `current_stage_id` int(11) NOT NULL,
+  `start_date` date NOT NULL,
+  `target_completion_date` date DEFAULT NULL,
+  `status` enum('Active','Completed','On Hold','Abandoned') DEFAULT 'Active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_competencies`
+--
+
+CREATE TABLE `employee_competencies` (
+  `employee_id` int(11) NOT NULL,
+  `competency_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `rating` int(11) NOT NULL,
+  `assessment_date` date NOT NULL,
+  `comments` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `employee_competencies`
+--
+
+INSERT INTO `employee_competencies` (`employee_id`, `competency_id`, `cycle_id`, `rating`, `assessment_date`, `comments`, `created_at`, `updated_at`) VALUES
+(2, 22, 3, 3, '2026-01-20', 'Nice Improvement', '2026-01-20 03:29:05', '2026-01-20 04:12:51'),
+(2, 23, 3, 2, '2026-01-20', 'Attend Simminar And Training', '2026-01-20 03:29:05', '2026-01-20 04:12:51'),
+(2, 24, 3, 4, '2026-01-20', 'Excellent', '2026-01-20 03:47:10', '2026-01-20 04:12:51'),
+(7, 79, 3, 5, '2026-01-20', 'perfect', '2026-01-20 03:30:19', '2026-01-20 03:30:19'),
+(7, 80, 3, 4, '2026-01-20', 'excellent', '2026-01-20 03:30:19', '2026-01-20 03:30:19'),
+(11, 76, 3, 3, '2026-01-27', 'nice', '2026-01-27 02:03:46', '2026-01-27 02:03:46'),
+(11, 77, 3, 3, '2026-01-27', 'amazing', '2026-01-27 02:03:46', '2026-01-27 02:03:46');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `candidate_onboarding`
+--
+
+CREATE TABLE `candidate_onboarding` (
+  `candidate_onboarding_id` int(11) NOT NULL AUTO_INCREMENT,
+  `candidate_id` int(11) NOT NULL,
+  `application_id` int(11) DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `expected_completion_date` date NOT NULL,
+  `status` enum('Pending','In Progress','Completed','Cancelled') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`candidate_onboarding_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `candidate_onboarding_tasks`
+--
+
+CREATE TABLE `candidate_onboarding_tasks` (
+  `candidate_task_id` int(11) NOT NULL AUTO_INCREMENT,
+  `candidate_onboarding_id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `due_date` date NOT NULL,
+  `status` enum('Not Started','In Progress','Completed','Cancelled') DEFAULT 'Not Started',
+  `completion_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`candidate_task_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_onboarding`
+--
+
+CREATE TABLE `employee_onboarding` (
+  `onboarding_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `start_date` date NOT NULL,
+  `expected_completion_date` date NOT NULL,
+  `status` enum('Pending','In Progress','Completed') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_onboarding_tasks`
+--
+
+CREATE TABLE `employee_onboarding_tasks` (
+  `employee_task_id` int(11) NOT NULL,
+  `onboarding_id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `due_date` date NOT NULL,
+  `status` enum('Not Started','In Progress','Completed','Cancelled') DEFAULT 'Not Started',
+  `completion_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_profiles`
+--
+
+CREATE TABLE `employee_profiles` (
+  `employee_id` int(11) NOT NULL,
+  `personal_info_id` int(11) DEFAULT NULL,
+  `job_role_id` int(11) DEFAULT NULL,
+  `employee_number` varchar(20) NOT NULL,
+  `hire_date` date NOT NULL,
+  `employment_status` enum('Full-time','Part-time','Contract','Intern','Terminated') NOT NULL,
+  `current_salary` decimal(10,2) NOT NULL,
+  `work_email` varchar(100) DEFAULT NULL,
+  `work_phone` varchar(20) DEFAULT NULL,
+  `location` varchar(100) DEFAULT NULL,
+  `remote_work` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `employee_profiles`
+--
+
+INSERT INTO `employee_profiles` (`employee_id`, `personal_info_id`, `job_role_id`, `employee_number`, `hire_date`, `employment_status`, `current_salary`, `work_email`, `work_phone`, `location`, `remote_work`, `created_at`, `updated_at`) VALUES
+(1, 1, 4, 'MUN001', '2019-07-01', 'Full-time', 65000.00, 'maria.santos@municipality.gov.ph', '034-123-0001', 'City Hall - 1st Floor', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(2, 2, 8, 'MUN002', '2018-06-15', 'Full-time', 75000.00, 'roberto.cruz@municipality.gov.ph', '034-123-0002', 'Engineering Building', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(3, 3, 17, 'MUN003', '2020-01-20', 'Full-time', 42000.00, 'jennifer.reyes@municipality.gov.ph', '034-123-0003', 'Municipal Health Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(4, 4, 21, 'MUN004', '2019-03-10', 'Full-time', 38000.00, 'antonio.garcia@municipality.gov.ph', '034-123-0004', 'Municipal Engineer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(5, 5, 20, 'MUN005', '2021-09-05', 'Full-time', 45000.00, 'lisa.mendoza@municipality.gov.ph', '034-123-0005', 'Municipal Social Welfare & Development Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(6, 6, 25, 'MUN006', '2020-11-12', 'Full-time', 28000.00, 'michael.torres@municipality.gov.ph', '034-123-0006', 'Municipal Accountant\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 7, 27, 'MUN007', '2022-02-28', 'Full-time', 30000.00, 'carmen.delacruz@municipality.gov.ph', '034-123-0007', 'Municipal Civil Registrar\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(8, 8, 32, 'MUN008', '2021-05-18', 'Full-time', 22000.00, 'ricardo.villanueva@municipality.gov.ph', '034-123-0008', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(9, 9, 28, 'MUN009', '2020-09-10', 'Full-time', 32000.00, 'sandra.pascual@municipality.gov.ph', '034-123-0009', 'Municipal Treasurer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(10, 10, 29, 'MUN010', '2019-12-01', 'Full-time', 35000.00, 'jose.ramos@municipality.gov.ph', '034-123-0010', 'Municipal Treasurer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(11, 11, 26, 'MUN011', '2022-04-15', 'Full-time', 28000.00, 'ana.morales@municipality.gov.ph', '034-123-0011', 'Municipal Human Resource & Administrative Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(12, 12, 19, 'MUN012', '2021-08-20', 'Full-time', 40000.00, 'pablo.fernandez@municipality.gov.ph', '034-123-0012', 'Municipal Agriculture Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(13, 13, 18, 'MUN013', '2020-06-30', 'Full-time', 42000.00, 'grace.lopez@municipality.gov.ph', '034-123-0013', 'Municipal Health Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(14, 14, 31, 'MUN014', '2022-01-10', 'Full-time', 25000.00, 'eduardo.hernandez@municipality.gov.ph', '034-123-0014', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(15, 15, 33, 'MUN015', '2021-11-05', 'Full-time', 24000.00, 'rosario.gonzales@municipality.gov.ph', '034-123-0015', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_resources`
+--
+
+CREATE TABLE `employee_resources` (
+  `employee_resource_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `resource_id` int(11) NOT NULL,
+  `assigned_date` date NOT NULL,
+  `due_date` date DEFAULT NULL,
+  `completed_date` date DEFAULT NULL,
+  `status` enum('Assigned','In Progress','Completed','Overdue') DEFAULT 'Assigned',
+  `rating` int(11) DEFAULT NULL,
+  `feedback` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_shifts`
+--
+
+CREATE TABLE `employee_shifts` (
+  `employee_shift_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `shift_id` int(11) NOT NULL,
+  `assigned_date` date NOT NULL,
+  `is_overtime` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `employee_shifts`
+--
+
+INSERT INTO `employee_shifts` (`employee_shift_id`, `employee_id`, `shift_id`, `assigned_date`, `is_overtime`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, '2024-01-15', 0, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(2, 2, 2, '2024-01-15', 1, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(3, 3, 1, '2024-01-16', 0, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(4, 4, 3, '2024-01-16', 0, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(5, 5, 1, '2024-01-17', 0, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(6, 6, 2, '2024-01-17', 1, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(7, 7, 1, '2024-01-18', 0, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(8, 8, 4, '2024-01-18', 0, '2025-09-14 07:13:53', '2025-09-14 07:13:53');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_skills`
+--
+
+CREATE TABLE `employee_skills` (
+  `employee_skill_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `skill_id` int(11) NOT NULL,
+  `proficiency_level` enum('Beginner','Intermediate','Advanced','Expert') NOT NULL,
+  `assessed_date` date NOT NULL,
+  `certification_url` varchar(255) DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employment_history`
+--
+
+CREATE TABLE `employment_history` (
+  `history_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `job_title` varchar(150) NOT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `employment_type` enum('Full-time','Part-time','Contractual','Project-based','Casual','Intern') NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
+  `employment_status` enum('Active','Resigned','Terminated','Retired','End of Contract','Transferred') NOT NULL,
+  `reporting_manager_id` int(11) DEFAULT NULL,
+  `location` varchar(150) DEFAULT NULL,
+  `base_salary` decimal(10,2) NOT NULL,
+  `allowances` decimal(10,2) DEFAULT 0.00,
+  `bonuses` decimal(10,2) DEFAULT 0.00,
+  `salary_adjustments` decimal(10,2) DEFAULT 0.00,
+  `reason_for_change` varchar(255) DEFAULT NULL,
+  `promotions_transfers` text DEFAULT NULL,
+  `duties_responsibilities` text DEFAULT NULL,
+  `performance_evaluations` text DEFAULT NULL,
+  `training_certifications` text DEFAULT NULL,
+  `contract_details` text DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `employment_history`
+--
+
+INSERT INTO `employment_history` (`history_id`, `employee_id`, `job_title`, `department_id`, `employment_type`, `start_date`, `end_date`, `employment_status`, `reporting_manager_id`, `location`, `base_salary`, `allowances`, `bonuses`, `salary_adjustments`, `reason_for_change`, `promotions_transfers`, `duties_responsibilities`, `performance_evaluations`, `training_certifications`, `contract_details`, `remarks`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Municipal Treasurer', 3, 'Full-time', '2019-07-01', NULL, 'Active', NULL, 'City Hall - 1st Floor', 65000.00, 5000.00, 0.00, 0.00, 'Appointed as Municipal Treasurer', 'Promoted from Administrative Aide', 'Oversees treasury operations, municipal revenue collection, and financial management.', 'Consistently rated \"Excellent\" in financial audits', 'CPA Certification, Treasury Management Training', 'Appointed by Mayor, renewable 6-year term', 'Key finance official', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(2, 2, 'Municipal Engineer', 7, 'Full-time', '2018-06-15', NULL, 'Active', NULL, 'Engineering Building', 75000.00, 6000.00, 0.00, 0.00, 'Appointed as Municipal Engineer', 'Promoted from CAD Operator', 'Supervises infrastructure projects, designs municipal roads and buildings.', 'Rated \"Very Satisfactory\" in infrastructure project completion', 'PRC Civil Engineer License, Project Management Certification', 'Appointed by Mayor, renewable 6-year term', 'Head of engineering department', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(3, 3, 'Nurse', 9, 'Full-time', '2020-01-20', NULL, 'Active', 10, 'Municipal Health Office', 42000.00, 3000.00, 0.00, 0.00, 'Hired as Nurse', NULL, 'Provides nursing care, assists doctors, administers vaccinations.', 'Highly commended during pandemic response', 'PRC Nursing License, Basic Life Support Training', 'Contract renewable every 3 years', 'Dedicated health staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(4, 4, 'CAD Operator', 7, 'Full-time', '2019-03-10', NULL, 'Active', 2, 'Municipal Engineer\'s Office', 38000.00, 2000.00, 0.00, 0.00, 'Hired as CAD Operator', NULL, 'Prepares AutoCAD drawings and engineering plans.', 'Satisfactory performance in multiple LGU projects', 'AutoCAD Certification', 'Fixed-term renewable contract', 'Key engineering support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(5, 5, 'Social Worker', 10, 'Full-time', '2021-09-05', NULL, 'Active', NULL, 'Municipal Social Welfare & Development Office', 45000.00, 3000.00, 0.00, 0.00, 'Hired as Social Worker', 'Promoted from Administrative Aide', 'Handles casework, provides assistance to indigent families.', 'Rated \"Very Good\" in community outreach', 'Social Work License, Community Development Training', 'Regular plantilla position', 'Handles social services cases', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(6, 6, 'Accounting Staff', 5, 'Full-time', '2020-11-12', NULL, 'Active', NULL, 'Municipal Accountant\'s Office', 28000.00, 1500.00, 0.00, 0.00, 'Hired as Accounting Staff', NULL, 'Processes vouchers, prepares reports, assists in bookkeeping.', 'Satisfactory audit reviews', 'Bookkeeping Certification', 'Regular plantilla position', 'Junior accounting role', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 7, 'Clerk', 8, 'Full-time', '2022-02-28', NULL, 'Active', NULL, 'Municipal Civil Registrar\'s Office', 30000.00, 1000.00, 0.00, 0.00, 'Hired as Clerk', NULL, 'Maintains registry records, assists clients with civil documents.', 'Rated \"Good\" by supervisor', 'Civil Registration Training', 'Contract renewable every 2 years', 'Support staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(8, 8, 'Maintenance Worker', 15, 'Full-time', '2021-05-18', NULL, 'Active', NULL, 'General Services Office', 22000.00, 1000.00, 0.00, 0.00, 'Hired as Maintenance Worker', NULL, 'Performs facility maintenance and minor repairs.', 'Satisfactory in safety inspections', 'Electrical Safety Training', 'Casual employment converted to regular', 'Assigned to city hall facilities', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(9, 9, 'Cashier', 3, 'Full-time', '2020-09-10', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 32000.00, 2000.00, 0.00, 0.00, 'Hired as Cashier', 'Promoted from Clerk', 'Handles cash collection, prepares daily receipts.', 'Commended for accurate handling of cash', 'Financial Management Training', 'Regular plantilla position', 'Treasury office staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(10, 10, 'Collection Officer', 3, 'Full-time', '2019-12-01', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 35000.00, 2000.00, 0.00, 0.00, 'Hired as Collection Officer', 'Promoted from Clerk', 'Collects taxes and fees, manages accounts receivables.', 'Rated \"Very Good\" in collection efficiency', 'Revenue Collection Procedures Training', 'Regular plantilla position', 'Handles revenue collection', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(11, 1, 'Administrative Aide', 13, 'Full-time', '2017-03-01', '2019-06-30', 'Resigned', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, 'Started as Administrative Aide', 'Later promoted to Treasurer', 'Clerical and administrative support tasks.', 'Rated \"Good\"', NULL, 'Fixed-term appointment', 'Entry-level HR support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(12, 2, 'CAD Operator', 7, 'Full-time', '2015-08-01', '2018-06-14', 'Transferred', NULL, 'Engineering Building', 32000.00, 1500.00, 0.00, 0.00, 'Started as CAD Operator', 'Later promoted to Municipal Engineer', 'Drafting technical drawings.', 'Rated \"Good\"', 'AutoCAD Certification', 'Contract ended due to promotion', 'Junior engineering support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(13, 5, 'Administrative Aide', 13, 'Full-time', '2019-01-15', '2021-09-04', 'Transferred', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, 'Started as Administrative Aide', 'Later promoted to Social Worker', 'Handled clerical support for social welfare programs.', 'Rated \"Good\"', NULL, 'Casual contract converted to plantilla', 'Support role before promotion', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(14, 9, 'Clerk', 8, 'Full-time', '2018-05-01', '2020-09-09', 'Transferred', NULL, 'Municipal Civil Registrar\'s Office', 22000.00, 500.00, 0.00, 0.00, 'Started as Clerk', 'Later promoted to Cashier', 'Maintained registry documents, clerical tasks.', 'Rated \"Good\"', NULL, 'Contract ended due to transfer', 'Civil registrar support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(15, 10, 'Clerk', 8, 'Full-time', '2017-10-01', '2019-11-30', 'Transferred', NULL, 'Municipal Civil Registrar\'s Office', 20000.00, 500.00, 0.00, 0.00, 'Started as Clerk', 'Later promoted to Collection Officer', 'Clerical tasks, processing records.', 'Rated \"Satisfactory\"', NULL, 'Contract ended due to promotion', 'Civil registrar support role', '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exits`
+--
+
+CREATE TABLE `exits` (
+  `exit_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `exit_type` enum('Resignation','Termination','Retirement','End of Contract','Other') NOT NULL,
+  `exit_reason` text DEFAULT NULL,
+  `notice_date` date NOT NULL,
+  `exit_date` date NOT NULL,
+  `status` enum('Pending','Processing','Completed','Cancelled') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_checklist`
+--
+
+CREATE TABLE `exit_checklist` (
+  `checklist_id` int(11) NOT NULL,
+  `exit_id` int(11) NOT NULL,
+  `item_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `responsible_department` varchar(50) NOT NULL,
+  `status` enum('Pending','Completed','Not Applicable') DEFAULT 'Pending',
+  `completed_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `item_type` enum('Physical','Document','Access','Financial','Other') DEFAULT 'Other',
+  `serial_number` varchar(100) DEFAULT NULL,
+  `sticker_type` varchar(100) DEFAULT NULL,
+  `approval_status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `approved_by` varchar(100) DEFAULT NULL,
+  `approved_date` date DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `clearance_status` enum('Pending','Cleared','Conditional') DEFAULT 'Pending',
+  `clearance_date` date DEFAULT NULL,
+  `cleared_by` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Triggers `exit_checklist`
+--
+DELIMITER $$
+CREATE TRIGGER `after_checklist_update` AFTER UPDATE ON `exit_checklist` FOR EACH ROW BEGIN
+    -- Log the change in audit table
+    IF OLD.status != NEW.status OR OLD.approval_status != NEW.approval_status OR OLD.clearance_status != NEW.clearance_status THEN
+        INSERT INTO exit_checklist_audit (checklist_id, action_type, field_changed, old_value, new_value, changed_by)
+        VALUES (NEW.checklist_id, 'Updated', 
+                CASE 
+                    WHEN OLD.status != NEW.status THEN 'status'
+                    WHEN OLD.approval_status != NEW.approval_status THEN 'approval_status'
+                    WHEN OLD.clearance_status != NEW.clearance_status THEN 'clearance_status'
+                    ELSE 'general'
+                END,
+                CASE 
+                    WHEN OLD.status != NEW.status THEN OLD.status
+                    WHEN OLD.approval_status != NEW.approval_status THEN OLD.approval_status
+                    WHEN OLD.clearance_status != NEW.clearance_status THEN OLD.clearance_status
+                    ELSE NULL
+                END,
+                CASE 
+                    WHEN OLD.status != NEW.status THEN NEW.status
+                    WHEN OLD.approval_status != NEW.approval_status THEN NEW.approval_status
+                    WHEN OLD.clearance_status != NEW.clearance_status THEN NEW.clearance_status
+                    ELSE NULL
+                END,
+                COALESCE(NEW.approved_by, 'System'));
+    END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_checklist_approvals`
+--
+
+CREATE TABLE `exit_checklist_approvals` (
+  `approval_id` int(11) NOT NULL,
+  `checklist_id` int(11) NOT NULL,
+  `approver_id` varchar(100) NOT NULL,
+  `approver_name` varchar(255) NOT NULL,
+  `approval_level` int(11) DEFAULT 1,
+  `decision` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `decision_date` datetime DEFAULT NULL,
+  `decision_remarks` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_checklist_audit`
+--
+
+CREATE TABLE `exit_checklist_audit` (
+  `audit_id` int(11) NOT NULL,
+  `checklist_id` int(11) NOT NULL,
+  `action_type` enum('Created','Updated','Deleted','Approved','Rejected','Cleared') NOT NULL,
+  `field_changed` varchar(100) DEFAULT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text DEFAULT NULL,
+  `changed_by` varchar(100) DEFAULT NULL,
+  `changed_date` datetime DEFAULT current_timestamp(),
+  `remarks` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `exit_clearance_summary`
+-- (See below for the actual view)
+--
+CREATE TABLE `exit_clearance_summary` (
+`exit_id` int(11)
+,`employee_id` int(11)
+,`employee_name` varchar(101)
+,`employee_number` varchar(20)
+,`exit_date` date
+,`total_items` bigint(21)
+,`completed_items` decimal(22,0)
+,`approved_items` decimal(22,0)
+,`cleared_items` decimal(22,0)
+,`overall_clearance_status` varchar(17)
 );
 
-
-CREATE TABLE document_management (
-    document_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    document_type ENUM('Contract', 'ID', 'Resume', 'Certificate', 'Performance Review', 'Appointment', 'Training', 'Appreciation', 'Other') NOT NULL,
-    document_name VARCHAR(255) NOT NULL,
-    file_path VARCHAR(255) NOT NULL,
-    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expiry_date DATE,
-    document_status ENUM('Active', 'Expired', 'Pending Review') DEFAULT 'Active',
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
--- ===============================
--- PAYROLL MANAGEMENT
--- ===============================
-
--- Create salary structure table
-CREATE TABLE salary_structures (
-    salary_structure_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    basic_salary DECIMAL(10, 2) NOT NULL,
-    allowances DECIMAL(10, 2) DEFAULT 0,
-    deductions DECIMAL(10, 2) DEFAULT 0,
-    effective_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create payroll cycles table
-CREATE TABLE payroll_cycles (
-    payroll_cycle_id INT AUTO_INCREMENT PRIMARY KEY,
-    cycle_name VARCHAR(50) NOT NULL,
-    pay_period_start DATE NOT NULL,
-    pay_period_end DATE NOT NULL,
-    pay_date DATE NOT NULL,
-    status ENUM('Pending', 'Processing', 'Completed') DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create tax deductions table
-CREATE TABLE tax_deductions (
-    tax_deduction_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    tax_type VARCHAR(50) NOT NULL,
-    tax_percentage DECIMAL(5, 2),
-    tax_amount DECIMAL(10, 2),
-    effective_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create statutory deductions table
-CREATE TABLE statutory_deductions (
-    statutory_deduction_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    deduction_type VARCHAR(50) NOT NULL,
-    deduction_amount DECIMAL(10, 2) NOT NULL,
-    effective_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create benefits plans table
-CREATE TABLE benefits_plans (
-    benefit_plan_id INT AUTO_INCREMENT PRIMARY KEY,
-    plan_name VARCHAR(100) NOT NULL,
-    plan_type VARCHAR(50) NOT NULL,
-    description TEXT,
-    eligibility_criteria TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create employee benefits table
-CREATE TABLE employee_benefits (
-    benefit_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    benefit_plan_id INT NOT NULL,
-    enrollment_date DATE NOT NULL,
-    benefit_amount DECIMAL(10, 2),
-    status ENUM('Active', 'Inactive') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (benefit_plan_id) REFERENCES benefits_plans(benefit_plan_id) ON DELETE CASCADE
-);
-
--- Create bonus payments table
-CREATE TABLE bonus_payments (
-    bonus_payment_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    bonus_type VARCHAR(50) NOT NULL,
-    bonus_amount DECIMAL(10, 2) NOT NULL,
-    payment_date DATE NOT NULL,
-    payroll_cycle_id INT,
-    reason VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (payroll_cycle_id) REFERENCES payroll_cycles(payroll_cycle_id) ON DELETE SET NULL
-);
-
--- Create compensation packages table
-CREATE TABLE compensation_packages (
-    compensation_package_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    package_name VARCHAR(100) NOT NULL,
-    base_salary DECIMAL(10, 2) NOT NULL,
-    variable_pay DECIMAL(10, 2) DEFAULT 0,
-    benefits_summary TEXT,
-    total_compensation DECIMAL(10, 2) NOT NULL,
-    effective_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create payroll transactions table
-CREATE TABLE payroll_transactions (
-    payroll_transaction_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    payroll_cycle_id INT NOT NULL,
-    gross_pay DECIMAL(10, 2) NOT NULL,
-    tax_deductions DECIMAL(10, 2) DEFAULT 0,
-    statutory_deductions DECIMAL(10, 2) DEFAULT 0,
-    other_deductions DECIMAL(10, 2) DEFAULT 0,
-    net_pay DECIMAL(10, 2) NOT NULL,
-    processed_date DATETIME NOT NULL,
-    status ENUM('Pending', 'Processed', 'Paid', 'Cancelled') DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (payroll_cycle_id) REFERENCES payroll_cycles(payroll_cycle_id) ON DELETE CASCADE
-);
-
--- Create payment disbursements table
-CREATE TABLE payment_disbursements (
-    payment_disbursement_id INT AUTO_INCREMENT PRIMARY KEY,
-    payroll_transaction_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    payment_method ENUM('Bank Transfer', 'Check', 'Cash', 'Other') NOT NULL,
-    bank_name VARCHAR(100),
-    account_number VARCHAR(50),
-    payment_amount DECIMAL(10, 2) NOT NULL,
-    disbursement_date DATETIME NOT NULL,
-    status ENUM('Pending', 'Processed', 'Failed') DEFAULT 'Pending',
-    reference_number VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (payroll_transaction_id) REFERENCES payroll_transactions(payroll_transaction_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create payslips table
-CREATE TABLE payslips (
-    payslip_id INT AUTO_INCREMENT PRIMARY KEY,
-    payroll_transaction_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    payslip_url VARCHAR(255),
-    generated_date DATETIME NOT NULL,
-    status ENUM('Generated', 'Sent', 'Viewed') DEFAULT 'Generated',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (payroll_transaction_id) REFERENCES payroll_transactions(payroll_transaction_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- ===============================
--- PERFORMANCE MANAGEMENT
--- ===============================
-
--- Create competencies table
-CREATE TABLE competencies (
-    competency_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    category VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create employee competencies table (no assessor reference)
-CREATE TABLE employee_competencies (
-    employee_id INT NOT NULL,
-    competency_id INT NOT NULL,
-    rating INT NOT NULL,
-    assessment_date DATE NOT NULL,
-    comments TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (employee_id, competency_id, assessment_date),
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (competency_id) REFERENCES competencies(competency_id) ON DELETE CASCADE
-);
-
--- Create performance review cycles table
-CREATE TABLE performance_review_cycles (
-    cycle_id INT AUTO_INCREMENT PRIMARY KEY,
-    cycle_name VARCHAR(100) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    status ENUM('Upcoming', 'In Progress', 'Completed') DEFAULT 'Upcoming',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create performance reviews table (no reviewer references)
-CREATE TABLE performance_reviews (
-    review_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    cycle_id INT NOT NULL,
-    review_date DATE NOT NULL,
-    overall_rating DECIMAL(3,2) NOT NULL,
-    strengths TEXT,
-    areas_of_improvement TEXT,
-    comments TEXT,
-    status ENUM('Draft', 'Submitted', 'Acknowledged', 'Finalized') DEFAULT 'Draft',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (cycle_id) REFERENCES performance_review_cycles(cycle_id) ON DELETE CASCADE
-);
-
--- Create goals table (no supervisor reference)
-CREATE TABLE goals (
-    goal_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    status ENUM('Not Started', 'In Progress', 'Completed', 'Cancelled') DEFAULT 'Not Started',
-    progress DECIMAL(5,2) DEFAULT 0,
-    weight DECIMAL(5,2) DEFAULT 100.00,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create goal updates table (no creator reference)
-CREATE TABLE goal_updates (
-    update_id INT AUTO_INCREMENT PRIMARY KEY,
-    goal_id INT NOT NULL,
-    update_date DATE NOT NULL,
-    progress DECIMAL(5,2) NOT NULL,
-    comments TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (goal_id) REFERENCES goals(goal_id) ON DELETE CASCADE
-);
-
--- Create performance metrics table (no recorder reference)
-CREATE TABLE performance_metrics (
-    metric_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    metric_name VARCHAR(100) NOT NULL,
-    metric_value DECIMAL(10,2) NOT NULL,
-    recorded_date DATE NOT NULL,
-    comments TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create development plans table (no coach reference)
-CREATE TABLE development_plans (
-    plan_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    plan_name VARCHAR(100) NOT NULL,
-    plan_description TEXT,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    status ENUM('Draft', 'Active', 'Completed', 'Cancelled') DEFAULT 'Draft',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create development activities table
-CREATE TABLE development_activities (
-    activity_id INT AUTO_INCREMENT PRIMARY KEY,
-    plan_id INT NOT NULL,
-    activity_name VARCHAR(100) NOT NULL,
-    activity_type ENUM('Training', 'Mentoring', 'Project', 'Education', 'Other') NOT NULL,
-    description TEXT,
-    start_date DATE,
-    end_date DATE,
-    status ENUM('Not Started', 'In Progress', 'Completed') DEFAULT 'Not Started',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (plan_id) REFERENCES development_plans(plan_id) ON DELETE CASCADE
-);
-
--- ===============================
--- LEAVE AND ATTENDANCE MANAGEMENT
--- ===============================
-
--- Create public holidays table
-CREATE TABLE public_holidays (
-    holiday_id INT AUTO_INCREMENT PRIMARY KEY,
-    holiday_date DATE UNIQUE NOT NULL,
-    holiday_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create leave types table
-CREATE TABLE leave_types (
-    leave_type_id INT AUTO_INCREMENT PRIMARY KEY,
-    leave_type_name VARCHAR(50) NOT NULL,
-    description TEXT,
-    paid BOOLEAN DEFAULT TRUE,
-    default_days DECIMAL(5,2) DEFAULT 0,
-    carry_forward BOOLEAN DEFAULT FALSE,
-    max_carry_forward_days DECIMAL(5,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create leave balances table
-CREATE TABLE leave_balances (
-    balance_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    leave_type_id INT NOT NULL,
-    year YEAR NOT NULL,
-    total_leaves DECIMAL(5,2) NOT NULL,
-    leaves_taken DECIMAL(5,2) DEFAULT 0,
-    leaves_pending DECIMAL(5,2) DEFAULT 0,
-    leaves_remaining DECIMAL(5,2),
-    last_updated DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (leave_type_id) REFERENCES leave_types(leave_type_id) ON DELETE CASCADE
-);
-
--- Create leave requests table (no approver reference)
-CREATE TABLE leave_requests (
-    leave_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    leave_type_id INT NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    total_days DECIMAL(5,2) NOT NULL,
-    reason TEXT,
-    status ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') DEFAULT 'Pending',
-    applied_on DATETIME DEFAULT CURRENT_TIMESTAMP,
-    approved_on DATETIME,
-    rejection_reason TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (leave_type_id) REFERENCES leave_types(leave_type_id) ON DELETE CASCADE
-);
-
--- Create shifts table
-CREATE TABLE shifts (
-    shift_id INT AUTO_INCREMENT PRIMARY KEY,
-    shift_name VARCHAR(50) NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create employee shifts table
-CREATE TABLE employee_shifts (
-    employee_shift_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    shift_id INT NOT NULL,
-    assigned_date DATE NOT NULL,
-    is_overtime BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (shift_id) REFERENCES shifts(shift_id) ON DELETE CASCADE
-);
-
--- Create attendance table
-CREATE TABLE attendance (
-    attendance_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    attendance_date DATE NOT NULL,
-    clock_in DATETIME,
-    clock_out DATETIME,
-    status ENUM('Present', 'Absent', 'Late', 'Half Day', 'On Leave') NOT NULL,
-    working_hours DECIMAL(5,2),
-    overtime_hours DECIMAL(5,2) DEFAULT 0,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create attendance_summary table
-CREATE TABLE attendance_summary (
-    summary_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    month INT NOT NULL,
-    year YEAR NOT NULL,
-    total_present INT DEFAULT 0,
-    total_absent INT DEFAULT 0,
-    total_late INT DEFAULT 0,
-    total_leave INT DEFAULT 0,
-    total_working_hours DECIMAL(7,2) DEFAULT 0,
-    total_overtime_hours DECIMAL(5,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    UNIQUE KEY (employee_id, month, year)
-);
-
--- ===============================
--- EXIT MANAGEMENT
--- ===============================
-
--- Create exits table (no initiator/approver references)
-CREATE TABLE exits (
-    exit_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    exit_type ENUM('Resignation', 'Termination', 'Retirement', 'End of Contract', 'Other') NOT NULL,
-    exit_reason TEXT,
-    notice_date DATE NOT NULL,
-    exit_date DATE NOT NULL,
-    status ENUM('Pending', 'Processing', 'Completed', 'Cancelled') DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create exit checklist table (no completion reference)
-CREATE TABLE exit_checklist (
-    checklist_id INT AUTO_INCREMENT PRIMARY KEY,
-    exit_id INT NOT NULL,
-    item_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    responsible_department VARCHAR(50) NOT NULL,
-    status ENUM('Pending', 'Completed', 'Not Applicable') DEFAULT 'Pending',
-    completed_date DATE,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (exit_id) REFERENCES exits(exit_id) ON DELETE CASCADE
-);
-
--- Create exit interviews table (no interviewer reference)
-CREATE TABLE exit_interviews (
-    interview_id INT AUTO_INCREMENT PRIMARY KEY,
-    exit_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    interview_date DATE NOT NULL,
-    feedback TEXT,
-    improvement_suggestions TEXT,
-    reason_for_leaving TEXT,
-    would_recommend BOOLEAN,
-    status ENUM('Scheduled', 'Completed', 'Cancelled') DEFAULT 'Scheduled',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (exit_id) REFERENCES exits(exit_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create knowledge transfers table (no successor/completion references)
-CREATE TABLE knowledge_transfers (
-    transfer_id INT AUTO_INCREMENT PRIMARY KEY,
-    exit_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    handover_details TEXT,
-    start_date DATE,
-    completion_date DATE,
-    status ENUM('Not Started', 'In Progress', 'Completed', 'N/A') DEFAULT 'Not Started',
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (exit_id) REFERENCES exits(exit_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create settlements table (no processor reference)
-CREATE TABLE settlements (
-    settlement_id INT AUTO_INCREMENT PRIMARY KEY,
-    exit_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    last_working_day DATE NOT NULL,
-    final_salary DECIMAL(10,2) NOT NULL,
-    severance_pay DECIMAL(10,2) DEFAULT 0,
-    unused_leave_payout DECIMAL(10,2) DEFAULT 0,
-    deductions DECIMAL(10,2) DEFAULT 0,
-    final_settlement_amount DECIMAL(10,2) NOT NULL,
-    payment_date DATE,
-    payment_method VARCHAR(50),
-    status ENUM('Pending', 'Processing', 'Completed') DEFAULT 'Pending',
-    processed_date DATE,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (exit_id) REFERENCES exits(exit_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create exit documents table (no uploader reference)
-CREATE TABLE exit_documents (
-    document_id INT AUTO_INCREMENT PRIMARY KEY,
-    exit_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    document_type VARCHAR(50) NOT NULL,
-    document_name VARCHAR(255) NOT NULL,
-    document_url VARCHAR(255) NOT NULL,
-    uploaded_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (exit_id) REFERENCES exits(exit_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create post exit surveys table
-CREATE TABLE post_exit_surveys (
-    survey_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    exit_id INT NOT NULL,
-    survey_date DATE NOT NULL,
-    survey_response TEXT,
-    satisfaction_rating INT,
-    submitted_date TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (exit_id) REFERENCES exits(exit_id) ON DELETE CASCADE
-);
-
--- ===============================
--- RECRUITMENT MANAGEMENT
--- ===============================
-
--- Create job_openings table (no hiring manager reference)
-CREATE TABLE job_openings (
-    job_opening_id INT AUTO_INCREMENT PRIMARY KEY,
-    job_role_id INT NOT NULL,
-    department_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    requirements TEXT NOT NULL,
-    responsibilities TEXT NOT NULL,
-    location VARCHAR(100),
-    employment_type ENUM('Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship') NOT NULL,
-    experience_level VARCHAR(50),
-    education_requirements TEXT,
-    salary_range_min DECIMAL(10,2),
-    salary_range_max DECIMAL(10,2),
-    vacancy_count INT DEFAULT 1,
-    posting_date DATE NOT NULL,
-    closing_date DATE,
-    status ENUM('Draft', 'Open', 'On Hold', 'Closed', 'Cancelled') DEFAULT 'Draft',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (job_role_id) REFERENCES job_roles(job_role_id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE
-);
-
--- Create candidates table
-CREATE TABLE candidates (
-    candidate_id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    phone VARCHAR(20),
-    address TEXT,
-    resume_url VARCHAR(255),
-    cover_letter_url VARCHAR(255),
-    source VARCHAR(100),
-    current_position VARCHAR(100),
-    current_company VARCHAR(100),
-    notice_period VARCHAR(50),
-    expected_salary DECIMAL(10,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create job_applications table
-CREATE TABLE job_applications (
-    application_id INT AUTO_INCREMENT PRIMARY KEY,
-    job_opening_id INT NOT NULL,
-    candidate_id INT NOT NULL,
-    application_date DATETIME NOT NULL,
-    status ENUM('Applied', 'Screening', 'Interview', 'Assessment', 'Reference Check', 'Offer', 'Hired', 'Rejected', 'Withdrawn') DEFAULT 'Applied',
-    notes TEXT,
-    assessment_scores JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (job_opening_id) REFERENCES job_openings(job_opening_id) ON DELETE CASCADE,
-    FOREIGN KEY (candidate_id) REFERENCES candidates(candidate_id) ON DELETE CASCADE
-);
-
--- Create interview_stages table
-CREATE TABLE interview_stages (
-    stage_id INT AUTO_INCREMENT PRIMARY KEY,
-    job_opening_id INT NOT NULL,
-    stage_name VARCHAR(100) NOT NULL,
-    stage_order INT NOT NULL,
-    description TEXT,
-    is_mandatory BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (job_opening_id) REFERENCES job_openings(job_opening_id) ON DELETE CASCADE
-);
-
--- Create interviews table (no interviewer reference)
-CREATE TABLE interviews (
-    interview_id INT AUTO_INCREMENT PRIMARY KEY,
-    application_id INT NOT NULL,
-    stage_id INT NOT NULL,
-    schedule_date DATETIME NOT NULL,
-    duration INT NOT NULL COMMENT 'Duration in minutes',
-    location VARCHAR(255),
-    interview_type ENUM('In-person', 'Phone', 'Video Call', 'Technical Assessment') NOT NULL,
-    status ENUM('Scheduled', 'Completed', 'Rescheduled', 'Cancelled') DEFAULT 'Scheduled',
-    feedback TEXT,
-    rating DECIMAL(3,2),
-    recommendation ENUM('Strong Yes', 'Yes', 'Maybe', 'No', 'Strong No'),
-    completed_date DATETIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (application_id) REFERENCES job_applications(application_id) ON DELETE CASCADE,
-    FOREIGN KEY (stage_id) REFERENCES interview_stages(stage_id) ON DELETE CASCADE
-);
-
--- Create job_offers table (no approver/creator references)
-CREATE TABLE job_offers (
-    offer_id INT AUTO_INCREMENT PRIMARY KEY,
-    application_id INT NOT NULL,
-    job_opening_id INT NOT NULL,
-    candidate_id INT NOT NULL,
-    offered_salary DECIMAL(10,2) NOT NULL,
-    offered_benefits TEXT,
-    start_date DATE,
-    expiration_date DATE NOT NULL,
-    approval_status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
-    offer_status ENUM('Draft', 'Sent', 'Accepted', 'Negotiating', 'Declined', 'Expired') DEFAULT 'Draft',
-    offer_letter_url VARCHAR(255),
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (application_id) REFERENCES job_applications(application_id) ON DELETE CASCADE,
-    FOREIGN KEY (job_opening_id) REFERENCES job_openings(job_opening_id) ON DELETE CASCADE,
-    FOREIGN KEY (candidate_id) REFERENCES candidates(candidate_id) ON DELETE CASCADE
-);
-
--- Create recruitment_analytics table
-CREATE TABLE recruitment_analytics (
-    analytics_id INT AUTO_INCREMENT PRIMARY KEY,
-    job_opening_id INT NOT NULL,
-    total_applications INT DEFAULT 0,
-    applications_per_day DECIMAL(5,2) DEFAULT 0,
-    average_processing_time INT DEFAULT 0 COMMENT 'In days',
-    average_time_to_hire INT DEFAULT 0 COMMENT 'In days',
-    offer_acceptance_rate DECIMAL(5,2) DEFAULT 0,
-    recruitment_source_breakdown JSON,
-    cost_per_hire DECIMAL(10,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (job_opening_id) REFERENCES job_openings(job_opening_id) ON DELETE CASCADE
-);
-
--- Create onboarding_tasks table
-CREATE TABLE onboarding_tasks (
-    task_id INT AUTO_INCREMENT PRIMARY KEY,
-    task_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    department_id INT,
-    task_type ENUM('Administrative', 'Equipment', 'Training', 'Introduction', 'Documentation', 'Other') NOT NULL,
-    is_mandatory BOOLEAN DEFAULT TRUE,
-    default_due_days INT DEFAULT 7 COMMENT 'Days after joining date',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL
-);
-
--- Create employee_onboarding table (no hiring manager reference)
-CREATE TABLE employee_onboarding (
-    onboarding_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    start_date DATE NOT NULL,
-    expected_completion_date DATE NOT NULL,
-    status ENUM('Pending', 'In Progress', 'Completed') DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create employee_onboarding_tasks table (no assignment/completion references)
-CREATE TABLE employee_onboarding_tasks (
-    employee_task_id INT AUTO_INCREMENT PRIMARY KEY,
-    onboarding_id INT NOT NULL,
-    task_id INT NOT NULL,
-    due_date DATE NOT NULL,
-    status ENUM('Not Started', 'In Progress', 'Completed', 'Cancelled') DEFAULT 'Not Started',
-    completion_date DATE,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (onboarding_id) REFERENCES employee_onboarding(onboarding_id) ON DELETE CASCADE,
-    FOREIGN KEY (task_id) REFERENCES onboarding_tasks(task_id) ON DELETE CASCADE
-);
-
--- ===============================
--- TRAINING AND DEVELOPMENT
--- ===============================
-
--- Create training_courses table
-CREATE TABLE training_courses (
-    course_id INT AUTO_INCREMENT PRIMARY KEY,
-    course_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    category VARCHAR(100),
-    delivery_method ENUM('Online', 'Classroom', 'Workshop', 'Self-paced', 'Hybrid') NOT NULL,
-    duration INT COMMENT 'Duration in hours',
-    max_participants INT,
-    prerequisites TEXT,
-    materials_url VARCHAR(255),
-    status ENUM('Active', 'Inactive', 'In Development') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create trainers table (no employee reference)
-CREATE TABLE trainers (
-    trainer_id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    specialization VARCHAR(255),
-    bio TEXT,
-    is_internal BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create training_sessions table
-CREATE TABLE training_sessions (
-    session_id INT AUTO_INCREMENT PRIMARY KEY,
-    course_id INT NOT NULL,
-    trainer_id INT NOT NULL,
-    session_name VARCHAR(255) NOT NULL,
-    start_date DATETIME NOT NULL,
-    end_date DATETIME NOT NULL,
-    location VARCHAR(255),
-    capacity INT NOT NULL,
-    cost_per_participant DECIMAL(10,2),
-    status ENUM('Scheduled', 'In Progress', 'Completed', 'Cancelled') DEFAULT 'Scheduled',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (course_id) REFERENCES training_courses(course_id) ON DELETE CASCADE,
-    FOREIGN KEY (trainer_id) REFERENCES trainers(trainer_id) ON DELETE CASCADE
-);
-
--- Create training_enrollments table (no nominator reference)
-CREATE TABLE training_enrollments (
-    enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
-    session_id INT NOT NULL,
-    employee_id INT NOT NULL,
-    enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('Enrolled', 'Completed', 'Dropped', 'Failed', 'Waitlisted') DEFAULT 'Enrolled',
-    completion_date DATE,
-    score DECIMAL(5,2),
-    feedback TEXT,
-    certificate_url VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create learning_resources table
-CREATE TABLE learning_resources (
-    resource_id INT AUTO_INCREMENT PRIMARY KEY,
-    resource_name VARCHAR(255) NOT NULL,
-    resource_type ENUM('Book', 'Online Course', 'Video', 'Article', 'Webinar', 'Podcast', 'Other') NOT NULL,
-    description TEXT,
-    resource_url VARCHAR(255),
-    author VARCHAR(100),
-    publication_date DATE,
-    duration VARCHAR(50),
-    tags VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create employee_resources table (no assigner reference)
-CREATE TABLE employee_resources (
-    employee_resource_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    resource_id INT NOT NULL,
-    assigned_date DATE NOT NULL,
-    due_date DATE,
-    completed_date DATE,
-    status ENUM('Assigned', 'In Progress', 'Completed', 'Overdue') DEFAULT 'Assigned',
-    rating INT,
-    feedback TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (resource_id) REFERENCES learning_resources(resource_id) ON DELETE CASCADE
-);
-
--- Create skill_matrix table
-CREATE TABLE skill_matrix (
-    skill_id INT AUTO_INCREMENT PRIMARY KEY,
-    skill_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    category VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create employee_skills table (no assessor reference)
-CREATE TABLE employee_skills (
-    employee_skill_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    skill_id INT NOT NULL,
-    proficiency_level ENUM('Beginner', 'Intermediate', 'Advanced', 'Expert') NOT NULL,
-    assessed_date DATE NOT NULL,
-    certification_url VARCHAR(255),
-    expiry_date DATE,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (skill_id) REFERENCES skill_matrix(skill_id) ON DELETE CASCADE
-);
-
--- Create training_needs_assessment table (no assessor reference)
-CREATE TABLE training_needs_assessment (
-    assessment_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    assessment_date DATE NOT NULL,
-    skills_gap TEXT,
-    recommended_trainings TEXT,
-    priority ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
-    status ENUM('Identified', 'In Progress', 'Completed') DEFAULT 'Identified',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE
-);
-
--- Create career_paths table
-CREATE TABLE career_paths (
-    path_id INT AUTO_INCREMENT PRIMARY KEY,
-    path_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    department_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL
-);
-
--- Create career_path_stages table
-CREATE TABLE career_path_stages (
-    stage_id INT AUTO_INCREMENT PRIMARY KEY,
-    path_id INT NOT NULL,
-    job_role_id INT NOT NULL,
-    stage_order INT NOT NULL,
-    minimum_time_in_role INT COMMENT 'In months',
-    required_skills TEXT,
-    required_experience TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (path_id) REFERENCES career_paths(path_id) ON DELETE CASCADE,
-    FOREIGN KEY (job_role_id) REFERENCES job_roles(job_role_id) ON DELETE CASCADE
-);
-
--- Create employee_career_paths table (no mentor reference)
-CREATE TABLE employee_career_paths (
-    employee_path_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    path_id INT NOT NULL,
-    current_stage_id INT NOT NULL,
-    start_date DATE NOT NULL,
-    target_completion_date DATE,
-    status ENUM('Active', 'Completed', 'On Hold', 'Abandoned') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (path_id) REFERENCES career_paths(path_id) ON DELETE CASCADE,
-    FOREIGN KEY (current_stage_id) REFERENCES career_path_stages(stage_id) ON DELETE CASCADE
-);
-
--- Create certifications table
-CREATE TABLE certifications (
-    certification_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    skill_id INT,
-    
-    -- Certification Details
-    certification_name VARCHAR(255) NOT NULL,
-    issuing_organization VARCHAR(255) NOT NULL,
-    certification_number VARCHAR(100),
-    category VARCHAR(100),
-    
-    -- Proficiency and Assessment
-    proficiency_level ENUM('Beginner', 'Intermediate', 'Advanced', 'Expert') NOT NULL,
-    assessment_score DECIMAL(5,2),
-    
-    -- Dates
-    issue_date DATE NOT NULL,
-    expiry_date DATE,
-    assessed_date DATE NOT NULL,
-    
-    -- Documentation
-    certification_url VARCHAR(500),
-    certificate_file_path VARCHAR(500),
-    
-    -- Status and Validation
-    status ENUM('Active', 'Expired', 'Suspended', 'Pending Renewal') DEFAULT 'Active',
-    verification_status ENUM('Verified', 'Pending', 'Failed') DEFAULT 'Pending',
-    
-    -- Cost and Training Info
-    cost DECIMAL(10,2) DEFAULT 0,
-    training_hours INT DEFAULT 0,
-    cpe_credits DECIMAL(5,2) DEFAULT 0, -- Continuing Professional Education credits
-    
-    -- Renewal Information
-    renewal_required BOOLEAN DEFAULT FALSE,
-    renewal_period_months INT,
-    renewal_reminder_sent BOOLEAN DEFAULT FALSE,
-    next_renewal_date DATE,
-    
-    -- Additional Information
-    prerequisites TEXT,
-    description TEXT,
-    notes TEXT,
-    tags VARCHAR(255), -- For searching and categorization
-    
-    -- Metadata
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Foreign Keys
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (skill_id) REFERENCES skill_matrix(skill_id) ON DELETE SET NULL,
-    
-    -- Indexes for performance
-    INDEX idx_employee_id (employee_id),
-    INDEX idx_skill_id (skill_id),
-    INDEX idx_expiry_date (expiry_date),
-    INDEX idx_status (status),
-    INDEX idx_category (category)
-);
-
--- ===============================
--- SIMPLIFIED TRAINING FEEDBACK TABLE
--- ===============================
-
-CREATE TABLE training_feedback (
-    feedback_id INT AUTO_INCREMENT PRIMARY KEY,
-    
-    -- Who is providing feedback and what it's about
-    employee_id INT NOT NULL,
-    feedback_type ENUM('Training Session', 'Learning Resource', 'Trainer', 'Course') NOT NULL,
-    
-    -- What they're giving feedback on (only one will be filled)
-    session_id INT NULL,
-    resource_id INT NULL,
-    trainer_id INT NULL,
-    course_id INT NULL,
-    
-    -- Simple ratings (1-5 scale)
-    overall_rating INT NOT NULL CHECK (overall_rating BETWEEN 1 AND 5),
-    content_rating INT CHECK (content_rating BETWEEN 1 AND 5),
-    instructor_rating INT CHECK (instructor_rating BETWEEN 1 AND 5),
-    
-    -- Text feedback
-    what_worked_well TEXT,
-    what_could_improve TEXT,
-    additional_comments TEXT,
-    
-    -- Simple yes/no questions
-    would_recommend BOOLEAN DEFAULT TRUE,
-    met_expectations BOOLEAN DEFAULT TRUE,
-    
-    -- Basic info
-    feedback_date DATE NOT NULL DEFAULT (CURRENT_DATE),
-    is_anonymous BOOLEAN DEFAULT FALSE,
-    
-    -- Timestamps
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Foreign Keys
-    FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE CASCADE,
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id) ON DELETE SET NULL,
-    FOREIGN KEY (resource_id) REFERENCES learning_resources(resource_id) ON DELETE SET NULL,
-    FOREIGN KEY (trainer_id) REFERENCES trainers(trainer_id) ON DELETE SET NULL,
-    FOREIGN KEY (course_id) REFERENCES training_courses(course_id) ON DELETE SET NULL
-);
-
--- ===============================
--- SAMPLE DATA FOR TESTING
--- ===============================
-
--- Insert sample personal information for municipal employees (same as before)
-INSERT INTO personal_information (first_name, last_name, date_of_birth, gender, marital_status, nationality, tax_id, social_security_number, phone_number, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone) VALUES
-('Maria', 'Santos', '1985-03-12', 'Female', 'Married', 'Filipino', '123-45-6789', '123456789', '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901'),
-('Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', 'Filipino', '234-56-7890', '234567890', '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012'),
-('Jennifer', 'Reyes', '1988-11-08', 'Female', 'Single', 'Filipino', '345-67-8901', '345678901', '0917-345-6789', 'Mark Reyes', 'Brother', '0917-789-0123'),
-('Antonio', 'Garcia', '1975-01-25', 'Male', 'Married', 'Filipino', '456-78-9012', '456789012', '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234'),
-('Lisa', 'Mendoza', '1982-09-14', 'Female', 'Divorced', 'Filipino', '567-89-0123', '567890123', '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345'),
-('Michael', 'Torres', '1980-06-03', 'Male', 'Married', 'Filipino', '678-90-1234', '678901234', '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456'),
-('Carmen', 'Dela Cruz', '1987-12-18', 'Female', 'Single', 'Filipino', '789-01-2345', '789012345', '0917-789-0123', 'Pedro Dela Cruz', 'Father', '0917-123-4567'),
-('Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', 'Filipino', '890-12-3456', '890123456', '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678'),
-('Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', 'Filipino', '901-23-4567', '901234567', '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789'),
-('Jose', 'Ramos', '1972-05-15', 'Male', 'Married', 'Filipino', '012-34-5678', '012345678', '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890'),
-('Ana', 'Morales', '1986-10-30', 'Female', 'Single', 'Filipino', '123-56-7890', '123567890', '0917-135-7890', 'Maria Morales', 'Mother', '0917-579-0123'),
-('Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', 'Filipino', '234-67-8901', '234678901', '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234'),
-('Grace', 'Lopez', '1983-09-07', 'Female', 'Married', 'Filipino', '345-78-9012', '345789012', '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345'),
-('Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', 'Filipino', '456-89-0123', '456890123', '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456'),
-('Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', 'Filipino', '567-90-1234', '567901234', '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567');
-
--- Insert sample data for departments
-INSERT INTO departments (department_name, description, location) VALUES
-('Office of the Mayor', 'Executive office responsible for municipal governance and administration', 'City Hall - 2nd Floor'),
-('Sangguniang Bayan', 'Municipal legislative body responsible for enacting local ordinances', 'City Hall - Session Hall'),
-('Municipal Treasurer''s Office', 'Handles municipal revenue collection, treasury operations, and financial management', 'City Hall - 1st Floor'),
-('Municipal Budget Office', 'Responsible for budget preparation, monitoring, and financial planning', 'City Hall - 1st Floor'),
-('Municipal Accountant''s Office', 'Manages municipal accounting, bookkeeping, and financial reporting', 'City Hall - 1st Floor'),
-('Municipal Planning & Development Office', 'Handles municipal planning, development programs, and project management', 'City Hall - 3rd Floor'),
-('Municipal Engineer''s Office', 'Oversees infrastructure projects, public works, and engineering services', 'Engineering Building'),
-('Municipal Civil Registrar''s Office', 'Manages civil registration services and vital statistics', 'City Hall - Ground Floor'),
-('Municipal Health Office', 'Provides public health services and healthcare programs', 'Health Center Building'),
-('Municipal Social Welfare & Development Office', 'Administers social services and community development programs', 'Social Services Building'),
-('Municipal Agriculture Office', 'Supports agricultural development and provides farming assistance', 'Agriculture Extension Office'),
-('Municipal Assessor''s Office', 'Conducts property assessment and real property taxation', 'City Hall - Ground Floor'),
-('Municipal Human Resource & Administrative Office', 'Manages personnel administration and human resources', 'City Hall - 2nd Floor'),
-('Municipal Disaster Risk Reduction & Management Office', 'Coordinates disaster preparedness and emergency response', 'Emergency Operations Center'),
-('General Services Office', 'Provides general administrative support and facility management', 'City Hall - Basement');
-
--- Insert sample data for job_roles
-INSERT INTO job_roles (title, description, department, min_salary, max_salary) VALUES
--- Elected Officials (Higher salary grades)
-('Mayor', 'Chief executive of the municipality responsible for overall governance', 'Office of the Mayor', 80000.00, 120000.00),
-('Vice Mayor', 'Presiding officer of Sangguniang Bayan and assistant to the Mayor', 'Sangguniang Bayan', 70000.00, 100000.00),
-('Councilor', 'Member of the municipal legislative body', 'Sangguniang Bayan', 60000.00, 85000.00),
-
--- Department Heads / Appointed Officials
-('Municipal Treasurer', 'Head of treasury operations and revenue collection', 'Municipal Treasurer''s Office', 55000.00, 75000.00),
-('Municipal Budget Officer', 'Responsible for municipal budget preparation and monitoring', 'Municipal Budget Office', 50000.00, 70000.00),
-('Municipal Accountant', 'Chief accountant responsible for municipal financial records', 'Municipal Accountant''s Office', 50000.00, 70000.00),
-('Municipal Planning & Development Coordinator', 'Head of municipal planning and development programs', 'Municipal Planning & Development Office', 55000.00, 75000.00),
-('Municipal Engineer', 'Chief engineer overseeing infrastructure and public works', 'Municipal Engineer''s Office', 60000.00, 85000.00),
-('Municipal Civil Registrar', 'Head of civil registration services', 'Municipal Civil Registrar''s Office', 45000.00, 65000.00),
-('Municipal Health Officer', 'Chief medical officer and head of health services', 'Municipal Health Office', 70000.00, 95000.00),
-('Municipal Social Welfare Officer', 'Head of social welfare and development programs', 'Municipal Social Welfare & Development Office', 50000.00, 70000.00),
-('Municipal Agriculturist', 'Agricultural development officer and extension coordinator', 'Municipal Agriculture Office', 50000.00, 70000.00),
-('Municipal Assessor', 'Head of property assessment and real property taxation', 'Municipal Assessor''s Office', 50000.00, 70000.00),
-('Municipal HR Officer', 'Head of human resources and personnel administration', 'Municipal Human Resource & Administrative Office', 50000.00, 70000.00),
-('MDRRM Officer', 'Disaster risk reduction and management coordinator', 'Municipal Disaster Risk Reduction & Management Office', 45000.00, 65000.00),
-('General Services Officer', 'Head of general services and facility management', 'General Services Office', 40000.00, 60000.00),
-
--- Technical & Professional Staff
-('Nurse', 'Provides nursing services and healthcare support', 'Municipal Health Office', 35000.00, 50000.00),
-('Midwife', 'Provides maternal and child health services', 'Municipal Health Office', 30000.00, 45000.00),
-('Sanitary Inspector', 'Conducts health and sanitation inspections', 'Municipal Health Office', 28000.00, 40000.00),
-('Social Worker', 'Provides social services and community assistance', 'Municipal Social Welfare & Development Office', 35000.00, 50000.00),
-('Agricultural Technician', 'Provides technical support for agricultural programs', 'Municipal Agriculture Office', 28000.00, 40000.00),
-('Civil Engineer', 'Designs and supervises infrastructure projects', 'Municipal Engineer''s Office', 45000.00, 65000.00),
-('CAD Operator', 'Creates technical drawings and engineering plans', 'Municipal Engineer''s Office', 30000.00, 45000.00),
-('Building Inspector', 'Inspects construction projects for code compliance', 'Municipal Engineer''s Office', 35000.00, 50000.00),
-('Budget Analyst', 'Analyzes budget data and prepares financial reports', 'Municipal Budget Office', 35000.00, 50000.00),
-('Accounting Staff', 'Handles bookkeeping and accounting transactions', 'Municipal Accountant''s Office', 25000.00, 38000.00),
-('Planning Staff', 'Assists in municipal planning and development activities', 'Municipal Planning & Development Office', 30000.00, 45000.00),
-
--- Administrative & Support Staff
-('Administrative Aide', 'Provides administrative support to various departments', 'Municipal Human Resource & Administrative Office', 22000.00, 35000.00),
-('Clerk', 'Handles clerical work and document processing', 'Municipal Civil Registrar''s Office', 20000.00, 32000.00),
-('Cashier', 'Processes payments and financial transactions', 'Municipal Treasurer''s Office', 22000.00, 35000.00),
-('Collection Officer', 'Collects municipal revenues and taxes', 'Municipal Treasurer''s Office', 25000.00, 38000.00),
-('Property Custodian', 'Manages and maintains municipal property and assets', 'General Services Office', 22000.00, 35000.00),
-('Maintenance Worker', 'Performs maintenance and repair work on municipal facilities', 'General Services Office', 18000.00, 28000.00),
-('Utility Worker', 'Provides general utility and janitorial services', 'General Services Office', 16000.00, 25000.00),
-('Driver', 'Operates municipal vehicles and provides transportation services', 'General Services Office', 20000.00, 32000.00),
-('Security Personnel', 'Provides security services for municipal facilities', 'General Services Office', 18000.00, 28000.00),
-('Legislative Staff', 'Provides secretarial support to Sangguniang Bayan', 'Sangguniang Bayan', 25000.00, 38000.00);
-
--- Insert sample data for employee_profiles
-INSERT INTO employee_profiles (personal_info_id, job_role_id, employee_number, hire_date, employment_status, current_salary, work_email, work_phone, location, remote_work) VALUES
--- Department Heads and Key Officials
-(1, 4, 'MUN001', '2019-07-01', 'Full-time', 65000.00, 'maria.santos@municipality.gov.ph', '034-123-0001', 'City Hall - 1st Floor', FALSE),
-(2, 8, 'MUN002', '2018-06-15', 'Full-time', 75000.00, 'roberto.cruz@municipality.gov.ph', '034-123-0002', 'Engineering Building', FALSE),
-(3, 17, 'MUN003', '2020-01-20', 'Full-time', 42000.00, 'jennifer.reyes@municipality.gov.ph', '034-123-0003', 'Municipal Health Office', FALSE),
-(4, 21, 'MUN004', '2019-03-10', 'Full-time', 38000.00, 'antonio.garcia@municipality.gov.ph', '034-123-0004', 'Municipal Engineer''s Office', FALSE),
-(5, 20, 'MUN005', '2021-09-05', 'Full-time', 45000.00, 'lisa.mendoza@municipality.gov.ph', '034-123-0005', 'Municipal Social Welfare & Development Office', FALSE),
-(6, 25, 'MUN006', '2020-11-12', 'Full-time', 28000.00, 'michael.torres@municipality.gov.ph', '034-123-0006', 'Municipal Accountant''s Office', FALSE),
-(7, 27, 'MUN007', '2022-02-28', 'Full-time', 30000.00, 'carmen.delacruz@municipality.gov.ph', '034-123-0007', 'Municipal Civil Registrar''s Office', FALSE),
-(8, 32, 'MUN008', '2021-05-18', 'Full-time', 22000.00, 'ricardo.villanueva@municipality.gov.ph', '034-123-0008', 'General Services Office', FALSE),
-(9, 28, 'MUN009', '2020-09-10', 'Full-time', 32000.00, 'sandra.pascual@municipality.gov.ph', '034-123-0009', 'Municipal Treasurer''s Office', FALSE),
-(10, 29, 'MUN010', '2019-12-01', 'Full-time', 35000.00, 'jose.ramos@municipality.gov.ph', '034-123-0010', 'Municipal Treasurer''s Office', FALSE),
-(11, 26, 'MUN011', '2022-04-15', 'Full-time', 28000.00, 'ana.morales@municipality.gov.ph', '034-123-0011', 'Municipal Human Resource & Administrative Office', FALSE),
-(12, 19, 'MUN012', '2021-08-20', 'Full-time', 40000.00, 'pablo.fernandez@municipality.gov.ph', '034-123-0012', 'Municipal Agriculture Office', FALSE),
-(13, 18, 'MUN013', '2020-06-30', 'Full-time', 42000.00, 'grace.lopez@municipality.gov.ph', '034-123-0013', 'Municipal Health Office', FALSE),
-(14, 31, 'MUN014', '2022-01-10', 'Full-time', 25000.00, 'eduardo.hernandez@municipality.gov.ph', '034-123-0014', 'General Services Office', FALSE),
-(15, 33, 'MUN015', '2021-11-05', 'Full-time', 24000.00, 'rosario.gonzales@municipality.gov.ph', '034-123-0015', 'General Services Office', FALSE);
-
--- Now add the foreign key constraint for users table
-ALTER TABLE users ADD FOREIGN KEY (employee_id) REFERENCES employee_profiles(employee_id) ON DELETE SET NULL;
-
--- Insert sample data for users (Admin, HR, and all Employee users)
-INSERT INTO users (username, password, email, role, employee_id) VALUES
--- Admin and HR users
-('admin', 'admin123', 'admin@municipality.gov.ph', 'admin', NULL),
-('hr_manager', 'hr123', 'hr@municipality.gov.ph', 'hr', NULL),
-
--- Employee users
-('maria.santos', 'emp123', 'maria.santos@municipality.gov.ph', 'employee', 1),
-('roberto.cruz', 'emp123', 'roberto.cruz@municipality.gov.ph', 'employee', 2),
-('jennifer.reyes', 'emp123', 'jennifer.reyes@municipality.gov.ph', 'employee', 3),
-('antonio.garcia', 'emp123', 'antonio.garcia@municipality.gov.ph', 'employee', 4),
-('lisa.mendoza', 'emp123', 'lisa.mendoza@municipality.gov.ph', 'employee', 5),
-('michael.torres', 'emp123', 'michael.torres@municipality.gov.ph', 'employee', 6),
-('carmen.delacruz', 'emp123', 'carmen.delacruz@municipality.gov.ph', 'employee', 7),
-('ricardo.villanueva', 'emp123', 'ricardo.villanueva@municipality.gov.ph', 'employee', 8),
-('sandra.pascual', 'emp123', 'sandra.pascual@municipality.gov.ph', 'employee', 9),
-('jose.ramos', 'emp123', 'jose.ramos@municipality.gov.ph', 'employee', 10),
-('ana.morales', 'emp123', 'ana.morales@municipality.gov.ph', 'employee', 11),
-('pablo.fernandez', 'emp123', 'pablo.fernandez@municipality.gov.ph', 'employee', 12),
-('grace.lopez', 'emp123', 'grace.lopez@municipality.gov.ph', 'employee', 13),
-('eduardo.hernandez', 'emp123', 'eduardo.hernandez@municipality.gov.ph', 'employee', 14),
-('rosario.gonzales', 'emp123', 'rosario.gonzales@municipality.gov.ph', 'employee', 15);
-
--- Insert sample roles
-INSERT INTO `user_roles` (`role_name`, `description`) VALUES
-('admin', 'Administrator role with full system access.'),
-('hr', 'Human Resources role with access to employee and payroll management.'),
-('employee', 'Standard employee role with limited access to personal information and timesheets.');
-
-
-
--- ===============================
--- SAMPLE EMPLOYMENT HISTORY DATA
--- ===============================
-
-INSERT INTO employment_history 
-(employee_id, job_title, department_id, employment_type, start_date, end_date, employment_status, 
- reporting_manager_id, location, base_salary, allowances, bonuses, salary_adjustments, 
- reason_for_change, promotions_transfers, duties_responsibilities, performance_evaluations, 
- training_certifications, contract_details, remarks) 
-VALUES
--- Current Positions
-(1, 'Municipal Treasurer', 3, 'Full-time', '2019-07-01', NULL, 'Active', NULL, 'City Hall - 1st Floor',
- 65000.00, 5000.00, 0.00, 0.00, 'Appointed as Municipal Treasurer', 
- 'Promoted from Administrative Aide', 
- 'Oversees treasury operations, municipal revenue collection, and financial management.', 
- 'Consistently rated "Excellent" in financial audits', 
- 'CPA Certification, Treasury Management Training', 
- 'Appointed by Mayor, renewable 6-year term', 'Key finance official'),
-
-(2, 'Municipal Engineer', 7, 'Full-time', '2018-06-15', NULL, 'Active', NULL, 'Engineering Building',
- 75000.00, 6000.00, 0.00, 0.00, 'Appointed as Municipal Engineer',
- 'Promoted from CAD Operator', 
- 'Supervises infrastructure projects, designs municipal roads and buildings.', 
- 'Rated "Very Satisfactory" in infrastructure project completion', 
- 'PRC Civil Engineer License, Project Management Certification', 
- 'Appointed by Mayor, renewable 6-year term', 'Head of engineering department'),
-
-(3, 'Nurse', 9, 'Full-time', '2020-01-20', NULL, 'Active', 10, 'Municipal Health Office',
- 42000.00, 3000.00, 0.00, 0.00, 'Hired as Nurse',
- NULL, 
- 'Provides nursing care, assists doctors, administers vaccinations.', 
- 'Highly commended during pandemic response', 
- 'PRC Nursing License, Basic Life Support Training', 
- 'Contract renewable every 3 years', 'Dedicated health staff'),
-
-(4, 'CAD Operator', 7, 'Full-time', '2019-03-10', NULL, 'Active', 2, 'Municipal Engineer''s Office',
- 38000.00, 2000.00, 0.00, 0.00, 'Hired as CAD Operator',
- NULL, 
- 'Prepares AutoCAD drawings and engineering plans.', 
- 'Satisfactory performance in multiple LGU projects', 
- 'AutoCAD Certification', 
- 'Fixed-term renewable contract', 'Key engineering support'),
-
-(5, 'Social Worker', 10, 'Full-time', '2021-09-05', NULL, 'Active', NULL, 'Municipal Social Welfare & Development Office',
- 45000.00, 3000.00, 0.00, 0.00, 'Hired as Social Worker',
- 'Promoted from Administrative Aide', 
- 'Handles casework, provides assistance to indigent families.', 
- 'Rated "Very Good" in community outreach', 
- 'Social Work License, Community Development Training', 
- 'Regular plantilla position', 'Handles social services cases'),
-
-(6, 'Accounting Staff', 5, 'Full-time', '2020-11-12', NULL, 'Active', NULL, 'Municipal Accountant''s Office',
- 28000.00, 1500.00, 0.00, 0.00, 'Hired as Accounting Staff',
- NULL, 
- 'Processes vouchers, prepares reports, assists in bookkeeping.', 
- 'Satisfactory audit reviews', 
- 'Bookkeeping Certification', 
- 'Regular plantilla position', 'Junior accounting role'),
-
-(7, 'Clerk', 8, 'Full-time', '2022-02-28', NULL, 'Active', NULL, 'Municipal Civil Registrar''s Office',
- 30000.00, 1000.00, 0.00, 0.00, 'Hired as Clerk',
- NULL, 
- 'Maintains registry records, assists clients with civil documents.', 
- 'Rated "Good" by supervisor', 
- 'Civil Registration Training', 
- 'Contract renewable every 2 years', 'Support staff'),
-
-(8, 'Maintenance Worker', 15, 'Full-time', '2021-05-18', NULL, 'Active', NULL, 'General Services Office',
- 22000.00, 1000.00, 0.00, 0.00, 'Hired as Maintenance Worker',
- NULL, 
- 'Performs facility maintenance and minor repairs.', 
- 'Satisfactory in safety inspections', 
- 'Electrical Safety Training', 
- 'Casual employment converted to regular', 'Assigned to city hall facilities'),
-
-(9, 'Cashier', 3, 'Full-time', '2020-09-10', NULL, 'Active', 1, 'Municipal Treasurer''s Office',
- 32000.00, 2000.00, 0.00, 0.00, 'Hired as Cashier',
- 'Promoted from Clerk', 
- 'Handles cash collection, prepares daily receipts.', 
- 'Commended for accurate handling of cash', 
- 'Financial Management Training', 
- 'Regular plantilla position', 'Treasury office staff'),
-
-(10, 'Collection Officer', 3, 'Full-time', '2019-12-01', NULL, 'Active', 1, 'Municipal Treasurer''s Office',
- 35000.00, 2000.00, 0.00, 0.00, 'Hired as Collection Officer',
- 'Promoted from Clerk', 
- 'Collects taxes and fees, manages accounts receivables.', 
- 'Rated "Very Good" in collection efficiency', 
- 'Revenue Collection Procedures Training', 
- 'Regular plantilla position', 'Handles revenue collection'),
-
--- Previous Positions (Career Progression)
-(1, 'Administrative Aide', 13, 'Full-time', '2017-03-01', '2019-06-30', 'Resigned', NULL, 'City Hall - 2nd Floor',
- 25000.00, 1000.00, 0.00, 0.00, 'Started as Administrative Aide',
- 'Later promoted to Treasurer', 
- 'Clerical and administrative support tasks.', 
- 'Rated "Good"', 
- NULL, 
- 'Fixed-term appointment', 'Entry-level HR support'),
-
-(2, 'CAD Operator', 7, 'Full-time', '2015-08-01', '2018-06-14', 'Transferred', NULL, 'Engineering Building',
- 32000.00, 1500.00, 0.00, 0.00, 'Started as CAD Operator',
- 'Later promoted to Municipal Engineer', 
- 'Drafting technical drawings.', 
- 'Rated "Good"', 
- 'AutoCAD Certification', 
- 'Contract ended due to promotion', 'Junior engineering support'),
-
-(5, 'Administrative Aide', 13, 'Full-time', '2019-01-15', '2021-09-04', 'Transferred', NULL, 'City Hall - 2nd Floor',
- 25000.00, 1000.00, 0.00, 0.00, 'Started as Administrative Aide',
- 'Later promoted to Social Worker', 
- 'Handled clerical support for social welfare programs.', 
- 'Rated "Good"', 
- NULL, 
- 'Casual contract converted to plantilla', 'Support role before promotion'),
-
-(9, 'Clerk', 8, 'Full-time', '2018-05-01', '2020-09-09', 'Transferred', NULL, 'Municipal Civil Registrar''s Office',
- 22000.00, 500.00, 0.00, 0.00, 'Started as Clerk',
- 'Later promoted to Cashier', 
- 'Maintained registry documents, clerical tasks.', 
- 'Rated "Good"', 
- NULL, 
- 'Contract ended due to transfer', 'Civil registrar support'),
-
-(10, 'Clerk', 8, 'Full-time', '2017-10-01', '2019-11-30', 'Transferred', NULL, 'Municipal Civil Registrar''s Office',
- 20000.00, 500.00, 0.00, 0.00, 'Started as Clerk',
- 'Later promoted to Collection Officer', 
- 'Clerical tasks, processing records.', 
- 'Rated "Satisfactory"', 
- NULL, 
- 'Contract ended due to promotion', 'Civil registrar support role');
-
--- Insert sample data for document_management
-INSERT INTO document_management (employee_id, document_type, document_name, file_path, expiry_date, document_status, notes) VALUES
--- Appointment papers and contracts
-(1, 'Appointment', 'Appointment Order - Municipal Treasurer', '/documents/appointments/maria_santos_appointment.pdf', NULL, 'Active', 'Appointed by Mayor per Civil Service guidelines'),
-(1, 'Contract', 'Employment Contract - Municipal Treasurer', '/documents/contracts/maria_santos_contract.pdf', '2025-07-01', 'Active', 'Department head contract'),
-(1, 'Resume', 'Resume - Maria Santos', '/documents/resumes/maria_santos_resume.pdf', NULL, 'Active', 'CPA with municipal finance experience'),
-(2, 'Appointment', 'Appointment Order - Municipal Engineer', '/documents/appointments/roberto_cruz_appointment.pdf', NULL, 'Active', 'Licensed Civil Engineer appointment'),
-(2, 'Certificate', 'Professional Engineer License', '/documents/licenses/roberto_cruz_pe_license.pdf', '2025-12-31', 'Active', 'Updated PRC license'),
-(2, 'Contract', 'Employment Contract - Municipal Engineer', '/documents/contracts/roberto_cruz_contract.pdf', '2024-06-15', 'Active', 'Engineering department head'),
-(3, 'Contract', 'Employment Contract - Nurse', '/documents/contracts/jennifer_reyes_contract.pdf', '2025-01-20', 'Active', 'Municipal health office nurse'),
-(3, 'Certificate', 'Nursing License', '/documents/licenses/jennifer_reyes_rn_license.pdf', '2025-08-31', 'Active', 'Updated PRC nursing license'),
-(3, 'Certificate', 'Basic Life Support Training', '/documents/certificates/jennifer_reyes_bls_cert.pdf', '2024-12-31', 'Active', 'Required medical certification'),
-(4, 'Contract', 'Employment Contract - CAD Operator', '/documents/contracts/antonio_garcia_contract.pdf', '2024-03-10', 'Active', 'Engineering support staff'),
-(4, 'Certificate', 'AutoCAD Certification', '/documents/certificates/antonio_garcia_autocad_cert.pdf', '2025-06-30', 'Active', 'Professional CAD certification'),
-(5, 'Contract', 'Employment Contract - Social Worker', '/documents/contracts/lisa_mendoza_contract.pdf', '2024-09-05', 'Active', 'MSWDO social worker'),
-(5, 'Certificate', 'Social Work License', '/documents/licenses/lisa_mendoza_sw_license.pdf', '2025-10-31', 'Active', 'Updated PRC social work license'),
-(6, 'Contract', 'Employment Contract - Accounting Staff', '/documents/contracts/michael_torres_contract.pdf', '2025-11-12', 'Active', 'Municipal accountant office staff'),
-(6, 'Certificate', 'Bookkeeping Certification', '/documents/certificates/michael_torres_bookkeeping_cert.pdf', '2024-12-31', 'Active', 'Professional bookkeeping certification'),
-(7, 'Contract', 'Employment Contract - Clerk', '/documents/contracts/carmen_delacruz_contract.pdf', '2025-02-28', 'Active', 'Civil registrar office clerk'),
-(7, 'Training', 'Civil Registration Training', '/documents/training/carmen_delacruz_civil_reg_training.pdf', NULL, 'Active', 'Specialized civil registration procedures'),
-(8, 'Contract', 'Employment Contract - Maintenance Worker', '/documents/contracts/ricardo_villanueva_contract.pdf', '2024-05-18', 'Active', 'General services maintenance'),
-(8, 'Certificate', 'Electrical Safety Training', '/documents/certificates/ricardo_villanueva_electrical_safety.pdf', '2024-12-31', 'Active', 'Safety certification for maintenance work'),
-(9, 'Contract', 'Employment Contract - Cashier', '/documents/contracts/sandra_pascual_contract.pdf', '2025-09-10', 'Active', 'Treasury office cashier'),
-(9, 'Training', 'Financial Management Training', '/documents/training/sandra_pascual_finance_training.pdf', NULL, 'Active', 'Municipal financial procedures training'),
-(10, 'Contract', 'Employment Contract - Collection Officer', '/documents/contracts/jose_ramos_contract.pdf', '2024-12-01', 'Active', 'Revenue collection specialist'),
-(10, 'Training', 'Revenue Collection Procedures', '/documents/training/jose_ramos_collection_training.pdf', NULL, 'Active', 'Specialized revenue collection training'),
-(11, 'Contract', 'Employment Contract - Administrative Aide', '/documents/contracts/ana_morales_contract.pdf', '2025-04-15', 'Active', 'HR office administrative support'),
-(12, 'Contract', 'Employment Contract - Agricultural Technician', '/documents/contracts/pablo_fernandez_contract.pdf', '2024-08-20', 'Active', 'Agriculture office technical staff'),
-(12, 'Certificate', 'Agricultural Extension Training', '/documents/certificates/pablo_fernandez_agri_ext_cert.pdf', '2025-07-31', 'Active', 'Agricultural extension certification'),
-(13, 'Contract', 'Employment Contract - Midwife', '/documents/contracts/grace_lopez_contract.pdf', '2025-06-30', 'Active', 'Municipal health office midwife'),
-(13, 'Certificate', 'Midwifery License', '/documents/licenses/grace_lopez_midwife_license.pdf', '2025-09-30', 'Active', 'Updated PRC midwifery license'),
-(14, 'Contract', 'Employment Contract - Driver', '/documents/contracts/eduardo_hernandez_contract.pdf', '2025-01-10', 'Active', 'Municipal vehicle operator'),
-(14, 'Certificate', 'Professional Driver License', '/documents/licenses/eduardo_hernandez_driver_license.pdf', '2025-12-31', 'Active', 'Professional driver''s license'),
-(15, 'Contract', 'Employment Contract - Security Personnel', '/documents/contracts/rosario_gonzales_contract.pdf', '2024-11-05', 'Active', 'Municipal facility security'),
-(15, 'Certificate', 'Security Guard License', '/documents/licenses/rosario_gonzales_security_license.pdf', '2025-08-31', 'Active', 'SOSIA security guard license');
-
-
--- ===============================
--- EXIT MANAGEMENT SAMPLE DATA
--- ===============================
-
--- Sample data for exits table (3 employees exiting for different reasons)
-INSERT INTO exits (employee_id, exit_type, exit_reason, notice_date, exit_date, status) VALUES
--- Employee 6 (Michael Torres) - Resignation for better opportunity
-(6, 'Resignation', 'Accepted position as Senior Accountant at private firm with better compensation package', '2024-01-15', '2024-02-29', 'Completed'),
-
--- Employee 14 (Eduardo Hernandez) - Retirement after reaching mandatory age
-(14, 'Retirement', 'Reached mandatory retirement age of 65 years old', '2023-11-01', '2024-01-31', 'Completed'),
-
--- Employee 15 (Rosario Gonzales) - Contract ended
-(15, 'End of Contract', 'Fixed-term contract expired and not renewed due to budget constraints', '2024-09-01', '2024-10-31', 'Processing');
-
--- Sample data for exit_checklist table
-INSERT INTO exit_checklist (exit_id, item_name, description, responsible_department, status, completed_date, notes) VALUES
--- Checklist for Michael Torres (Exit ID 1)
-(1, 'Return Municipal Property', 'Return all municipal assets, equipment, and office supplies', 'General Services Office', 'Completed', '2024-02-28', 'All items accounted for and returned'),
-(1, 'Clear Financial Obligations', 'Settle any outstanding loans or advances', 'Municipal Treasurer\'s Office', 'Completed', '2024-02-25', 'No outstanding obligations'),
-(1, 'Handover Financial Records', 'Transfer custody of financial documents and ledgers', 'Municipal Accountant\'s Office', 'Completed', '2024-02-26', 'Complete handover to replacement staff'),
-(1, 'Return ID and Access Cards', 'Submit employee ID and building access cards', 'Municipal Human Resource & Administrative Office', 'Completed', '2024-02-29', 'All credentials returned'),
-(1, 'Update Personnel Records', 'Process final employment documentation', 'Municipal Human Resource & Administrative Office', 'Completed', '2024-02-29', 'Records updated in HRIS'),
-
--- Checklist for Eduardo Hernandez (Exit ID 2)  
-(2, 'Process Retirement Benefits', 'File retirement papers with GSIS', 'Municipal Human Resource & Administrative Office', 'Completed', '2024-01-25', 'GSIS retirement filed successfully'),
-(2, 'Return Municipal Vehicle', 'Turn over assigned municipal vehicle and documents', 'General Services Office', 'Completed', '2024-01-30', 'Vehicle inspected and transferred'),
-(2, 'Clear Outstanding Leave', 'Process accumulated leave credits payout', 'Municipal Human Resource & Administrative Office', 'Completed', '2024-01-28', '45 days leave credits converted to cash'),
-(2, 'Medical Clearance', 'Complete exit medical examination', 'Municipal Health Office', 'Completed', '2024-01-20', 'Medical clearance issued'),
-(2, 'Knowledge Transfer', 'Brief successor on driving routes and procedures', 'General Services Office', 'Completed', '2024-01-29', 'Complete briefing provided to new driver'),
-
--- Checklist for Rosario Gonzales (Exit ID 3)
-(3, 'Security Equipment Return', 'Return security equipment and uniforms', 'General Services Office', 'Completed', '2024-10-30', 'All security gear returned'),
-(3, 'Access Revocation', 'Revoke building and area access permissions', 'General Services Office', 'Pending', NULL, 'Waiting for final security clearance'),
-(3, 'Final Security Report', 'Submit final incident and patrol reports', 'General Services Office', 'Completed', '2024-10-29', 'All reports submitted and filed'),
-(3, 'Clear Accountabilities', 'Settle any equipment or property accountabilities', 'Municipal Accountant\'s Office', 'Pending', NULL, 'Minor accountability for damaged flashlight'),
-(3, 'Process Final Pay', 'Calculate and process final salary and benefits', 'Municipal Human Resource & Administrative Office', 'Pending', NULL, 'Awaiting clearance completion');
-
--- Sample data for exit_interviews table
-INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, would_recommend, status) VALUES
--- Exit interview for Michael Torres
-(1, 6, '2024-02-20', 
-'Working in the Municipal Accountant\'s Office provided valuable experience in government accounting procedures. The work environment was professional and colleagues were supportive. However, limited career advancement opportunities and compensation not competitive with private sector.',
-'Consider salary standardization review, create clear career progression paths for technical staff, provide more professional development opportunities, improve office equipment and technology.',
-'Better compensation package offered by private accounting firm, more growth opportunities in private sector, desire to expand expertise in corporate accounting.',
-TRUE, 'Completed'),
-
--- Exit interview for Eduardo Hernandez  
-(2, 14, '2024-01-15',
-'Proud to have served the municipality for over 30 years as a driver. Witnessed significant improvements in municipal services and infrastructure. Grateful for stable employment and benefits. Work was fulfilling knowing it served the community.',
-'Ensure proper vehicle maintenance schedule, provide defensive driving training for new drivers, improve garage facilities, consider upgrading older vehicles for safety.',
-'Reached mandatory retirement age, looking forward to spending time with family and pursuing personal interests.',
-TRUE, 'Completed'),
-
--- Exit interview for Rosario Gonzales
-(3, 15, '2024-10-15',
-'Enjoyed the responsibility of protecting municipal facilities. Night shift work was challenging but manageable. Disappointed that contract was not renewed due to budget constraints. Would have preferred to continue working.',
-'Provide better lighting in some building areas, upgrade security communication equipment, offer health insurance coverage for contractual security personnel, consider converting security positions to regular plantilla.',
-'Contract not renewed due to municipal budget constraints, no fault of employee performance.',
-TRUE, 'Completed');
-
--- Sample data for knowledge_transfers table
-INSERT INTO knowledge_transfers (exit_id, employee_id, handover_details, start_date, completion_date, status, notes) VALUES
--- Knowledge transfer for Michael Torres
-(1, 6, 
-'Comprehensive handover of accounting procedures including: monthly financial reporting processes, budget monitoring systems, accounts payable/receivable procedures, audit preparation protocols, vendor payment processing, tax computation methods, and filing systems organization. Provided detailed documentation of all recurring tasks and deadlines.',
-'2024-02-01', '2024-02-26', 'Completed',
-'Successor (new accounting staff) properly oriented on all procedures. Documentation provided covers all essential tasks.'),
-
--- Knowledge transfer for Eduardo Hernandez
-(2, 14,
-'Detailed briefing on municipal vehicle operations including: official routes and shortcuts, vehicle maintenance schedules, fuel management procedures, parking protocols, emergency procedures, contact information for mechanics and suppliers, and safety protocols for transporting officials.',
-'2024-01-10', '2024-01-29', 'Completed',
-'New driver fully oriented on all routes and procedures. Vehicle logbooks and maintenance records properly turned over.'),
-
--- Knowledge transfer for Rosario Gonzales  
-(3, 15,
-'Security procedures handover covering: building patrol routes and schedules, alarm system operations, emergency contact protocols, incident reporting procedures, visitor management systems, key control procedures, and coordination with other security agencies.',
-'2024-10-01', '2024-10-28', 'Completed',
-'Replacement security personnel properly trained on all security protocols and emergency procedures.');
-
--- Sample data for settlements table
-INSERT INTO settlements (exit_id, employee_id, last_working_day, final_salary, severance_pay, unused_leave_payout, deductions, final_settlement_amount, payment_date, payment_method, status, processed_date, notes) VALUES
--- Settlement for Michael Torres
-(1, 6, '2024-02-29', 28000.00, 0.00, 15750.00, 2500.00, 41250.00, '2024-03-15', 'Bank Transfer', 'Completed', '2024-03-10',
-'Final month salary plus 15 days unused leave credits. Deductions include loan balance and uniform cost.'),
-
--- Settlement for Eduardo Hernandez
-(2, 14, '2024-01-31', 25000.00, 75000.00, 56250.00, 5000.00, 151250.00, '2024-02-28', 'Bank Transfer', 'Completed', '2024-02-15',
-'Final salary plus retirement gratuity (3 months) plus 45 days leave conversion. Deductions for vehicle damage repair.'),
-
--- Settlement for Rosario Gonzales
-(3, 15, '2024-10-31', 24000.00, 0.00, 8000.00, 1500.00, 30500.00, NULL, 'Bank Transfer', 'Pending', NULL,
-'Final salary plus 10 days unused leave. Deduction for damaged equipment. Awaiting final clearance.');
-
--- Sample data for exit_documents table
-INSERT INTO exit_documents (exit_id, employee_id, document_type, document_name, document_url, notes) VALUES
--- Documents for Michael Torres
-(1, 6, 'Clearance', 'Exit Clearance Certificate', '/documents/exits/michael_torres_exit_clearance.pdf', 'Signed clearance from all departments'),
-(1, 6, 'Certificate', 'Certificate of Employment', '/documents/exits/michael_torres_employment_cert.pdf', 'Official employment certificate for future reference'),
-(1, 6, 'Settlement', 'Final Settlement Computation', '/documents/exits/michael_torres_settlement.pdf', 'Detailed breakdown of final settlement amount'),
-
--- Documents for Eduardo Hernandez
-(2, 14, 'Clearance', 'Retirement Clearance Certificate', '/documents/exits/eduardo_hernandez_retirement_clearance.pdf', 'Complete retirement clearance documentation'),
-(2, 14, 'Certificate', 'Certificate of Service', '/documents/exits/eduardo_hernandez_service_cert.pdf', 'Certificate acknowledging 30+ years of faithful service'),
-(2, 14, 'Settlement', 'Retirement Settlement Statement', '/documents/exits/eduardo_hernandez_retirement_settlement.pdf', 'Retirement benefits and final pay computation'),
-(2, 14, 'Appreciation', 'Letter of Appreciation', '/documents/exits/eduardo_hernandez_appreciation_letter.pdf', 'Official recognition for dedicated service'),
-
--- Documents for Rosario Gonzales  
-(3, 15, 'Certificate', 'Certificate of Employment', '/documents/exits/rosario_gonzales_employment_cert.pdf', 'Employment certificate for job applications'),
-(3, 15, 'Settlement', 'Final Settlement Statement', '/documents/exits/rosario_gonzales_settlement.pdf', 'Pending settlement computation'),
-(3, 15, 'Clearance', 'Partial Clearance Document', '/documents/exits/rosario_gonzales_partial_clearance.pdf', 'Clearance pending from General Services Office');
-
--- Sample data for post_exit_surveys table
-INSERT INTO post_exit_surveys (employee_id, exit_id, survey_date, survey_response, satisfaction_rating, submitted_date) VALUES
--- Post-exit survey for Michael Torres (3 months after exit)
-(6, 1, '2024-05-15', 
-'Overall experience working for the municipality was positive. Learned valuable skills in government accounting and financial management. Colleagues were professional and supportive. Management was fair and understanding. Main concern was limited career growth opportunities and salary competitiveness compared to private sector. Would consider returning if compensation and advancement opportunities improve.',
-4, '2024-05-15'),
-
--- Post-exit survey for Eduardo Hernandez (6 months after retirement)
-(14, 2, '2024-07-31',
-'Very satisfied with my career in municipal service. Proud to have contributed to community development over three decades. Municipal government provided stable employment and good benefits. Retirement process was handled professionally. Enjoying retirement but miss the camaraderie with colleagues. Would definitely recommend municipal employment to others seeking stable, meaningful work.',
-5, '2024-07-31');
-
--- ===============================
--- SAMPLE DATA FOR LEARNING & DEVELOPMENT MODULE
--- ===============================
-
--- Insert sample training courses
-INSERT INTO training_courses (course_name, description, category, delivery_method, duration, max_participants, prerequisites, materials_url, status) VALUES
-('Leadership Fundamentals', 'Essential leadership skills for supervisors and managers including communication, decision-making, and team management', 'Leadership', 'Classroom', 16, 20, 'Minimum 1 year work experience, Basic communication skills', 'https://drive.google.com/leadership-fundamentals', 'Active'),
-('Digital Skills Training', 'Computer literacy and office software proficiency including Microsoft Office Suite and basic IT skills', 'Technology', 'Online', 8, 50, 'Basic computer knowledge', 'https://drive.google.com/digital-skills', 'Active'),
-('Customer Service Excellence', 'Customer interaction, problem-solving, and service delivery best practices for municipal employees', 'Soft Skills', 'Workshop', 12, 25, 'None', 'https://drive.google.com/customer-service', 'Active'),
-('Financial Management for Municipal Employees', 'Budget management, financial reporting, and fiscal responsibility training', 'Finance', 'Hybrid', 20, 15, 'Basic math skills, Interest in finance', 'https://drive.google.com/financial-management', 'Active'),
-('Public Administration Principles', 'Core principles of public administration, governance, and municipal service delivery', 'Administration', 'Classroom', 24, 30, 'None', 'https://drive.google.com/public-administration', 'Active'),
-('Project Management Essentials', 'Project planning, execution, monitoring, and evaluation for municipal projects', 'Management', 'Workshop', 18, 20, 'Basic organizational skills', 'https://drive.google.com/project-management', 'Active'),
-('Communication Skills Workshop', 'Effective written and verbal communication, public speaking, and presentation skills', 'Communication', 'Workshop', 10, 25, 'None', 'https://drive.google.com/communication-skills', 'Active'),
-('Safety and Emergency Response', 'Workplace safety, emergency procedures, and first aid training for municipal employees', 'Safety', 'Classroom', 14, 40, 'None', 'https://drive.google.com/safety-training', 'Active'),
-('Data Analysis and Reporting', 'Data collection, analysis, and report generation for municipal operations', 'Analytics', 'Online', 12, 20, 'Basic Excel skills', 'https://drive.google.com/data-analysis', 'Active'),
-('Environmental Management', 'Environmental protection, waste management, and sustainability practices', 'Environment', 'Hybrid', 16, 25, 'Interest in environmental issues', 'https://drive.google.com/environmental-management', 'Active');
-
--- Insert sample trainers
-INSERT INTO trainers (first_name, last_name, email, phone, specialization, bio, is_internal) VALUES
-('Dr. Maria', 'Santos', 'maria.santos@municipality.gov.ph', '0917-123-4567', 'Leadership & Management', 'Dr. Santos has over 15 years of experience in public administration and leadership development. She holds a PhD in Public Administration and has trained over 500 municipal employees.', TRUE),
-('Engr. Roberto', 'Cruz', 'roberto.cruz@municipality.gov.ph', '0917-234-5678', 'Project Management & Engineering', 'Engr. Cruz is a licensed civil engineer with expertise in municipal infrastructure projects. He specializes in project planning and execution.', TRUE),
-('Prof. Jennifer', 'Reyes', 'jennifer.reyes@municipality.gov.ph', '0917-345-6789', 'Communication & Public Relations', 'Prof. Reyes is a communication expert with 12 years of experience in public relations and media management for government agencies.', TRUE),
-('Atty. Antonio', 'Garcia', 'antonio.garcia@municipality.gov.ph', '0917-456-7890', 'Legal & Compliance', 'Atty. Garcia specializes in local government law, compliance, and regulatory requirements for municipal operations.', TRUE),
-('Ms. Lisa', 'Mendoza', 'lisa.mendoza@municipality.gov.ph', '0917-567-8901', 'Financial Management', 'Ms. Mendoza is a certified public accountant with extensive experience in municipal finance and budget management.', TRUE),
-('Mr. Michael', 'Torres', 'michael.torres@external.com', '0917-678-9012', 'Digital Transformation', 'Mr. Torres is an external consultant specializing in digital transformation and technology adoption for government agencies.', FALSE),
-('Dr. Carmen', 'Dela Cruz', 'carmen.delacruz@external.com', '0917-789-0123', 'Environmental Science', 'Dr. Dela Cruz is an environmental scientist and consultant with expertise in sustainable development and environmental management.', FALSE),
-('Ms. Sandra', 'Pascual', 'sandra.pascual@municipality.gov.ph', '0917-890-1234', 'Human Resources', 'Ms. Pascual is an HR specialist with 10 years of experience in employee development and organizational psychology.', TRUE),
-('Engr. Jose', 'Ramos', 'jose.ramos@municipality.gov.ph', '0917-901-2345', 'Information Technology', 'Engr. Ramos is an IT specialist focusing on digital skills training and technology implementation in government.', TRUE),
-('Ms. Ana', 'Morales', 'ana.morales@municipality.gov.ph', '0917-012-3456', 'Customer Service', 'Ms. Morales is a customer service expert with experience in improving service delivery in municipal offices.', TRUE);
-
--- Insert sample skills for skill matrix
-INSERT INTO skill_matrix (skill_name, description, category) VALUES
-('Leadership', 'Ability to lead teams, make decisions, and inspire others', 'Management'),
-('Communication', 'Effective written and verbal communication skills', 'Soft Skills'),
-('Project Management', 'Planning, organizing, and managing projects effectively', 'Management'),
-('Financial Analysis', 'Understanding and analyzing financial data', 'Finance'),
-('Public Speaking', 'Confident presentation and public speaking abilities', 'Communication'),
-('Problem Solving', 'Analytical thinking and creative problem-solving', 'Analytics'),
-('Team Collaboration', 'Working effectively in teams and groups', 'Soft Skills'),
-('Time Management', 'Efficient planning and time allocation', 'Management'),
-('Customer Service', 'Providing excellent service to constituents', 'Service'),
-('Data Analysis', 'Collecting, analyzing, and interpreting data', 'Analytics'),
-('Microsoft Office', 'Proficiency in Word, Excel, PowerPoint, and Outlook', 'Technology'),
-('Digital Literacy', 'Basic computer and internet skills', 'Technology'),
-('Legal Compliance', 'Understanding of laws and regulations', 'Legal'),
-('Environmental Awareness', 'Knowledge of environmental issues and sustainability', 'Environment'),
-('Emergency Response', 'Safety procedures and emergency protocols', 'Safety'),
-('Budget Management', 'Planning and managing budgets effectively', 'Finance'),
-('Report Writing', 'Creating clear and comprehensive reports', 'Communication'),
-('Conflict Resolution', 'Resolving disputes and conflicts professionally', 'Soft Skills'),
-('Strategic Planning', 'Long-term planning and goal setting', 'Management'),
-('Quality Assurance', 'Maintaining high standards and quality control', 'Management');
-
--- Insert sample career paths
-INSERT INTO career_paths (path_name, description, department_id) VALUES
-('Administrative Leadership Path', 'Career progression from administrative staff to department head', 13),
-('Financial Management Path', 'Progression in financial roles from clerk to treasurer', 3),
-('Engineering Career Path', 'Technical progression from assistant engineer to municipal engineer', 7),
-('Health Services Path', 'Career development in health and medical services', 9),
-('Social Services Path', 'Progression in social welfare and community development', 10),
-('Planning and Development Path', 'Career growth in municipal planning and development', 6),
-('Information Technology Path', 'Progression in IT and digital transformation roles', 13),
-('Legal and Compliance Path', 'Career development in legal and regulatory compliance', 13);
-
--- Insert sample career path stages
-INSERT INTO career_path_stages (path_id, job_role_id, stage_order, minimum_time_in_role, required_skills, required_experience) VALUES
-(1, 1, 1, 12, 'Communication, Time Management', 'Entry-level administrative experience'),
-(1, 1, 2, 24, 'Leadership, Project Management', '2+ years administrative experience'),
-(1, 1, 3, 36, 'Strategic Planning, Team Management', '5+ years supervisory experience'),
-(2, 4, 1, 12, 'Basic Accounting, Microsoft Excel', 'Entry-level financial experience'),
-(2, 4, 2, 24, 'Financial Analysis, Budget Management', '2+ years financial experience'),
-(2, 4, 3, 36, 'Financial Planning, Compliance', '5+ years financial management experience'),
-(3, 8, 1, 12, 'Engineering Principles, AutoCAD', 'Entry-level engineering experience'),
-(3, 8, 2, 24, 'Project Management, Technical Design', '2+ years engineering experience'),
-(3, 8, 3, 36, 'Infrastructure Planning, Team Leadership', '5+ years engineering experience');
-
--- Insert sample training sessions
-INSERT INTO training_sessions (course_id, trainer_id, session_name, start_date, end_date, location, capacity, cost_per_participant, status) VALUES
-(1, 1, 'Leadership Fundamentals - Batch 1', '2024-03-15 09:00:00', '2024-03-16 17:00:00', 'City Hall Conference Room A', 20, 5000.00, 'Scheduled'),
-(2, 9, 'Digital Skills Training - Online', '2024-03-20 10:00:00', '2024-03-22 16:00:00', 'Online Platform', 50, 2000.00, 'Scheduled'),
-(3, 10, 'Customer Service Excellence - Workshop', '2024-03-25 08:00:00', '2024-03-26 17:00:00', 'Social Services Building', 25, 3000.00, 'Scheduled'),
-(4, 5, 'Financial Management - Hybrid', '2024-04-01 09:00:00', '2024-04-05 17:00:00', 'City Hall + Online', 15, 8000.00, 'Scheduled'),
-(5, 1, 'Public Administration - Classroom', '2024-04-10 09:00:00', '2024-04-12 17:00:00', 'City Hall Conference Room B', 30, 6000.00, 'Scheduled'),
-(6, 2, 'Project Management - Workshop', '2024-04-15 08:00:00', '2024-04-17 17:00:00', 'Engineering Building', 20, 7000.00, 'Scheduled'),
-(7, 3, 'Communication Skills - Workshop', '2024-04-22 09:00:00', '2024-04-23 17:00:00', 'City Hall Conference Room A', 25, 4000.00, 'Scheduled'),
-(8, 1, 'Safety Training - Classroom', '2024-04-29 08:00:00', '2024-04-30 17:00:00', 'Emergency Operations Center', 40, 2500.00, 'Scheduled'),
-(9, 9, 'Data Analysis - Online', '2024-05-06 10:00:00', '2024-05-08 16:00:00', 'Online Platform', 20, 3500.00, 'Scheduled'),
-(10, 7, 'Environmental Management - Hybrid', '2024-05-13 09:00:00', '2024-05-15 17:00:00', 'City Hall + Field Visit', 25, 5000.00, 'Scheduled');
-
--- Insert sample learning resources
-INSERT INTO learning_resources (resource_name, resource_type, description, resource_url, author, publication_date, duration, tags) VALUES
-('Municipal Governance Handbook', 'Book', 'Comprehensive guide to municipal governance and administration', 'https://drive.google.com/municipal-handbook', 'Department of Interior and Local Government', '2023-01-15', '300 pages', 'governance, administration, municipal'),
-('Excel for Municipal Employees', 'Online Course', 'Advanced Excel skills for data management and reporting', 'https://drive.google.com/excel-course', 'Microsoft Training', '2023-03-20', '8 hours', 'excel, data, reporting, technology'),
-('Public Speaking Mastery', 'Video', 'Video series on effective public speaking and presentation', 'https://drive.google.com/public-speaking', 'Communication Institute', '2023-02-10', '6 hours', 'communication, public speaking, presentation'),
-('Local Government Finance Guide', 'Article', 'Guide to financial management in local government units', 'https://drive.google.com/finance-guide', 'Commission on Audit', '2023-04-05', '45 minutes', 'finance, budget, compliance'),
-('Project Management Fundamentals', 'Webinar', 'Webinar on project management principles and practices', 'https://drive.google.com/project-webinar', 'Project Management Institute', '2023-05-12', '2 hours', 'project management, planning, execution'),
-('Customer Service Best Practices', 'Podcast', 'Podcast series on customer service excellence', 'https://drive.google.com/customer-podcast', 'Service Excellence Institute', '2023-06-18', '3 hours', 'customer service, communication, satisfaction'),
-('Environmental Protection Guidelines', 'Book', 'Guidelines for environmental protection and sustainability', 'https://drive.google.com/environmental-guide', 'Department of Environment and Natural Resources', '2023-07-25', '200 pages', 'environment, sustainability, protection'),
-('Digital Transformation in Government', 'Online Course', 'Course on digital transformation for government agencies', 'https://drive.google.com/digital-transformation', 'Digital Government Institute', '2023-08-30', '12 hours', 'digital, transformation, technology'),
-('Leadership in Public Service', 'Video', 'Video series on leadership in public service', 'https://drive.google.com/leadership-video', 'Public Service Leadership Institute', '2023-09-15', '8 hours', 'leadership, public service, management'),
-('Safety and Emergency Procedures', 'Article', 'Comprehensive guide to workplace safety and emergency response', 'https://drive.google.com/safety-guide', 'Department of Labor and Employment', '2023-10-20', '60 minutes', 'safety, emergency, procedures');
-
--- Insert sample training enrollments
-INSERT INTO training_enrollments (session_id, employee_id, enrollment_date, status, completion_date, score, feedback, certificate_url) VALUES
-(1, 1, '2024-02-15 10:30:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(1, 2, '2024-02-15 11:15:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(1, 3, '2024-02-15 14:20:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(2, 4, '2024-02-16 09:45:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(2, 5, '2024-02-16 10:30:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(3, 6, '2024-02-17 08:15:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(3, 7, '2024-02-17 09:00:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(4, 8, '2024-02-18 13:30:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(4, 9, '2024-02-18 14:15:00', 'Enrolled', NULL, NULL, NULL, NULL),
-(5, 10, '2024-02-19 11:00:00', 'Enrolled', NULL, NULL, NULL, NULL);
-
--- Insert sample employee skills
-INSERT INTO employee_skills (employee_id, skill_id, proficiency_level, assessed_date, certification_url, expiry_date, notes) VALUES
-(1, 1, 'Intermediate', '2024-01-15', 'https://drive.google.com/cert1.pdf', '2025-01-15', 'Leadership training completed'),
-(1, 2, 'Advanced', '2024-01-20', 'https://drive.google.com/cert2.pdf', '2025-01-20', 'Excellent communication skills'),
-(2, 3, 'Beginner', '2024-01-25', NULL, NULL, 'Basic project management knowledge'),
-(2, 4, 'Intermediate', '2024-02-01', 'https://drive.google.com/cert3.pdf', '2025-02-01', 'Financial analysis training'),
-(3, 5, 'Advanced', '2024-02-05', 'https://drive.google.com/cert4.pdf', '2025-02-05', 'Experienced public speaker'),
-(3, 6, 'Intermediate', '2024-02-10', NULL, NULL, 'Good problem-solving abilities'),
-(4, 7, 'Advanced', '2024-02-15', 'https://drive.google.com/cert5.pdf', '2025-02-15', 'Team collaboration expert'),
-(4, 8, 'Intermediate', '2024-02-20', NULL, NULL, 'Effective time management'),
-(5, 9, 'Advanced', '2024-02-25', 'https://drive.google.com/cert6.pdf', '2025-02-25', 'Customer service specialist'),
-(5, 10, 'Beginner', '2024-03-01', NULL, NULL, 'Basic data analysis skills');
-
--- Insert sample employee resources
-INSERT INTO employee_resources (employee_id, resource_id, assigned_date, due_date, completed_date, status, rating, feedback) VALUES
-(1, 1, '2024-01-10', '2024-02-10', '2024-01-25', 'Completed', 5, 'Excellent resource for understanding municipal governance'),
-(1, 2, '2024-01-15', '2024-02-15', '2024-02-05', 'Completed', 4, 'Very helpful for improving Excel skills'),
-(2, 3, '2024-01-20', '2024-02-20', '2024-02-10', 'Completed', 5, 'Great video series on public speaking'),
-(2, 4, '2024-01-25', '2024-02-25', NULL, 'In Progress', NULL, NULL),
-(3, 5, '2024-02-01', '2024-03-01', '2024-02-20', 'Completed', 4, 'Informative webinar on project management'),
-(3, 6, '2024-02-05', '2024-03-05', NULL, 'Assigned', NULL, NULL),
-(4, 7, '2024-02-10', '2024-03-10', '2024-02-28', 'Completed', 5, 'Comprehensive guide on environmental protection'),
-(4, 8, '2024-02-15', '2024-03-15', NULL, 'In Progress', NULL, NULL),
-(5, 9, '2024-02-20', '2024-03-20', '2024-03-05', 'Completed', 4, 'Good insights on leadership in public service'),
-(5, 10, '2024-02-25', '2024-03-25', NULL, 'Assigned', NULL, NULL);
-
--- Insert sample training needs assessments
-INSERT INTO training_needs_assessment (employee_id, assessment_date, skills_gap, recommended_trainings, priority, status) VALUES
-(1, '2024-01-15', 'Advanced project management skills needed for department leadership', 'Project Management Essentials, Strategic Planning Workshop', 'High', 'Identified'),
-(2, '2024-01-20', 'Digital skills improvement required for modern office operations', 'Digital Skills Training, Data Analysis and Reporting', 'Medium', 'In Progress'),
-(3, '2024-01-25', 'Leadership development needed for supervisory role', 'Leadership Fundamentals, Communication Skills Workshop', 'High', 'Completed'),
-(4, '2024-02-01', 'Financial management skills for budget responsibilities', 'Financial Management for Municipal Employees', 'Medium', 'Identified'),
-(5, '2024-02-05', 'Customer service skills for public interaction', 'Customer Service Excellence, Communication Skills Workshop', 'Low', 'In Progress'),
-(6, '2024-02-10', 'Safety training required for workplace compliance', 'Safety and Emergency Response', 'High', 'Identified'),
-(7, '2024-02-15', 'Environmental awareness for municipal projects', 'Environmental Management', 'Medium', 'Completed'),
-(8, '2024-02-20', 'Public administration principles for career advancement', 'Public Administration Principles', 'High', 'In Progress'),
-(9, '2024-02-25', 'Technology skills for digital transformation', 'Digital Skills Training, Data Analysis and Reporting', 'Medium', 'Identified'),
-(10, '2024-03-01', 'Communication skills for public relations role', 'Communication Skills Workshop, Public Speaking', 'High', 'Completed');
-
--- Insert sample employee career paths
-INSERT INTO employee_career_paths (employee_id, path_id, current_stage_id, start_date, target_completion_date, status) VALUES
-(1, 1, 2, '2023-01-15', '2025-01-15', 'Active'),
-(2, 2, 1, '2023-06-20', '2025-06-20', 'Active'),
-(3, 1, 3, '2022-03-10', '2024-03-10', 'Active'),
-(4, 3, 1, '2023-09-05', '2025-09-05', 'Active'),
-(5, 4, 2, '2022-12-15', '2024-12-15', 'Active'),
-(6, 5, 1, '2023-11-20', '2025-11-20', 'Active'),
-(7, 6, 2, '2022-08-30', '2024-08-30', 'Active'),
-(8, 7, 1, '2023-04-12', '2025-04-12', 'Active'),
-(9, 2, 3, '2021-07-25', '2023-07-25', 'Completed'),
-(10, 1, 1, '2023-12-01', '2025-12-01', 'Active');
-
-
--- Insert sample certifications data
-INSERT INTO certifications (
-    employee_id, skill_id, certification_name, issuing_organization, certification_number, 
-    category, proficiency_level, assessment_score, issue_date, expiry_date, assessed_date,
-    certification_url, status, verification_status, cost, training_hours, cpe_credits,
-    renewal_required, renewal_period_months, next_renewal_date, prerequisites, 
-    description, notes, tags
-) VALUES
--- Employee 1 - Administrative Staff with Leadership Focus
-(1, 1, 'Certified Public Manager (CPM)', 'Philippine Association of Government Managers', 'CPM-2024-001', 'Leadership', 'Advanced', 92.5, '2024-01-15', '2027-01-15', '2024-01-15', 'https://drive.google.com/cpm-cert-001.pdf', 'Active', 'Verified', 15000.00, 40, 40.0, TRUE, 36, '2027-01-15', '3 years management experience', 'Comprehensive leadership certification for government managers', 'Completed with distinction', 'leadership,management,government'),
-
-(1, 2, 'Professional Communication Certificate', 'Communication Institute of the Philippines', 'PCC-2024-002', 'Communication', 'Advanced', 88.0, '2024-01-20', '2025-01-20', '2024-01-20', 'https://drive.google.com/comm-cert-002.pdf', 'Active', 'Verified', 8000.00, 16, 16.0, TRUE, 12, '2025-01-20', 'Basic communication skills', 'Advanced communication and presentation skills certification', 'Excellent performance in public speaking module', 'communication,presentation,public-speaking'),
-
--- Employee 2 - Finance Staff
-(2, 4, 'Certified Government Financial Manager', 'Government Finance Officers Association', 'CGFM-2024-003', 'Finance', 'Intermediate', 85.0, '2024-02-01', '2026-02-01', '2024-02-01', 'https://drive.google.com/cgfm-cert-003.pdf', 'Active', 'Verified', 12000.00, 32, 32.0, TRUE, 24, '2026-02-01', 'Bachelor\'s degree in Finance or Accounting', 'Specialized certification in government financial management', 'Strong understanding of municipal finance principles', 'finance,government,budget,accounting'),
-
-(2, 11, 'Microsoft Office Specialist - Excel Expert', 'Microsoft Corporation', 'MOS-EXL-2024-004', 'Technology', 'Expert', 95.0, '2024-01-25', '2026-01-25', '2024-01-25', 'https://drive.google.com/mos-excel-cert-004.pdf', 'Active', 'Verified', 5000.00, 8, 8.0, TRUE, 24, '2026-01-25', 'Basic Excel knowledge', 'Expert-level Excel proficiency certification', 'Perfect score in advanced formulas and pivot tables', 'excel,microsoft,data-analysis,spreadsheet'),
-
--- Employee 3 - Senior Staff with Public Speaking
-(3, 5, 'Certified Professional Speaker', 'Philippine Society of Professional Speakers', 'CPS-2024-005', 'Communication', 'Expert', 94.0, '2024-02-05', '2027-02-05', '2024-02-05', 'https://drive.google.com/cps-cert-005.pdf', 'Active', 'Verified', 20000.00, 60, 60.0, TRUE, 36, '2027-02-05', '50 hours of public speaking experience', 'Professional speaker certification with advanced presentation skills', 'Demonstrated excellence in training delivery', 'public-speaking,presentation,training,communication'),
-
-(3, 6, 'Creative Problem Solving Certification', 'International Center for Studies in Creativity', 'CPS-CERT-2024-006', 'Analytics', 'Advanced', 89.5, '2024-02-10', '2025-02-10', '2024-02-10', 'https://drive.google.com/problem-solving-cert-006.pdf', 'Active', 'Verified', 10000.00, 24, 24.0, TRUE, 12, '2025-02-10', 'Basic analytical thinking skills', 'Advanced problem-solving methodologies and creative thinking', 'Excellent application of TRIZ methodology', 'problem-solving,creativity,analytics,innovation'),
-
--- Employee 4 - Team Leader
-(4, 7, 'Team Leadership Excellence Certificate', 'Center for Creative Leadership', 'TLE-2024-007', 'Management', 'Advanced', 91.0, '2024-02-15', '2026-02-15', '2024-02-15', 'https://drive.google.com/team-leadership-cert-007.pdf', 'Active', 'Verified', 18000.00, 40, 40.0, TRUE, 24, '2026-02-15', '2 years supervisory experience', 'Comprehensive team leadership and collaboration certification', 'Strong focus on cross-functional team management', 'team-leadership,collaboration,management,supervision'),
-
-(4, 8, 'Time Management Professional', 'Productivity Institute', 'TMP-2024-008', 'Management', 'Advanced', 87.0, '2024-02-20', '2025-02-20', '2024-02-20', 'https://drive.google.com/time-mgmt-cert-008.pdf', 'Active', 'Verified', 6000.00, 16, 16.0, TRUE, 12, '2025-02-20', 'Basic organizational skills', 'Advanced time management and productivity optimization', 'Implemented new scheduling systems in department', 'time-management,productivity,organization,efficiency'),
-
--- Employee 5 - Customer Service Specialist
-(5, 9, 'Customer Service Excellence Professional', 'Customer Service Institute', 'CSE-2024-009', 'Service', 'Expert', 96.0, '2024-02-25', '2026-02-25', '2024-02-25', 'https://drive.google.com/customer-service-cert-009.pdf', 'Active', 'Verified', 12000.00, 32, 32.0, TRUE, 24, '2026-02-25', '1 year customer service experience', 'Expert-level customer service and satisfaction management', 'Achieved highest score in conflict resolution module', 'customer-service,communication,conflict-resolution,satisfaction'),
-
-(5, 10, 'Data Analysis Fundamentals', 'Data Science Academy', 'DAF-2024-010', 'Analytics', 'Beginner', 78.0, '2024-03-01', '2025-03-01', '2024-03-01', 'https://drive.google.com/data-analysis-cert-010.pdf', 'Active', 'Verified', 7000.00, 20, 20.0, TRUE, 12, '2025-03-01', 'Basic math and statistics', 'Foundational data analysis and interpretation skills', 'Good grasp of basic statistical concepts', 'data-analysis,statistics,analytics,reporting'),
-
--- Employee 6 - Engineering Staff
-(6, 3, 'Project Management Professional (PMP)', 'Project Management Institute', 'PMP-2024-011', 'Management', 'Advanced', 92.0, '2024-01-10', '2027-01-10', '2024-01-10', 'https://drive.google.com/pmp-cert-011.pdf', 'Active', 'Verified', 25000.00, 60, 60.0, TRUE, 36, '2027-01-10', 'Bachelor\'s degree and 4,500 hours project experience', 'Global standard for project management professionals', 'Successfully managed 3 major infrastructure projects', 'project-management,planning,execution,infrastructure'),
-
-(6, 15, 'Emergency Response Coordinator', 'National Disaster Risk Reduction and Management Council', 'ERC-2024-012', 'Safety', 'Intermediate', 86.0, '2024-01-15', '2025-01-15', '2024-01-15', 'https://drive.google.com/emergency-response-cert-012.pdf', 'Active', 'Verified', 8000.00, 24, 24.0, TRUE, 12, '2025-01-15', 'First aid certification', 'Emergency response planning and coordination certification', 'Led emergency drills for municipal building', 'emergency,safety,disaster-management,coordination'),
-
--- Employee 7 - Health Services
-(7, 14, 'Environmental Health Officer', 'Department of Health', 'EHO-2024-013', 'Environment', 'Advanced', 90.0, '2024-02-01', '2026-02-01', '2024-02-01', 'https://drive.google.com/env-health-cert-013.pdf', 'Active', 'Verified', 15000.00, 48, 48.0, TRUE, 24, '2026-02-01', 'Health science degree', 'Environmental health assessment and management', 'Specialized in water quality monitoring', 'environment,health,water-quality,public-health'),
-
--- Employee 8 - Senior Administrative
-(8, 13, 'Legal Compliance Officer', 'Philippine Association of Legal Compliance', 'LCO-2024-014', 'Legal', 'Intermediate', 84.0, '2024-02-10', '2025-02-10', '2024-02-10', 'https://drive.google.com/legal-compliance-cert-014.pdf', 'Active', 'Verified', 18000.00, 40, 40.0, TRUE, 12, '2025-02-10', 'Basic legal knowledge', 'Government compliance and regulatory requirements', 'Strong understanding of local government regulations', 'legal,compliance,regulations,government-law'),
-
-(8, 19, 'Strategic Planning Certification', 'Institute for Strategic Planning', 'SPC-2024-015', 'Management', 'Advanced', 88.5, '2024-02-15', '2026-02-15', '2024-02-15', 'https://drive.google.com/strategic-planning-cert-015.pdf', 'Active', 'Verified', 22000.00, 50, 50.0, TRUE, 24, '2026-02-15', '5 years management experience', 'Long-term strategic planning and implementation', 'Developed 5-year municipal development plan', 'strategic-planning,management,long-term-planning,development'),
-
--- Employee 9 - IT Specialist
-(9, 12, 'Digital Transformation Specialist', 'Digital Government Institute', 'DTS-2024-016', 'Technology', 'Advanced', 93.0, '2024-02-20', '2025-02-20', '2024-02-20', 'https://drive.google.com/digital-transform-cert-016.pdf', 'Active', 'Verified', 16000.00, 35, 35.0, TRUE, 12, '2025-02-20', 'IT background and government experience', 'Digital transformation strategies for government agencies', 'Led digitization of municipal services', 'digital-transformation,technology,government-services,innovation'),
-
-(9, 11, 'Microsoft Azure Fundamentals', 'Microsoft Corporation', 'AZ-900-2024-017', 'Technology', 'Intermediate', 82.0, '2024-01-30', '2026-01-30', '2024-01-30', 'https://drive.google.com/azure-cert-017.pdf', 'Active', 'Verified', 8000.00, 20, 20.0, TRUE, 24, '2026-01-30', 'Basic cloud computing knowledge', 'Cloud computing fundamentals and Azure services', 'Good understanding of cloud infrastructure', 'cloud-computing,azure,microsoft,infrastructure'),
-
--- Employee 10 - Administrative Assistant
-(10, 17, 'Professional Report Writing', 'Business Communication Institute', 'PRW-2024-018', 'Communication', 'Intermediate', 81.0, '2024-03-05', '2025-03-05', '2024-03-05', 'https://drive.google.com/report-writing-cert-018.pdf', 'Active', 'Verified', 5500.00, 12, 12.0, TRUE, 12, '2025-03-05', 'Basic writing skills', 'Professional business and technical report writing', 'Improved department report quality significantly', 'report-writing,communication,documentation,business-writing'),
-
--- Additional certifications for comprehensive coverage
-
--- Expired certification for Employee 3
-(3, 2, 'Basic Communication Skills', 'Local Training Institute', 'BCS-2022-019', 'Communication', 'Intermediate', 80.0, '2022-01-15', '2023-01-15', '2022-01-15', 'https://drive.google.com/basic-comm-cert-019.pdf', 'Expired', 'Verified', 3000.00, 8, 8.0, TRUE, 12, '2023-01-15', 'None', 'Basic communication and interpersonal skills', 'Superseded by advanced certification', 'communication,basic,interpersonal'),
-
--- Pending renewal certification for Employee 4
-(4, 1, 'Supervisory Leadership', 'Management Development Institute', 'SL-2023-020', 'Leadership', 'Intermediate', 85.0, '2023-12-01', '2024-12-01', '2023-12-01', 'https://drive.google.com/supervisory-cert-020.pdf', 'Active', 'Verified', 10000.00, 24, 24.0, TRUE, 12, '2024-12-01', 'Supervisory role', 'Basic to intermediate supervisory skills', 'Due for renewal in 3 months', 'leadership,supervision,management,renewal-due'),
-
--- Suspended certification (compliance issue)
-(6, 20, 'Quality Assurance Professional', 'Quality Management Institute', 'QAP-2023-021', 'Management', 'Advanced', 90.0, '2023-06-15', '2025-06-15', '2023-06-15', 'https://drive.google.com/quality-assurance-cert-021.pdf', 'Suspended', 'Pending', 14000.00, 36, 36.0, TRUE, 24, '2025-06-15', '3 years QA experience', 'Quality assurance and control systems', 'Suspended pending verification of training provider', 'quality-assurance,management,suspended,verification'),
-
--- High-value certification
-(1, 19, 'Executive Leadership Program', 'Asian Institute of Management', 'ELP-2023-022', 'Leadership', 'Expert', 94.0, '2023-09-20', '2026-09-20', '2023-09-20', 'https://drive.google.com/exec-leadership-cert-022.pdf', 'Active', 'Verified', 150000.00, 120, 120.0, TRUE, 36, '2026-09-20', 'Senior management position', 'Executive leadership development for senior government officials', 'Comprehensive program covering strategic leadership', 'executive,leadership,strategic,senior-management'),
-
--- Recent certification with high CPE credits
-(2, 16, 'Advanced Budget Management', 'Government Budget Institute', 'ABM-2024-023', 'Finance', 'Advanced', 91.5, '2024-03-10', '2025-03-10', '2024-03-10', 'https://drive.google.com/budget-mgmt-cert-023.pdf', 'Active', 'Verified', 25000.00, 60, 60.0, TRUE, 12, '2025-03-10', 'Intermediate budget knowledge', 'Advanced budgeting, forecasting, and financial planning', 'Recently completed, high CPE credit value', 'budget,finance,planning,advanced,recent');
-
-INSERT INTO training_feedback (
-    employee_id, feedback_type, session_id, trainer_id, course_id, 
-    overall_rating, content_rating, instructor_rating,
-    what_worked_well, what_could_improve, additional_comments,
-    would_recommend, met_expectations, feedback_date, is_anonymous
-) VALUES
-
--- Feedback for Leadership Fundamentals Training Session
-(1, 'Training Session', 1, NULL, NULL, 
- 5, 5, 5,
- 'Excellent training session! Dr. Santos presented the material clearly and used practical examples from municipal governance. The interactive exercises were very engaging and helped reinforce key concepts.',
- 'Could benefit from more case studies specific to small municipalities. The session ran slightly longer than scheduled.',
- 'This training significantly improved my understanding of leadership principles. The materials provided were comprehensive and well-organized.',
- TRUE, TRUE, '2024-03-17', FALSE),
-
-(2, 'Training Session', 1, NULL, NULL,
- 4, 4, 5,
- 'Dr. Santos is an excellent facilitator with deep knowledge of public administration. The training content was highly relevant to my role as Municipal Engineer.',
- 'Some concepts were quite advanced and could use more basic explanations. More time needed for hands-on exercises.',
- 'The networking opportunities with other department heads were valuable. Learned from their experiences and challenges.',
- TRUE, TRUE, '2024-03-17', FALSE),
-
--- Feedback for Digital Skills Training
-(4, 'Training Session', 2, NULL, NULL,
- 4, 4, 4,
- 'Very practical training that addressed real workplace needs. Engr. Ramos demonstrated excellent technical knowledge and was patient with questions.',
- 'Internet connectivity issues disrupted some online demonstrations. Some participants needed more basic computer instruction.',
- 'The training materials were well-structured and easy to follow. Appreciate having both video tutorials and written guides.',
- TRUE, TRUE, '2024-03-23', FALSE),
-
--- Feedback for Customer Service Excellence Workshop
-(7, 'Training Session', 3, NULL, NULL,
- 5, 5, 4,
- 'Ms. Morales provided excellent insights into dealing with difficult situations and improving public service delivery. Role-playing exercises were very helpful.',
- 'Workshop room was too small for the number of participants. Some activities felt rushed due to time constraints.',
- 'The focus on municipal service scenarios made the training highly relevant. Appreciated the practical tips for handling complaints.',
- TRUE, TRUE, '2024-03-27', FALSE),
-
--- Trainer-specific feedback
-(3, 'Trainer', NULL, 1, NULL,
- 5, NULL, 5,
- 'Dr. Santos is an outstanding trainer with exceptional knowledge of leadership and public administration. Her teaching style is engaging and inclusive.',
- 'Could provide more opportunities for participant questions during presentations rather than saving all questions for the end.',
- 'Her use of real-world examples from her municipal experience made the concepts more relatable and practical.',
- TRUE, TRUE, '2024-03-18', FALSE),
-
--- Learning resource feedback
-(1, 'Learning Resource', NULL, NULL, NULL,
- 4, 4, NULL,
- 'The Municipal Governance Handbook is comprehensive and well-written. It covers all essential aspects of municipal administration.',
- 'Some sections are too technical for employees without legal background. Could use more illustrations and flowcharts.',
- 'Excellent reference material that I refer to regularly. The index and cross-references are very helpful.',
- TRUE, FALSE, '2024-02-15', FALSE),
-
--- Course content feedback
-(5, 'Course', NULL, NULL, 4,
- 3, 3, NULL,
- 'The Financial Management course covered important topics relevant to municipal finance. Content was accurate and up-to-date.',
- 'Course materials were quite dry and theoretical. Needed more practical exercises and real municipal examples.',
- 'While informative, the course could be more engaging. Some modules were repetitive.',
- FALSE, TRUE, '2024-04-06', FALSE),
-
--- More training session feedback
-(8, 'Training Session', 5, NULL, NULL,
- 4, 4, 4,
- 'The overall training program offered by the municipality is excellent and shows commitment to employee development. Good variety of courses available.',
- 'Training schedule sometimes conflicts with work duties. Need better coordination with department heads for release of employees.',
- 'Appreciate that training certificates are recognized for performance evaluations. This motivates participation.',
- TRUE, TRUE, '2024-02-28', FALSE),
-
--- Anonymous feedback with constructive criticism
-(9, 'Training Session', 4, NULL, NULL,
- 2, 2, 3,
- 'Ms. Mendoza has good technical knowledge of financial management principles.',
- 'Training delivery was too fast-paced. Complex financial concepts need more explanation and examples. Trainer seemed unprepared for some participant questions.',
- 'Materials were outdated and some information conflicted with current municipal procedures.',
- FALSE, FALSE, '2024-04-06', TRUE),
-
--- Positive feedback for excellent training
-(10, 'Training Session', 7, NULL, NULL,
- 5, 5, 5,
- 'Prof. Reyes delivered an exceptional communication skills workshop! Her expertise in public relations and media management was evident throughout. Excellent use of multimedia and interactive exercises.',
- 'Could not identify any significant areas for improvement. The workshop exceeded expectations.',
- 'This was one of the best training sessions I have attended. The content was practical and immediately applicable to my work.',
- TRUE, TRUE, '2024-04-24', FALSE),
-
--- Trainer feedback with mixed review
-(6, 'Trainer', NULL, 2, NULL,
- 3, NULL, 2,
- 'Engr. Cruz has excellent technical knowledge of project management principles and real-world experience.',
- 'Poor presentation skills made it difficult to follow the training. No visual aids or handouts provided.',
- 'Content was valuable but delivery needs significant improvement. Participants struggled to stay engaged.',
- FALSE, TRUE, '2024-04-18', FALSE),
-
--- More learning resource feedback
-(11, 'Learning Resource', NULL, NULL, NULL,
- 5, 5, NULL,
- 'The online project management course was excellent. Self-paced format worked well with my schedule.',
- 'Some video quality could be improved. A few modules had audio sync issues.',
- 'Great investment in our professional development. The certificate is a nice bonus.',
- TRUE, TRUE, '2024-03-10', FALSE);
-
-
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_clearance_tracking`
+--
+
+CREATE TABLE `exit_clearance_tracking` (
+  `clearance_id` int(11) NOT NULL,
+  `exit_id` int(11) NOT NULL,
+  `department` varchar(100) NOT NULL,
+  `clearance_officer` varchar(100) DEFAULT NULL,
+  `clearance_status` enum('Pending','Cleared','Conditional','Not Required') DEFAULT 'Pending',
+  `items_cleared` text DEFAULT NULL,
+  `conditions` text DEFAULT NULL,
+  `cleared_date` date DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_documents`
+--
+
+CREATE TABLE `exit_documents` (
+  `document_id` int(11) NOT NULL,
+  `exit_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `document_type` varchar(50) NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `document_url` varchar(255) NOT NULL,
+  `uploaded_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_interviews`
+--
+
+CREATE TABLE `exit_interviews` (
+  `interview_id` int(11) NOT NULL,
+  `exit_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `interview_date` date NOT NULL,
+  `feedback` text DEFAULT NULL,
+  `improvement_suggestions` text DEFAULT NULL,
+  `reason_for_leaving` text DEFAULT NULL,
+  `would_recommend` tinyint(1) DEFAULT NULL,
+  `status` enum('Scheduled','Completed','Cancelled') DEFAULT 'Scheduled',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exit_physical_items`
+--
+
+CREATE TABLE `exit_physical_items` (
+  `item_id` int(11) NOT NULL,
+  `checklist_id` int(11) NOT NULL,
+  `item_category` varchar(100) NOT NULL,
+  `item_description` text DEFAULT NULL,
+  `serial_number` varchar(100) DEFAULT NULL,
+  `sticker_code` varchar(100) DEFAULT NULL,
+  `asset_tag` varchar(100) DEFAULT NULL,
+  `condition_on_return` enum('Good','Fair','Poor','Damaged','Missing') DEFAULT 'Good',
+  `return_date` date DEFAULT NULL,
+  `received_by` varchar(100) DEFAULT NULL,
+  `verification_status` enum('Pending','Verified','Discrepancy') DEFAULT 'Pending',
+  `verification_remarks` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `feedback_cycles`
+--
+
+CREATE TABLE `feedback_cycles` (
+  `cycle_id` int(11) NOT NULL,
+  `cycle_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `status` enum('Active','Draft','Completed','Cancelled') DEFAULT 'Draft',
+  `created_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `feedback_cycles`
+--
+
+INSERT INTO `feedback_cycles` (`cycle_id`, `cycle_name`, `description`, `start_date`, `end_date`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
+(2, 'Yearly Evaluation', 'you', '2026-01-27', '2026-02-21', 'Active', 2, '2026-01-27 05:33:15', '2026-01-27 05:33:15');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `feedback_requests`
+--
+
+CREATE TABLE `feedback_requests` (
+  `request_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `reviewer_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `relationship_type` enum('supervisor','peer','subordinate','self') NOT NULL,
+  `status` enum('Pending','Completed','Cancelled') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `feedback_responses`
+--
+
+CREATE TABLE `feedback_responses` (
+  `response_id` int(11) NOT NULL,
+  `request_id` int(11) NOT NULL,
+  `reviewer_id` int(11) NOT NULL,
+  `responses` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `comments` text DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `goals`
+--
+
+CREATE TABLE `goals` (
+  `goal_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `status` enum('Not Started','In Progress','Completed','Cancelled') DEFAULT 'Not Started',
+  `progress` decimal(5,2) DEFAULT 0.00,
+  `weight` decimal(5,2) DEFAULT 100.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `goal_updates`
+--
+
+CREATE TABLE `goal_updates` (
+  `update_id` int(11) NOT NULL,
+  `goal_id` int(11) NOT NULL,
+  `update_date` date NOT NULL,
+  `progress` decimal(5,2) NOT NULL,
+  `comments` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `interviews`
+--
+
+CREATE TABLE `interviews` (
+  `interview_id` int(11) NOT NULL,
+  `application_id` int(11) NOT NULL,
+  `stage_id` int(11) NOT NULL,
+  `schedule_date` datetime NOT NULL,
+  `duration` int(11) NOT NULL COMMENT 'Duration in minutes',
+  `location` varchar(255) DEFAULT NULL,
+  `interview_type` enum('In-person','Phone','Video Call','Technical Assessment') NOT NULL,
+  `status` enum('Scheduled','Completed','Rescheduled','Cancelled') DEFAULT 'Scheduled',
+  `feedback` text DEFAULT NULL,
+  `rating` decimal(3,2) DEFAULT NULL,
+  `recommendation` enum('Strong Yes','Yes','Maybe','No','Strong No') DEFAULT NULL,
+  `completed_date` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `interview_stages`
+--
+
+CREATE TABLE `interview_stages` (
+  `stage_id` int(11) NOT NULL,
+  `job_opening_id` int(11) NOT NULL,
+  `stage_name` varchar(100) NOT NULL,
+  `stage_order` int(11) NOT NULL,
+  `description` text DEFAULT NULL,
+  `is_mandatory` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_applications`
+--
+
+CREATE TABLE `job_applications` (
+  `application_id` int(11) NOT NULL,
+  `job_opening_id` int(11) NOT NULL,
+  `candidate_id` int(11) NOT NULL,
+  `application_date` datetime NOT NULL,
+  `status` enum('Applied','Screening','Interview','Assessment','Reference Check','Offer','Hired','Rejected','Withdrawn') DEFAULT 'Applied',
+  `notes` text DEFAULT NULL,
+  `assessment_scores` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`assessment_scores`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_offers`
+--
+
+CREATE TABLE `job_offers` (
+  `offer_id` int(11) NOT NULL,
+  `application_id` int(11) NOT NULL,
+  `job_opening_id` int(11) NOT NULL,
+  `candidate_id` int(11) NOT NULL,
+  `offered_salary` decimal(10,2) NOT NULL,
+  `offered_benefits` text DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `expiration_date` date NOT NULL,
+  `approval_status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `offer_status` enum('Draft','Sent','Accepted','Negotiating','Declined','Expired') DEFAULT 'Draft',
+  `offer_letter_url` varchar(255) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `offer_letters`
+--
+
+CREATE TABLE `offer_letters` (
+  `letter_id` int(11) NOT NULL,
+  `offer_id` int(11) NOT NULL,
+  `application_id` int(11) NOT NULL,
+  `letter_content` text NOT NULL,
+  `status` enum('Draft','Sent','Accepted','Declined') DEFAULT 'Draft',
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `sent_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_openings`
+--
+
+CREATE TABLE `job_openings` (
+  `job_opening_id` int(11) NOT NULL,
+  `job_role_id` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `requirements` text NOT NULL,
+  `responsibilities` text NOT NULL,
+  `location` varchar(100) DEFAULT NULL,
+  `employment_type` enum('Full-time','Part-time','Contract','Temporary','Internship') NOT NULL,
+  `experience_level` varchar(50) DEFAULT NULL,
+  `education_requirements` text DEFAULT NULL,
+  `salary_range_min` decimal(10,2) DEFAULT NULL,
+  `salary_range_max` decimal(10,2) DEFAULT NULL,
+  `vacancy_count` int(11) DEFAULT 1,
+  `posting_date` date NOT NULL,
+  `closing_date` date DEFAULT NULL,
+  `status` enum('Draft','Open','On Hold','Closed','Cancelled') DEFAULT 'Draft',
+  `screening_level` enum('Easy','Moderate','Strict') DEFAULT 'Moderate' COMMENT 'AI screening difficulty level',
+  `ai_generated` tinyint(1) DEFAULT 0 COMMENT 'Flag if job was created by AI',
+  `created_by` int(11) DEFAULT NULL COMMENT 'User ID who created the job',
+  `approval_status` enum('Pending','Approved','Rejected') DEFAULT NULL COMMENT 'Approval status for AI-generated jobs',
+  `approved_by` int(11) DEFAULT NULL COMMENT 'User ID who approved/rejected the job',
+  `approved_at` datetime DEFAULT NULL COMMENT 'Timestamp of approval/rejection',
+  `rejection_reason` text DEFAULT NULL COMMENT 'Reason if job was rejected',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_roles`
+--
+
+CREATE TABLE `job_roles` (
+  `job_role_id` int(11) NOT NULL,
+  `title` varchar(100) NOT NULL,
+  `description` text NOT NULL,
+  `department` varchar(50) NOT NULL,
+  `min_salary` decimal(10,2) DEFAULT NULL,
+  `max_salary` decimal(10,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `job_roles`
+--
+
+INSERT INTO `job_roles` (`job_role_id`, `title`, `description`, `department`, `min_salary`, `max_salary`, `created_at`, `updated_at`) VALUES
+(1, 'Mayor', 'Chief executive of the municipality responsible for overall governance', 'Office of the Mayor', 80000.00, 120000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(2, 'Vice Mayor', 'Presiding officer of Sangguniang Bayan and assistant to the Mayor', 'Sangguniang Bayan', 70000.00, 100000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(3, 'Councilor', 'Member of the municipal legislative body', 'Sangguniang Bayan', 60000.00, 85000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(4, 'Municipal Treasurer', 'Head of treasury operations and revenue collection', 'Municipal Treasurer\'s Office', 55000.00, 75000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(5, 'Municipal Budget Officer', 'Responsible for municipal budget preparation and monitoring', 'Municipal Budget Office', 50000.00, 70000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(6, 'Municipal Accountant', 'Chief accountant responsible for municipal financial records', 'Municipal Accountant\'s Office', 50000.00, 70000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(7, 'Municipal Planning & Development Coordinator', 'Head of municipal planning and development programs', 'Municipal Planning & Development Office', 55000.00, 75000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(8, 'Municipal Engineer', 'Chief engineer overseeing infrastructure and public works', 'Municipal Engineer\'s Office', 60000.00, 85000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(9, 'Municipal Civil Registrar', 'Head of civil registration services', 'Municipal Civil Registrar\'s Office', 45000.00, 65000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(10, 'Municipal Health Officer', 'Chief medical officer and head of health services', 'Municipal Health Office', 70000.00, 95000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(11, 'Municipal Social Welfare Officer', 'Head of social welfare and development programs', 'Municipal Social Welfare & Development Office', 50000.00, 70000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(12, 'Municipal Agriculturist', 'Agricultural development officer and extension coordinator', 'Municipal Agriculture Office', 50000.00, 70000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(13, 'Municipal Assessor', 'Head of property assessment and real property taxation', 'Municipal Assessor\'s Office', 50000.00, 70000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(14, 'Municipal HR Officer', 'Head of human resources and personnel administration', 'Municipal Human Resource & Administrative Office', 50000.00, 70000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(15, 'MDRRM Officer', 'Disaster risk reduction and management coordinator', 'Municipal Disaster Risk Reduction & Management Off', 45000.00, 65000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(16, 'General Services Officer', 'Head of general services and facility management', 'General Services Office', 40000.00, 60000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(17, 'Nurse', 'Provides nursing services and healthcare support', 'Municipal Health Office', 35000.00, 50000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(18, 'Midwife', 'Provides maternal and child health services', 'Municipal Health Office', 30000.00, 45000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(19, 'Sanitary Inspector', 'Conducts health and sanitation inspections', 'Municipal Health Office', 28000.00, 40000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(20, 'Social Worker', 'Provides social services and community assistance', 'Municipal Social Welfare & Development Office', 35000.00, 50000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(21, 'Agricultural Technician', 'Provides technical support for agricultural programs', 'Municipal Agriculture Office', 28000.00, 40000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(22, 'Civil Engineer', 'Designs and supervises infrastructure projects', 'Municipal Engineer\'s Office', 45000.00, 65000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(23, 'CAD Operator', 'Creates technical drawings and engineering plans', 'Municipal Engineer\'s Office', 30000.00, 45000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(24, 'Building Inspector', 'Inspects construction projects for code compliance', 'Municipal Engineer\'s Office', 35000.00, 50000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(25, 'Budget Analyst', 'Analyzes budget data and prepares financial reports', 'Municipal Budget Office', 35000.00, 50000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(26, 'Accounting Staff', 'Handles bookkeeping and accounting transactions', 'Municipal Accountant\'s Office', 25000.00, 38000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(27, 'Planning Staff', 'Assists in municipal planning and development activities', 'Municipal Planning & Development Office', 30000.00, 45000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(28, 'Administrative Aide', 'Provides administrative support to various departments', 'Municipal Human Resource & Administrative Office', 22000.00, 35000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(29, 'Clerk', 'Handles clerical work and document processing', 'Municipal Civil Registrar\'s Office', 20000.00, 32000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(30, 'Cashier', 'Processes payments and financial transactions', 'Municipal Treasurer\'s Office', 22000.00, 35000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(31, 'Collection Officer', 'Collects municipal revenues and taxes', 'Municipal Treasurer\'s Office', 25000.00, 38000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(32, 'Property Custodian', 'Manages and maintains municipal property and assets', 'General Services Office', 22000.00, 35000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(33, 'Maintenance Worker', 'Performs maintenance and repair work on municipal facilities', 'General Services Office', 18000.00, 28000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(34, 'Utility Worker', 'Provides general utility and janitorial services', 'General Services Office', 16000.00, 25000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(35, 'Driver', 'Operates municipal vehicles and provides transportation services', 'General Services Office', 20000.00, 32000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(36, 'Security Personnel', 'Provides security services for municipal facilities', 'General Services Office', 18000.00, 28000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(37, 'Legislative Staff', 'Provides secretarial support to Sangguniang Bayan', 'Sangguniang Bayan', 25000.00, 38000.00, '2025-09-09 02:00:15', '2025-09-09 02:00:15');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `knowledge_transfers`
+--
+
+CREATE TABLE `knowledge_transfers` (
+  `transfer_id` int(11) NOT NULL,
+  `exit_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `handover_details` text DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `completion_date` date DEFAULT NULL,
+  `status` enum('Not Started','In Progress','Completed','N/A') DEFAULT 'Not Started',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `learning_resources`
+--
+
+CREATE TABLE `learning_resources` (
+  `resource_id` int(11) NOT NULL,
+  `resource_name` varchar(255) NOT NULL,
+  `resource_type` enum('Book','Online Course','Video','Article','Webinar','Podcast','Other') NOT NULL,
+  `description` text DEFAULT NULL,
+  `resource_url` varchar(255) DEFAULT NULL,
+  `author` varchar(100) DEFAULT NULL,
+  `publication_date` date DEFAULT NULL,
+  `duration` varchar(50) DEFAULT NULL,
+  `tags` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `leave_balances`
+--
+
+CREATE TABLE `leave_balances` (
+  `balance_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `leave_type_id` int(11) NOT NULL,
+  `year` year(4) NOT NULL,
+  `total_leaves` decimal(5,2) NOT NULL,
+  `leaves_taken` decimal(5,2) DEFAULT 0.00,
+  `leaves_pending` decimal(5,2) DEFAULT 0.00,
+  `leaves_remaining` decimal(5,2) DEFAULT NULL,
+  `last_updated` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `leave_balances`
+--
+
+INSERT INTO `leave_balances` (`balance_id`, `employee_id`, `leave_type_id`, `year`, `total_leaves`, `leaves_taken`, `leaves_pending`, `leaves_remaining`, `last_updated`, `created_at`, `updated_at`) VALUES
+(17, 1, 1, '2024', 15.00, 3.00, 0.00, 12.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(18, 2, 1, '2024', 15.00, 5.00, 1.00, 9.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(19, 3, 1, '2024', 15.00, 2.00, 0.00, 13.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(20, 4, 1, '2024', 15.00, 7.00, 0.00, 8.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(21, 5, 1, '2024', 15.00, 4.00, 2.00, 9.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(22, 1, 2, '2024', 10.00, 1.00, 0.00, 9.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(23, 2, 2, '2024', 10.00, 3.00, 0.00, 7.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(24, 3, 2, '2024', 10.00, 0.00, 0.00, 10.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(25, 4, 2, '2024', 10.00, 2.00, 0.00, 8.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(26, 5, 2, '2024', 10.00, 1.00, 0.00, 9.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(27, 1, 3, '2024', 60.00, 0.00, 0.00, 60.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(28, 2, 3, '2024', 60.00, 0.00, 0.00, 60.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(29, 3, 3, '2024', 60.00, 0.00, 0.00, 60.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(30, 1, 4, '2024', 7.00, 0.00, 0.00, 7.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(31, 2, 4, '2024', 7.00, 0.00, 0.00, 7.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(32, 4, 4, '2024', 7.00, 0.00, 0.00, 7.00, NULL, '2025-09-14 07:13:53', '2025-09-14 07:13:53');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `leave_requests`
+--
+
+CREATE TABLE `leave_requests` (
+  `leave_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `leave_type_id` int(11) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `total_days` decimal(5,2) NOT NULL,
+  `reason` text DEFAULT NULL,
+  `status` enum('Pending','Approved','Rejected','Cancelled') DEFAULT 'Pending',
+  `applied_on` datetime DEFAULT current_timestamp(),
+  `approved_on` datetime DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `leave_types`
+--
+
+CREATE TABLE `leave_types` (
+  `leave_type_id` int(11) NOT NULL,
+  `leave_type_name` varchar(50) NOT NULL,
+  `description` text DEFAULT NULL,
+  `paid` tinyint(1) DEFAULT 1,
+  `default_days` decimal(5,2) DEFAULT 0.00,
+  `carry_forward` tinyint(1) DEFAULT 0,
+  `max_carry_forward_days` decimal(5,2) DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `leave_types`
+--
+
+INSERT INTO `leave_types` (`leave_type_id`, `leave_type_name`, `description`, `paid`, `default_days`, `carry_forward`, `max_carry_forward_days`, `created_at`, `updated_at`) VALUES
+(1, 'Vacation Leave', 'Annual vacation leave (RA 10911: 15 days minimum)', 1, 15.00, 1, 5.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(2, 'Sick Leave', 'Medical leave for illness (RA 10911: 15 days minimum)', 1, 15.00, 1, 5.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(3, 'Maternity Leave', 'Leave for new mothers (RA 11210: 120 days)', 1, 120.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(4, 'Paternity Leave', 'Leave for new fathers (RA 11165: 7-14 days; 14 for solo parents)', 1, 7.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(5, 'Emergency Leave', 'Unplanned emergency leave', 0, 5.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(6, 'Solo Parent Leave', 'Additional leave for solo parents (RA 9403: 5 days)', 1, 5.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35'),
+(7, 'Menstrual Disorder Leave', 'Leave for menstrual disorder symptoms (RA 11058: up to 3 days annually)', 1, 3.00, 0, 0.00, '2025-09-14 07:13:35', '2025-09-14 07:13:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `marital_status_history`
+--
+
+CREATE TABLE `marital_status_history` (
+  `status_history_id` int(11) NOT NULL,
+  `personal_info_id` int(11) NOT NULL,
+  `marital_status` enum('Single','Married','Divorced','Widowed','Separated','Annulled') NOT NULL,
+  `status_date` date NOT NULL COMMENT 'Date of marriage, divorce, etc.',
+  `spouse_name` varchar(100) DEFAULT NULL,
+  `supporting_document_type` enum('Marriage Certificate','Divorce Decree','Death Certificate','Annulment Certificate','Separation Agreement') DEFAULT NULL,
+  `document_url` varchar(255) DEFAULT NULL,
+  `document_number` varchar(50) DEFAULT NULL COMMENT 'Certificate or decree number',
+  `issuing_authority` varchar(150) DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `is_current` tinyint(1) DEFAULT 1 COMMENT '1 = current status, 0 = historical',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `marital_status_history`
+--
+
+INSERT INTO `marital_status_history` (`status_history_id`, `personal_info_id`, `marital_status`, `status_date`, `spouse_name`, `supporting_document_type`, `document_url`, `document_number`, `issuing_authority`, `remarks`, `is_current`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Married', '2012-05-15', 'Carlos Santos', 'Marriage Certificate', '/documents/marital/maria_santos_marriage_cert.pdf', 'MC-2012-05-001234', 'Manila City Civil Registrar', NULL, 1, '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(2, 2, 'Married', '2005-11-20', 'Elena Cruz', 'Marriage Certificate', '/documents/marital/roberto_cruz_marriage_cert.pdf', 'MC-2005-11-005678', 'Quezon City Civil Registrar', NULL, 1, '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(3, 4, 'Married', '2001-03-10', 'Rosa Garcia', 'Marriage Certificate', '/documents/marital/antonio_garcia_marriage_cert.pdf', 'MC-2001-03-009012', 'Makati City Civil Registrar', NULL, 1, '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(4, 5, 'Divorced', '2018-08-22', 'John Mendoza', 'Divorce Decree', '/documents/marital/lisa_mendoza_divorce_decree.pdf', 'DD-2018-08-003456', 'Family Court Manila', NULL, 1, '2026-01-20 02:55:57', '2026-01-20 02:55:57'),
+(5, 6, 'Married', '2008-07-14', 'Anna Torres', 'Marriage Certificate', '/documents/marital/michael_torres_marriage_cert.pdf', 'MC-2008-07-007890', 'Pasig City Civil Registrar', NULL, 1, '2026-01-20 02:55:57', '2026-01-20 02:55:57');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `onboarding_tasks`
+--
+
+CREATE TABLE `onboarding_tasks` (
+  `task_id` int(11) NOT NULL,
+  `task_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `task_type` enum('Administrative','Equipment','Training','Introduction','Documentation','Other') NOT NULL,
+  `is_mandatory` tinyint(1) DEFAULT 1,
+  `default_due_days` int(11) DEFAULT 7 COMMENT 'Days after joining date',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_disbursements`
+--
+
+CREATE TABLE `payment_disbursements` (
+  `payment_disbursement_id` int(11) NOT NULL,
+  `payroll_transaction_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `payment_method` enum('Bank Transfer','Check','Cash','Other') NOT NULL,
+  `bank_name` varchar(100) DEFAULT NULL,
+  `account_number` varchar(50) DEFAULT NULL,
+  `payment_amount` decimal(10,2) NOT NULL,
+  `disbursement_date` datetime NOT NULL,
+  `status` enum('Pending','Processed','Failed') DEFAULT 'Pending',
+  `reference_number` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payroll_cycles`
+--
+
+CREATE TABLE `payroll_cycles` (
+  `payroll_cycle_id` int(11) NOT NULL,
+  `cycle_name` varchar(50) NOT NULL,
+  `pay_period_start` date NOT NULL,
+  `pay_period_end` date NOT NULL,
+  `pay_date` date NOT NULL,
+  `status` enum('Pending','Processing','Completed') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payroll_transactions`
+--
+
+CREATE TABLE `payroll_transactions` (
+  `payroll_transaction_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `payroll_cycle_id` int(11) NOT NULL,
+  `gross_pay` decimal(10,2) NOT NULL,
+  `tax_deductions` decimal(10,2) DEFAULT 0.00,
+  `statutory_deductions` decimal(10,2) DEFAULT 0.00,
+  `other_deductions` decimal(10,2) DEFAULT 0.00,
+  `net_pay` decimal(10,2) NOT NULL,
+  `processed_date` datetime NOT NULL,
+  `status` enum('Pending','Processed','Paid','Cancelled') DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payslips`
+--
+
+CREATE TABLE `payslips` (
+  `payslip_id` int(11) NOT NULL,
+  `payroll_transaction_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `payslip_url` varchar(255) DEFAULT NULL,
+  `generated_date` datetime NOT NULL,
+  `status` enum('Generated','Sent','Viewed') DEFAULT 'Generated',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `performance_metrics`
+--
+
+CREATE TABLE `performance_metrics` (
+  `metric_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `metric_name` varchar(100) NOT NULL,
+  `metric_value` decimal(10,2) NOT NULL,
+  `recorded_date` date NOT NULL,
+  `comments` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `performance_reviews`
+--
+
+CREATE TABLE `performance_reviews` (
+  `review_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `review_date` date NOT NULL,
+  `overall_rating` decimal(3,2) NOT NULL,
+  `strengths` text DEFAULT NULL,
+  `areas_of_improvement` text DEFAULT NULL,
+  `comments` text DEFAULT NULL,
+  `status` enum('Draft','Submitted','Acknowledged','Finalized') DEFAULT 'Draft',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `performance_review_cycles`
+--
+
+CREATE TABLE `performance_review_cycles` (
+  `cycle_id` int(11) NOT NULL,
+  `cycle_name` varchar(100) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `status` enum('Upcoming','In Progress','Completed') DEFAULT 'Upcoming',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `performance_review_cycles`
+--
+
+INSERT INTO `performance_review_cycles` (`cycle_id`, `cycle_name`, `start_date`, `end_date`, `status`, `created_at`, `updated_at`) VALUES
+(3, 'Monthly Evaluation', '2025-10-01', '2025-10-31', '', '2025-10-21 12:47:53', '2025-10-21 12:47:53'),
+(4, 'Yearly Evaluation', '2026-01-01', '2026-12-31', 'In Progress', '2026-01-20 03:48:27', '2026-01-20 03:48:52');
+
+-- --------------------------------------------------------
+
+--
+--
+-- Table structure for table `personal_information`
+--
+
+CREATE TABLE `personal_information` (
+  `personal_info_id` int(11) NOT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `date_of_birth` date NOT NULL,
+  `gender` enum('Male','Female','Non-binary','Prefer not to say') NOT NULL,
+  `marital_status` enum('Single','Married','Divorced','Widowed') NOT NULL,
+  `nationality` varchar(50) NOT NULL,
+  `tax_id` varchar(20) DEFAULT NULL,
+  `social_security_number` varchar(20) DEFAULT NULL,
+  `pag_ibig_id` varchar(20) DEFAULT NULL,
+  `philhealth_id` varchar(20) DEFAULT NULL,
+  `phone_number` varchar(20) NOT NULL,
+  `emergency_contact_name` varchar(100) DEFAULT NULL,
+  `emergency_contact_relationship` varchar(50) DEFAULT NULL,
+  `emergency_contact_phone` varchar(20) DEFAULT NULL,
+  -- Educational Background Fields
+  `highest_education_level` enum('Elementary','High School','Vocational/Technical','Associate Degree','Bachelor''s Degree','Master''s Degree','Doctorate','Other') DEFAULT NULL,
+  `field_of_study` varchar(100) DEFAULT NULL,
+  `institution_name` varchar(150) DEFAULT NULL,
+  `graduation_year` year DEFAULT NULL,
+  `certifications` text DEFAULT NULL,
+  `additional_training` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `personal_information`
+--
+
+INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `nationality`, `tax_id`, `social_security_number`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
+(1, 'Maria', 'Santos', '1985-03-12', 'Female', 'Married', 'Filipino', '123-45-6789', '123456789', NULL, NULL, '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901', 'Bachelor''s Degree', 'Business Administration', 'University of the Philippines', 2007, 'Certified Public Accountant (CPA)', 'Advanced Excel Training, Leadership Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(2, 'Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', 'Filipino', '234-56-7890', '234567890', NULL, NULL, '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012', 'Master''s Degree', 'Information Technology', 'Ateneo de Manila University', 2002, 'Project Management Professional (PMP), ITIL Foundation', 'Agile Scrum Master Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(3, 'Jennifer', 'Reyes', '1988-11-08', 'Female', 'Single', 'Filipino', '345-67-8901', '345678901', NULL, NULL, '0917-345-6789', 'Mark Reyes', 'Brother', '0917-789-0123', 'Bachelor''s Degree', 'Marketing', 'De La Salle University', 2010, 'Google Analytics Certification, Digital Marketing Certificate', 'Social Media Marketing Bootcamp', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(4, 'Antonio', 'Garcia', '1975-01-25', 'Male', 'Married', 'Filipino', '456-78-9012', '456789012', NULL, NULL, '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234', 'Vocational/Technical', 'Automotive Technology', 'Technical Education and Skills Development Authority (TESDA)', 1995, 'NC II Automotive Servicing, Welding NC II', 'Heavy Equipment Operation Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(5, 'Lisa', 'Mendoza', '1982-09-14', 'Female', 'Divorced', 'Filipino', '567-89-0123', '567890123', NULL, NULL, '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345', 'Bachelor''s Degree', 'Nursing', 'University of Santo Tomas', 2004, 'Registered Nurse (RN), Basic Life Support (BLS)', 'Intensive Care Unit (ICU) Specialized Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(6, 'Michael', 'Torres', '1980-06-03', 'Male', 'Married', 'Filipino', '678-90-1234', '678901234', NULL, NULL, '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456', 'Bachelor''s Degree', 'Civil Engineering', 'Mapua University', 2002, 'Licensed Civil Engineer, LEED Green Associate', 'Construction Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(7, 'Carmen', 'Dela Cruz', '1987-12-18', 'Female', 'Single', 'Filipino', '789-01-2345', '789012345', NULL, NULL, '0917-789-0123', 'Pedro Dela Cruz', 'Father', '0917-123-4567', 'Bachelor''s Degree', 'Education', 'Philippine Normal University', 2009, 'Licensed Professional Teacher (LPT)', 'Child Psychology Training, Montessori Method Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(8, 'Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', 'Filipino', '890-12-3456', '890123456', NULL, NULL, '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678', 'High School', NULL, 'San Juan National High School', 1988, 'Sales Excellence Certificate', 'Customer Service Training, Product Knowledge Seminars', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(9, 'Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', 'Filipino', '901-23-4567', '901234567', NULL, NULL, '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789', 'Master''s Degree', 'Human Resource Management', 'Asian Institute of Management', 2008, 'SHRM-CP, Certified Compensation Professional', 'Organizational Development Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(10, 'Jose', 'Ramos', '1972-05-15', 'Male', 'Married', 'Filipino', '012-34-5678', '012345678', NULL, NULL, '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890', 'Bachelor''s Degree', 'Electrical Engineering', 'Polytechnic University of the Philippines', 1994, 'Licensed Electrical Engineer', 'Power Systems Analysis Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(11, 'Ana', 'Morales', '1986-10-30', 'Female', 'Single', 'Filipino', '123-56-7890', '123567890', NULL, NULL, '0917-135-7890', 'Maria Morales', 'Mother', '0917-579-0123', 'Bachelor''s Degree', 'Psychology', 'University of the Philippines', 2008, 'Licensed Psychologist, Certified Career Coach', 'Cognitive Behavioral Therapy Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(12, 'Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', 'Filipino', '234-67-8901', '234678901', NULL, NULL, '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234', 'Vocational/Technical', 'Computer Technology', 'TESDA', 1998, 'Computer Systems Servicing NC II', 'Web Development Bootcamp, Network Administration', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(13, 'Grace', 'Lopez', '1983-09-07', 'Female', 'Married', 'Filipino', '345-78-9012', '345789012', NULL, NULL, '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345', 'Bachelor''s Degree', 'Accountancy', 'Far Eastern University', 2005, 'Certified Public Accountant (CPA), Certified Internal Auditor', 'Tax Planning and Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(15, 'Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', 'Filipino', '567-90-1234', '567901234', NULL, NULL, '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567', 'Bachelor''s Degree', 'Communication Arts', 'University of the Philippines', 2011, 'Certified Digital Content Creator', 'Video Production Workshop, Social Media Strategy Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `post_exit_surveys`
+--
+
+CREATE TABLE `post_exit_surveys` (
+  `survey_id` int(11) NOT NULL,
+  `employee_id` int(11) DEFAULT NULL,
+  `exit_id` int(11) NOT NULL,
+  `survey_date` date NOT NULL,
+  `survey_response` text DEFAULT NULL,
+  `satisfaction_rating` int(11) DEFAULT NULL,
+  `submitted_date` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_anonymous` tinyint(1) NOT NULL DEFAULT 0,
+  `evaluation_score` int(11) DEFAULT 0,
+  `evaluation_criteria` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `public_holidays`
+--
+
+CREATE TABLE `public_holidays` (
+  `holiday_id` int(11) NOT NULL,
+  `holiday_date` date NOT NULL,
+  `holiday_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `public_holidays`
+--
+
+INSERT INTO `public_holidays` (`holiday_id`, `holiday_date`, `holiday_name`, `description`, `created_at`, `updated_at`) VALUES
+(1, '2025-01-01', 'New Year\'s Day', 'Bagong Taon', '2025-09-09 02:00:56', '2025-09-09 02:00:56'),
+(2, '2025-01-29', 'Chinese New Year', 'Chinese New Year', '2025-09-09 02:00:56', '2025-09-09 02:00:56'),
+(3, '2025-04-01', 'Feast of Ramadhan', 'Eid???l Fitr', '2025-09-09 02:00:56', '2025-09-09 02:00:56'),
+(4, '2025-04-09', 'Day of Valor', 'Araw ng Kagitingan', '2025-09-09 02:00:56', '2025-09-09 02:00:56'),
+(5, '2025-04-17', 'Maundy Thursday', 'Huwebes Santo', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(6, '2025-04-18', 'Good Friday', 'Biyernes Santo', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(7, '2025-04-19', 'Holy Saturday', 'Sabado de Gloria', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(8, '2025-05-01', 'Labor Day', 'Araw ng Paggawa', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(9, '2025-05-12', 'Midterm Elections', 'Halalan 2025', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(10, '2025-06-06', 'Feast of Sacrifice', 'Eid\'l Adha', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(11, '2025-06-12', 'Independence Day', 'Araw ng Kalayaan', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(12, '2025-08-21', 'Ninoy Aquino Day', 'Araw ng Kamatayan ni Senador Benigno Simeon \"Ninoy\" Aquino Jr.', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(13, '2025-08-25', 'National Heroes Day', 'Araw ng mga Bayani', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(14, '2025-10-31', 'All Saints\' Day Eve', 'All Saints\' Day Eve', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(15, '2025-11-01', 'All Saints\' Day', 'Araw ng mga Santo', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(16, '2025-11-30', 'Bonifacio Day', 'Araw ni Gat Andres Bonifacio', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(17, '2025-12-08', 'Feast of the Immaculate Conception of Mary', 'Kapistahan ng Immaculada Concepcion', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(18, '2025-12-24', 'Christmas Eve', 'Christmas Eve', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(19, '2025-12-25', 'Christmas Day', 'Araw ng Pasko', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(20, '2025-12-30', 'Rizal Day', 'Araw ng Kamatayan ni Dr. Jose Rizal', '2025-09-09 02:00:57', '2025-09-09 02:00:57'),
+(21, '2025-12-31', 'Last Day of The Year', 'Huling Araw ng Taon', '2025-09-09 02:00:57', '2025-09-09 02:00:57');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `recruitment_analytics`
+--
+
+CREATE TABLE `recruitment_analytics` (
+  `analytics_id` int(11) NOT NULL,
+  `job_opening_id` int(11) NOT NULL,
+  `total_applications` int(11) DEFAULT 0,
+  `applications_per_day` decimal(5,2) DEFAULT 0.00,
+  `average_processing_time` int(11) DEFAULT 0 COMMENT 'In days',
+  `average_time_to_hire` int(11) DEFAULT 0 COMMENT 'In days',
+  `offer_acceptance_rate` decimal(5,2) DEFAULT 0.00,
+  `recruitment_source_breakdown` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`recruitment_source_breakdown`)),
+  `cost_per_hire` decimal(10,2) DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `salary_structures`
+--
+
+CREATE TABLE `salary_structures` (
+  `salary_structure_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `basic_salary` decimal(10,2) NOT NULL,
+  `allowances` decimal(10,2) DEFAULT 0.00,
+  `deductions` decimal(10,2) DEFAULT 0.00,
+  `effective_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `settlements`
+--
+
+CREATE TABLE `settlements` (
+  `settlement_id` int(11) NOT NULL,
+  `exit_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `last_working_day` date NOT NULL,
+  `final_salary` decimal(10,2) NOT NULL,
+  `severance_pay` decimal(10,2) DEFAULT 0.00,
+  `unused_leave_payout` decimal(10,2) DEFAULT 0.00,
+  `deductions` decimal(10,2) DEFAULT 0.00,
+  `final_settlement_amount` decimal(10,2) NOT NULL,
+  `payment_date` date DEFAULT NULL,
+  `payment_method` varchar(50) DEFAULT NULL,
+  `status` enum('Pending','Processing','Completed') DEFAULT 'Pending',
+  `processed_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shifts`
+--
+
+CREATE TABLE `shifts` (
+  `shift_id` int(11) NOT NULL,
+  `shift_name` varchar(50) NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `shifts`
+--
+
+INSERT INTO `shifts` (`shift_id`, `shift_name`, `start_time`, `end_time`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'Morning Shift', '08:00:00', '16:00:00', 'Standard morning shift from 8 AM to 4 PM', '2025-09-14 07:12:31', '2025-09-14 07:12:31'),
+(2, 'Afternoon Shift', '14:00:00', '22:00:00', 'Afternoon/evening shift from 2 PM to 10 PM', '2025-09-14 07:12:31', '2025-09-14 07:12:31'),
+(3, 'Night Shift', '22:00:00', '06:00:00', 'Night shift from 10 PM to 6 AM', '2025-09-14 07:12:31', '2025-09-14 07:12:31'),
+(4, 'Flexible Shift', '09:00:00', '17:00:00', 'Flexible working hours', '2025-09-14 07:12:31', '2025-09-14 07:12:31'),
+(5, 'Morning Shift', '08:00:00', '16:00:00', 'Standard morning shift from 8 AM to 4 PM', '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(6, 'Afternoon Shift', '14:00:00', '22:00:00', 'Afternoon/evening shift from 2 PM to 10 PM', '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(7, 'Night Shift', '22:00:00', '06:00:00', 'Night shift from 10 PM to 6 AM', '2025-09-14 07:13:53', '2025-09-14 07:13:53'),
+(8, 'Flexible Shift', '09:00:00', '17:00:00', 'Flexible working hours', '2025-09-14 07:13:53', '2025-09-14 07:13:53');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `skill_matrix`
+--
+
+CREATE TABLE `skill_matrix` (
+  `skill_id` int(11) NOT NULL,
+  `skill_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `category` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `statutory_deductions`
+--
+
+CREATE TABLE `statutory_deductions` (
+  `statutory_deduction_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `deduction_type` varchar(50) NOT NULL,
+  `deduction_amount` decimal(10,2) NOT NULL,
+  `effective_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tax_deductions`
+--
+
+CREATE TABLE `tax_deductions` (
+  `tax_deduction_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `tax_type` varchar(50) NOT NULL,
+  `tax_percentage` decimal(5,2) DEFAULT NULL,
+  `tax_amount` decimal(10,2) DEFAULT NULL,
+  `effective_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `trainers`
+--
+
+CREATE TABLE `trainers` (
+  `trainer_id` int(11) NOT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `specialization` varchar(255) DEFAULT NULL,
+  `bio` text DEFAULT NULL,
+  `is_internal` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `training_courses`
+--
+
+CREATE TABLE `training_courses` (
+  `course_id` int(11) NOT NULL,
+  `course_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `delivery_method` enum('Online','Classroom','Workshop','Self-paced','Hybrid') NOT NULL,
+  `duration` int(11) DEFAULT NULL COMMENT 'Duration in hours',
+  `max_participants` int(11) DEFAULT NULL,
+  `prerequisites` text DEFAULT NULL,
+  `materials_url` varchar(255) DEFAULT NULL,
+  `status` enum('Active','Inactive','In Development') DEFAULT 'Active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `training_enrollments`
+--
+
+CREATE TABLE `training_enrollments` (
+  `enrollment_id` int(11) NOT NULL,
+  `session_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `enrollment_date` datetime DEFAULT current_timestamp(),
+  `status` enum('Enrolled','Completed','Dropped','Failed','Waitlisted') DEFAULT 'Enrolled',
+  `completion_date` date DEFAULT NULL,
+  `score` decimal(5,2) DEFAULT NULL,
+  `feedback` text DEFAULT NULL,
+  `certificate_url` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `training_needs_assessment`
+--
+
+CREATE TABLE `training_needs_assessment` (
+  `assessment_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `assessment_date` date NOT NULL,
+  `skills_gap` text DEFAULT NULL,
+  `recommended_trainings` text DEFAULT NULL,
+  `priority` enum('Low','Medium','High') DEFAULT 'Medium',
+  `status` enum('Identified','In Progress','Completed') DEFAULT 'Identified',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `training_sessions`
+--
+
+CREATE TABLE `training_sessions` (
+  `session_id` int(11) NOT NULL,
+  `course_id` int(11) NOT NULL,
+  `trainer_id` int(11) NOT NULL,
+  `session_name` varchar(255) NOT NULL,
+  `start_date` datetime NOT NULL,
+  `end_date` datetime NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `capacity` int(11) NOT NULL,
+  `cost_per_participant` decimal(10,2) DEFAULT NULL,
+  `status` enum('Scheduled','In Progress','Completed','Cancelled') DEFAULT 'Scheduled',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `user_id` int(11) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `role` enum('admin','hr','employee') NOT NULL,
+  `employee_id` int(11) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `last_login` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `role`, `employee_id`, `is_active`, `last_login`, `created_at`, `updated_at`) VALUES
+(1, 'admin', 'admin123', 'admin@municipality.gov.ph', 'admin', NULL, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(2, 'hr_manager', 'hr123', 'hr@municipality.gov.ph', 'hr', NULL, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(3, 'maria.santos', 'emp123', 'maria.santos@municipality.gov.ph', 'employee', 1, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(4, 'roberto.cruz', 'emp123', 'roberto.cruz@municipality.gov.ph', 'employee', 2, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(5, 'jennifer.reyes', 'emp123', 'jennifer.reyes@municipality.gov.ph', 'employee', 3, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(6, 'antonio.garcia', 'emp123', 'antonio.garcia@municipality.gov.ph', 'employee', 4, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 'lisa.mendoza', 'emp123', 'lisa.mendoza@municipality.gov.ph', 'employee', 5, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(8, 'michael.torres', 'emp123', 'michael.torres@municipality.gov.ph', 'employee', 6, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(9, 'carmen.delacruz', 'emp123', 'carmen.delacruz@municipality.gov.ph', 'employee', 7, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(10, 'ricardo.villanueva', 'emp123', 'ricardo.villanueva@municipality.gov.ph', 'employee', 8, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(11, 'sandra.pascual', 'emp123', 'sandra.pascual@municipality.gov.ph', 'employee', 9, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(12, 'jose.ramos', 'emp123', 'jose.ramos@municipality.gov.ph', 'employee', 10, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(13, 'ana.morales', 'emp123', 'ana.morales@municipality.gov.ph', 'employee', 11, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(14, 'pablo.fernandez', 'emp123', 'pablo.fernandez@municipality.gov.ph', 'employee', 12, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(15, 'grace.lopez', 'emp123', 'grace.lopez@municipality.gov.ph', 'employee', 13, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(16, 'eduardo.hernandez', 'emp123', 'eduardo.hernandez@municipality.gov.ph', 'employee', 14, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(17, 'rosario.gonzales', 'emp123', 'rosario.gonzales@municipality.gov.ph', 'employee', 15, 1, NULL, '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_roles`
+--
+
+CREATE TABLE `user_roles` (
+  `role_id` int(11) NOT NULL,
+  `role_name` varchar(50) NOT NULL,
+  `description` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_roles`
+--
+
+INSERT INTO `user_roles` (`role_id`, `role_name`, `description`) VALUES
+(1, 'admin', 'Administrator role with full system access.'),
+(2, 'hr', 'Human Resources role with access to employee and payroll management.'),
+(3, 'employee', 'Standard employee role with limited access to personal information and timesheets.');
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `exit_clearance_summary`
+--
+DROP TABLE IF EXISTS `exit_clearance_summary`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `exit_clearance_summary`  AS SELECT `e`.`exit_id` AS `exit_id`, `e`.`employee_id` AS `employee_id`, concat(`pi`.`first_name`,' ',`pi`.`last_name`) AS `employee_name`, `ep`.`employee_number` AS `employee_number`, `e`.`exit_date` AS `exit_date`, count(`ec`.`checklist_id`) AS `total_items`, sum(case when `ec`.`status` = 'Completed' then 1 else 0 end) AS `completed_items`, sum(case when `ec`.`approval_status` = 'Approved' then 1 else 0 end) AS `approved_items`, sum(case when `ec`.`clearance_status` = 'Cleared' then 1 else 0 end) AS `cleared_items`, CASE WHEN count(`ec`.`checklist_id`) = sum(case when `ec`.`clearance_status` = 'Cleared' then 1 else 0 end) THEN 'Fully Cleared' WHEN sum(case when `ec`.`clearance_status` = 'Cleared' then 1 else 0 end) > 0 THEN 'Partially Cleared' ELSE 'Not Cleared' END AS `overall_clearance_status` FROM (((`exits` `e` left join `employee_profiles` `ep` on(`e`.`employee_id` = `ep`.`employee_id`)) left join `personal_information` `pi` on(`ep`.`personal_info_id` = `pi`.`personal_info_id`)) left join `exit_checklist` `ec` on(`e`.`exit_id` = `ec`.`exit_id`)) GROUP BY `e`.`exit_id`, `e`.`employee_id`, `pi`.`first_name`, `pi`.`last_name`, `ep`.`employee_number`, `e`.`exit_date` ;
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `archive_storage`
+--
+ALTER TABLE `archive_storage`
+  ADD PRIMARY KEY (`archive_id`),
+  ADD KEY `source_table` (`source_table`),
+  ADD KEY `record_id` (`record_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `archived_by` (`archived_by`),
+  ADD KEY `archived_at` (`archived_at`),
+  ADD KEY `archive_storage_ibfk_2` (`restored_by`);
+
+--
+-- Indexes for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD PRIMARY KEY (`attendance_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `attendance_summary`
+--
+ALTER TABLE `attendance_summary`
+  ADD PRIMARY KEY (`summary_id`),
+  ADD UNIQUE KEY `employee_id` (`employee_id`,`month`,`year`);
+
+--
+-- Indexes for table `benefits_plans`
+--
+ALTER TABLE `benefits_plans`
+  ADD PRIMARY KEY (`benefit_plan_id`);
+
+--
+-- Indexes for table `bonus_payments`
+--
+ALTER TABLE `bonus_payments`
+  ADD PRIMARY KEY (`bonus_payment_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `payroll_cycle_id` (`payroll_cycle_id`);
+
+--
+-- Indexes for table `candidates`
+--
+ALTER TABLE `candidates`
+  ADD PRIMARY KEY (`candidate_id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indexes for table `career_paths`
+--
+ALTER TABLE `career_paths`
+  ADD PRIMARY KEY (`path_id`),
+  ADD KEY `department_id` (`department_id`);
+
+--
+-- Indexes for table `career_path_stages`
+--
+ALTER TABLE `career_path_stages`
+  ADD PRIMARY KEY (`stage_id`),
+  ADD KEY `path_id` (`path_id`),
+  ADD KEY `job_role_id` (`job_role_id`);
+
+--
+-- Indexes for table `pds_data`
+--
+ALTER TABLE `pds_data`
+  ADD PRIMARY KEY (`pds_id`),
+  ADD KEY `idx_candidate` (`candidate_id`),
+  ADD KEY `idx_email` (`email`);
+
+--
+-- Indexes for table `compensation_packages`
+--
+ALTER TABLE `compensation_packages`
+  ADD PRIMARY KEY (`compensation_package_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `competencies`
+--
+ALTER TABLE `competencies`
+  ADD PRIMARY KEY (`competency_id`),
+  ADD KEY `job_role_id_fk` (`job_role_id`);
+
+--
+-- Indexes for table `departments`
+--
+ALTER TABLE `departments`
+  ADD PRIMARY KEY (`department_id`);
+
+--
+-- Indexes for table `development_activities`
+--
+ALTER TABLE `development_activities`
+  ADD PRIMARY KEY (`activity_id`),
+  ADD KEY `plan_id` (`plan_id`);
+
+--
+-- Indexes for table `development_plans`
+--
+ALTER TABLE `development_plans`
+  ADD PRIMARY KEY (`plan_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `document_management`
+--
+ALTER TABLE `document_management`
+  ADD PRIMARY KEY (`document_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `educational_background`
+--
+ALTER TABLE `educational_background`
+  ADD PRIMARY KEY (`education_id`),
+  ADD KEY `personal_info_id` (`personal_info_id`);
+
+--
+-- Indexes for table `employee_benefits`
+--
+ALTER TABLE `employee_benefits`
+  ADD PRIMARY KEY (`benefit_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `benefit_plan_id` (`benefit_plan_id`);
+
+--
+-- Indexes for table `employee_career_paths`
+--
+ALTER TABLE `employee_career_paths`
+  ADD PRIMARY KEY (`employee_path_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `path_id` (`path_id`),
+  ADD KEY `current_stage_id` (`current_stage_id`);
+
+--
+-- Indexes for table `employee_competencies`
+--
+ALTER TABLE `employee_competencies`
+  ADD PRIMARY KEY (`employee_id`,`competency_id`,`assessment_date`),
+  ADD KEY `competency_id` (`competency_id`),
+  ADD KEY `cycle_id_fk` (`cycle_id`);
+
+--
+-- Indexes for table `employee_onboarding`
+--
+ALTER TABLE `employee_onboarding`
+  ADD PRIMARY KEY (`onboarding_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `employee_onboarding_tasks`
+--
+ALTER TABLE `employee_onboarding_tasks`
+  ADD PRIMARY KEY (`employee_task_id`),
+  ADD KEY `onboarding_id` (`onboarding_id`),
+  ADD KEY `task_id` (`task_id`);
+
+--
+-- Indexes for table `employee_profiles`
+--
+ALTER TABLE `employee_profiles`
+  ADD PRIMARY KEY (`employee_id`),
+  ADD UNIQUE KEY `employee_number` (`employee_number`),
+  ADD UNIQUE KEY `personal_info_id` (`personal_info_id`),
+  ADD UNIQUE KEY `work_email` (`work_email`),
+  ADD KEY `job_role_id` (`job_role_id`);
+
+--
+-- Indexes for table `employee_resources`
+--
+ALTER TABLE `employee_resources`
+  ADD PRIMARY KEY (`employee_resource_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `resource_id` (`resource_id`);
+
+--
+-- Indexes for table `employee_shifts`
+--
+ALTER TABLE `employee_shifts`
+  ADD PRIMARY KEY (`employee_shift_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `shift_id` (`shift_id`);
+
+--
+-- Indexes for table `employee_skills`
+--
+ALTER TABLE `employee_skills`
+  ADD PRIMARY KEY (`employee_skill_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `skill_id` (`skill_id`);
+
+--
+-- Indexes for table `employment_history`
+--
+ALTER TABLE `employment_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `department_id` (`department_id`),
+  ADD KEY `reporting_manager_id` (`reporting_manager_id`);
+
+--
+-- Indexes for table `exits`
+--
+ALTER TABLE `exits`
+  ADD PRIMARY KEY (`exit_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `exit_checklist`
+--
+ALTER TABLE `exit_checklist`
+  ADD PRIMARY KEY (`checklist_id`),
+  ADD KEY `exit_id` (`exit_id`),
+  ADD KEY `idx_approval_status` (`approval_status`),
+  ADD KEY `idx_clearance_status` (`clearance_status`),
+  ADD KEY `idx_item_type` (`item_type`),
+  ADD KEY `idx_serial_number` (`serial_number`);
+
+--
+-- Indexes for table `exit_checklist_approvals`
+--
+ALTER TABLE `exit_checklist_approvals`
+  ADD PRIMARY KEY (`approval_id`),
+  ADD KEY `checklist_id` (`checklist_id`);
+
+--
+-- Indexes for table `exit_checklist_audit`
+--
+ALTER TABLE `exit_checklist_audit`
+  ADD PRIMARY KEY (`audit_id`),
+  ADD KEY `checklist_id` (`checklist_id`);
+
+--
+-- Indexes for table `exit_clearance_tracking`
+--
+ALTER TABLE `exit_clearance_tracking`
+  ADD PRIMARY KEY (`clearance_id`),
+  ADD KEY `exit_id` (`exit_id`);
+
+--
+-- Indexes for table `exit_documents`
+--
+ALTER TABLE `exit_documents`
+  ADD PRIMARY KEY (`document_id`),
+  ADD KEY `exit_id` (`exit_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `exit_interviews`
+--
+ALTER TABLE `exit_interviews`
+  ADD PRIMARY KEY (`interview_id`),
+  ADD KEY `exit_id` (`exit_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `exit_physical_items`
+--
+ALTER TABLE `exit_physical_items`
+  ADD PRIMARY KEY (`item_id`),
+  ADD KEY `checklist_id` (`checklist_id`);
+
+--
+-- Indexes for table `feedback_cycles`
+--
+ALTER TABLE `feedback_cycles`
+  ADD PRIMARY KEY (`cycle_id`),
+  ADD KEY `created_by` (`created_by`);
+
+--
+-- Indexes for table `feedback_requests`
+--
+ALTER TABLE `feedback_requests`
+  ADD PRIMARY KEY (`request_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `reviewer_id` (`reviewer_id`),
+  ADD KEY `cycle_id` (`cycle_id`);
+
+--
+-- Indexes for table `feedback_responses`
+--
+ALTER TABLE `feedback_responses`
+  ADD PRIMARY KEY (`response_id`),
+  ADD KEY `request_id` (`request_id`),
+  ADD KEY `reviewer_id` (`reviewer_id`);
+
+--
+-- Indexes for table `goals`
+--
+ALTER TABLE `goals`
+  ADD PRIMARY KEY (`goal_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `goal_updates`
+--
+ALTER TABLE `goal_updates`
+  ADD PRIMARY KEY (`update_id`),
+  ADD KEY `goal_id` (`goal_id`);
+
+--
+-- Indexes for table `interviews`
+--
+ALTER TABLE `interviews`
+  ADD PRIMARY KEY (`interview_id`),
+  ADD KEY `application_id` (`application_id`),
+  ADD KEY `stage_id` (`stage_id`);
+
+--
+-- Indexes for table `interview_stages`
+--
+ALTER TABLE `interview_stages`
+  ADD PRIMARY KEY (`stage_id`),
+  ADD KEY `job_opening_id` (`job_opening_id`);
+
+--
+-- Indexes for table `job_applications`
+--
+ALTER TABLE `job_applications`
+  ADD PRIMARY KEY (`application_id`),
+  ADD KEY `job_opening_id` (`job_opening_id`),
+  ADD KEY `candidate_id` (`candidate_id`);
+
+--
+-- Indexes for table `job_offers`
+--
+ALTER TABLE `job_offers`
+  ADD PRIMARY KEY (`offer_id`),
+  ADD KEY `application_id` (`application_id`),
+  ADD KEY `job_opening_id` (`job_opening_id`),
+  ADD KEY `candidate_id` (`candidate_id`);
+
+--
+-- Indexes for table `offer_letters`
+--
+ALTER TABLE `offer_letters`
+  ADD PRIMARY KEY (`letter_id`),
+  ADD UNIQUE KEY `unique_offer` (`offer_id`),
+  ADD KEY `application_id` (`application_id`);
+
+--
+-- Indexes for table `job_openings`
+--
+ALTER TABLE `job_openings`
+  ADD PRIMARY KEY (`job_opening_id`),
+  ADD KEY `job_role_id` (`job_role_id`),
+  ADD KEY `department_id` (`department_id`);
+
+--
+-- Indexes for table `job_roles`
+--
+ALTER TABLE `job_roles`
+  ADD PRIMARY KEY (`job_role_id`);
+
+--
+-- Indexes for table `knowledge_transfers`
+--
+ALTER TABLE `knowledge_transfers`
+  ADD PRIMARY KEY (`transfer_id`),
+  ADD KEY `exit_id` (`exit_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `learning_resources`
+--
+ALTER TABLE `learning_resources`
+  ADD PRIMARY KEY (`resource_id`);
+
+--
+-- Indexes for table `leave_balances`
+--
+ALTER TABLE `leave_balances`
+  ADD PRIMARY KEY (`balance_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `leave_type_id` (`leave_type_id`);
+
+--
+-- Indexes for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  ADD PRIMARY KEY (`leave_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `leave_type_id` (`leave_type_id`);
+
+--
+-- Indexes for table `leave_types`
+--
+ALTER TABLE `leave_types`
+  ADD PRIMARY KEY (`leave_type_id`);
+
+--
+-- Indexes for table `marital_status_history`
+--
+ALTER TABLE `marital_status_history`
+  ADD PRIMARY KEY (`status_history_id`),
+  ADD KEY `personal_info_id` (`personal_info_id`);
+
+--
+-- Indexes for table `onboarding_tasks`
+--
+ALTER TABLE `onboarding_tasks`
+  ADD PRIMARY KEY (`task_id`),
+  ADD KEY `department_id` (`department_id`);
+
+--
+-- Indexes for table `payment_disbursements`
+--
+ALTER TABLE `payment_disbursements`
+  ADD PRIMARY KEY (`payment_disbursement_id`),
+  ADD KEY `payroll_transaction_id` (`payroll_transaction_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `payroll_cycles`
+--
+ALTER TABLE `payroll_cycles`
+  ADD PRIMARY KEY (`payroll_cycle_id`);
+
+--
+-- Indexes for table `payroll_transactions`
+--
+ALTER TABLE `payroll_transactions`
+  ADD PRIMARY KEY (`payroll_transaction_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `payroll_cycle_id` (`payroll_cycle_id`);
+
+--
+-- Indexes for table `payslips`
+--
+ALTER TABLE `payslips`
+  ADD PRIMARY KEY (`payslip_id`),
+  ADD KEY `payroll_transaction_id` (`payroll_transaction_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `performance_metrics`
+--
+ALTER TABLE `performance_metrics`
+  ADD PRIMARY KEY (`metric_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `performance_reviews`
+--
+ALTER TABLE `performance_reviews`
+  ADD PRIMARY KEY (`review_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `cycle_id` (`cycle_id`);
+
+--
+-- Indexes for table `performance_review_cycles`
+--
+ALTER TABLE `performance_review_cycles`
+  ADD PRIMARY KEY (`cycle_id`);
+
+--
+-- Indexes for table `personal_information`
+--
+ALTER TABLE `personal_information`
+  ADD PRIMARY KEY (`personal_info_id`);
+
+--
+-- Indexes for table `post_exit_surveys`
+--
+ALTER TABLE `post_exit_surveys`
+  ADD PRIMARY KEY (`survey_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `exit_id` (`exit_id`);
+
+--
+-- Indexes for table `public_holidays`
+--
+ALTER TABLE `public_holidays`
+  ADD PRIMARY KEY (`holiday_id`),
+  ADD UNIQUE KEY `holiday_date` (`holiday_date`);
+
+--
+-- Indexes for table `recruitment_analytics`
+--
+ALTER TABLE `recruitment_analytics`
+  ADD PRIMARY KEY (`analytics_id`),
+  ADD KEY `job_opening_id` (`job_opening_id`);
+
+--
+-- Indexes for table `salary_structures`
+--
+ALTER TABLE `salary_structures`
+  ADD PRIMARY KEY (`salary_structure_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `settlements`
+--
+ALTER TABLE `settlements`
+  ADD PRIMARY KEY (`settlement_id`),
+  ADD KEY `exit_id` (`exit_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `shifts`
+--
+ALTER TABLE `shifts`
+  ADD PRIMARY KEY (`shift_id`);
+
+--
+-- Indexes for table `skill_matrix`
+--
+ALTER TABLE `skill_matrix`
+  ADD PRIMARY KEY (`skill_id`);
+
+--
+-- Indexes for table `statutory_deductions`
+--
+ALTER TABLE `statutory_deductions`
+  ADD PRIMARY KEY (`statutory_deduction_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `tax_deductions`
+--
+ALTER TABLE `tax_deductions`
+  ADD PRIMARY KEY (`tax_deduction_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `trainers`
+--
+ALTER TABLE `trainers`
+  ADD PRIMARY KEY (`trainer_id`);
+
+--
+-- Indexes for table `training_courses`
+--
+ALTER TABLE `training_courses`
+  ADD PRIMARY KEY (`course_id`);
+
+--
+-- Indexes for table `training_enrollments`
+--
+ALTER TABLE `training_enrollments`
+  ADD PRIMARY KEY (`enrollment_id`),
+  ADD KEY `session_id` (`session_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `training_needs_assessment`
+--
+ALTER TABLE `training_needs_assessment`
+  ADD PRIMARY KEY (`assessment_id`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `training_sessions`
+--
+ALTER TABLE `training_sessions`
+  ADD PRIMARY KEY (`session_id`),
+  ADD KEY `course_id` (`course_id`),
+  ADD KEY `trainer_id` (`trainer_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`user_id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `user_roles`
+--
+ALTER TABLE `user_roles`
+  ADD PRIMARY KEY (`role_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `archive_storage`
+--
+ALTER TABLE `archive_storage`
+  MODIFY `archive_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `attendance`
+--
+ALTER TABLE `attendance`
+  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `attendance_summary`
+--
+ALTER TABLE `attendance_summary`
+  MODIFY `summary_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `benefits_plans`
+--
+ALTER TABLE `benefits_plans`
+  MODIFY `benefit_plan_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `bonus_payments`
+--
+ALTER TABLE `bonus_payments`
+  MODIFY `bonus_payment_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `candidates`
+--
+ALTER TABLE `candidates`
+  MODIFY `candidate_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `career_paths`
+--
+ALTER TABLE `career_paths`
+  MODIFY `path_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `career_path_stages`
+--
+ALTER TABLE `career_path_stages`
+  MODIFY `stage_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pds_data`
+--
+ALTER TABLE `pds_data`
+  MODIFY `pds_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `compensation_packages`
+--
+ALTER TABLE `compensation_packages`
+  MODIFY `compensation_package_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `competencies`
+--
+ALTER TABLE `competencies`
+  MODIFY `competency_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=112;
+
+--
+-- AUTO_INCREMENT for table `departments`
+--
+ALTER TABLE `departments`
+  MODIFY `department_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- AUTO_INCREMENT for table `development_activities`
+--
+ALTER TABLE `development_activities`
+  MODIFY `activity_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `development_plans`
+--
+ALTER TABLE `development_plans`
+  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+
+--
+-- AUTO_INCREMENT for table `document_management`
+--
+ALTER TABLE `document_management`
+  MODIFY `document_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `educational_background`
+--
+ALTER TABLE `educational_background`
+  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `employee_benefits`
+--
+ALTER TABLE `employee_benefits`
+  MODIFY `benefit_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employee_career_paths`
+--
+ALTER TABLE `employee_career_paths`
+  MODIFY `employee_path_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employee_onboarding`
+--
+ALTER TABLE `employee_onboarding`
+  MODIFY `onboarding_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employee_onboarding_tasks`
+--
+ALTER TABLE `employee_onboarding_tasks`
+  MODIFY `employee_task_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employee_profiles`
+--
+ALTER TABLE `employee_profiles`
+  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- AUTO_INCREMENT for table `employee_resources`
+--
+ALTER TABLE `employee_resources`
+  MODIFY `employee_resource_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employee_shifts`
+--
+ALTER TABLE `employee_shifts`
+  MODIFY `employee_shift_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `employee_skills`
+--
+ALTER TABLE `employee_skills`
+  MODIFY `employee_skill_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employment_history`
+--
+ALTER TABLE `employment_history`
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- AUTO_INCREMENT for table `exits`
+--
+ALTER TABLE `exits`
+  MODIFY `exit_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_checklist`
+--
+ALTER TABLE `exit_checklist`
+  MODIFY `checklist_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_checklist_approvals`
+--
+ALTER TABLE `exit_checklist_approvals`
+  MODIFY `approval_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_checklist_audit`
+--
+ALTER TABLE `exit_checklist_audit`
+  MODIFY `audit_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_clearance_tracking`
+--
+ALTER TABLE `exit_clearance_tracking`
+  MODIFY `clearance_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_documents`
+--
+ALTER TABLE `exit_documents`
+  MODIFY `document_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_interviews`
+--
+ALTER TABLE `exit_interviews`
+  MODIFY `interview_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `exit_physical_items`
+--
+ALTER TABLE `exit_physical_items`
+  MODIFY `item_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `feedback_cycles`
+--
+ALTER TABLE `feedback_cycles`
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `feedback_requests`
+--
+ALTER TABLE `feedback_requests`
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `feedback_responses`
+--
+ALTER TABLE `feedback_responses`
+  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `goals`
+--
+ALTER TABLE `goals`
+  MODIFY `goal_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `goal_updates`
+--
+ALTER TABLE `goal_updates`
+  MODIFY `update_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `interviews`
+--
+ALTER TABLE `interviews`
+  MODIFY `interview_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `interview_stages`
+--
+ALTER TABLE `interview_stages`
+  MODIFY `stage_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `job_applications`
+--
+ALTER TABLE `job_applications`
+  MODIFY `application_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `job_offers`
+--
+ALTER TABLE `job_offers`
+  MODIFY `offer_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `offer_letters`
+--
+ALTER TABLE `offer_letters`
+  MODIFY `letter_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `job_openings`
+--
+ALTER TABLE `job_openings`
+  MODIFY `job_opening_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `job_roles`
+--
+ALTER TABLE `job_roles`
+  MODIFY `job_role_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+
+--
+-- AUTO_INCREMENT for table `knowledge_transfers`
+--
+ALTER TABLE `knowledge_transfers`
+  MODIFY `transfer_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `learning_resources`
+--
+ALTER TABLE `learning_resources`
+  MODIFY `resource_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `leave_balances`
+--
+ALTER TABLE `leave_balances`
+  MODIFY `balance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  MODIFY `leave_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `leave_types`
+--
+ALTER TABLE `leave_types`
+  MODIFY `leave_type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `marital_status_history`
+--
+ALTER TABLE `marital_status_history`
+  MODIFY `status_history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `onboarding_tasks`
+--
+ALTER TABLE `onboarding_tasks`
+  MODIFY `task_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payment_disbursements`
+--
+ALTER TABLE `payment_disbursements`
+  MODIFY `payment_disbursement_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payroll_cycles`
+--
+ALTER TABLE `payroll_cycles`
+  MODIFY `payroll_cycle_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payroll_transactions`
+--
+ALTER TABLE `payroll_transactions`
+  MODIFY `payroll_transaction_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payslips`
+--
+ALTER TABLE `payslips`
+  MODIFY `payslip_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `performance_metrics`
+--
+ALTER TABLE `performance_metrics`
+  MODIFY `metric_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `performance_reviews`
+--
+ALTER TABLE `performance_reviews`
+  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `performance_review_cycles`
+--
+ALTER TABLE `performance_review_cycles`
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `personal_information`
+--
+ALTER TABLE `personal_information`
+  MODIFY `personal_info_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- AUTO_INCREMENT for table `post_exit_surveys`
+--
+ALTER TABLE `post_exit_surveys`
+  MODIFY `survey_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `public_holidays`
+--
+ALTER TABLE `public_holidays`
+  MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+
+--
+-- AUTO_INCREMENT for table `recruitment_analytics`
+--
+ALTER TABLE `recruitment_analytics`
+  MODIFY `analytics_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `salary_structures`
+--
+ALTER TABLE `salary_structures`
+  MODIFY `salary_structure_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `settlements`
+--
+ALTER TABLE `settlements`
+  MODIFY `settlement_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `shifts`
+--
+ALTER TABLE `shifts`
+  MODIFY `shift_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `skill_matrix`
+--
+ALTER TABLE `skill_matrix`
+  MODIFY `skill_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `statutory_deductions`
+--
+ALTER TABLE `statutory_deductions`
+  MODIFY `statutory_deduction_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tax_deductions`
+--
+ALTER TABLE `tax_deductions`
+  MODIFY `tax_deduction_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `trainers`
+--
+ALTER TABLE `trainers`
+  MODIFY `trainer_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `training_courses`
+--
+ALTER TABLE `training_courses`
+  MODIFY `course_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `training_enrollments`
+--
+ALTER TABLE `training_enrollments`
+  MODIFY `enrollment_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `training_needs_assessment`
+--
+ALTER TABLE `training_needs_assessment`
+  MODIFY `assessment_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `training_sessions`
+--
+ALTER TABLE `training_sessions`
+  MODIFY `session_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+
+--
+-- AUTO_INCREMENT for table `user_roles`
+--
+ALTER TABLE `user_roles`
+  MODIFY `role_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `archive_storage`
+--
+ALTER TABLE `archive_storage`
+  ADD CONSTRAINT `archive_storage_ibfk_1` FOREIGN KEY (`archived_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `archive_storage_ibfk_2` FOREIGN KEY (`restored_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `attendance_summary`
+--
+ALTER TABLE `attendance_summary`
+  ADD CONSTRAINT `attendance_summary_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `bonus_payments`
+--
+ALTER TABLE `bonus_payments`
+  ADD CONSTRAINT `bonus_payments_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `bonus_payments_ibfk_2` FOREIGN KEY (`payroll_cycle_id`) REFERENCES `payroll_cycles` (`payroll_cycle_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `career_paths`
+--
+ALTER TABLE `career_paths`
+  ADD CONSTRAINT `career_paths_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `career_path_stages`
+--
+ALTER TABLE `career_path_stages`
+  ADD CONSTRAINT `career_path_stages_ibfk_1` FOREIGN KEY (`path_id`) REFERENCES `career_paths` (`path_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `career_path_stages_ibfk_2` FOREIGN KEY (`job_role_id`) REFERENCES `job_roles` (`job_role_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `pds_data`
+--
+ALTER TABLE `pds_data`
+  ADD CONSTRAINT `pds_data_ibfk_1` FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`candidate_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `compensation_packages`
+--
+ALTER TABLE `compensation_packages`
+  ADD CONSTRAINT `compensation_packages_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `competencies`
+--
+ALTER TABLE `competencies`
+  ADD CONSTRAINT `job_role_id_fk` FOREIGN KEY (`job_role_id`) REFERENCES `job_roles` (`job_role_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `development_activities`
+--
+ALTER TABLE `development_activities`
+  ADD CONSTRAINT `development_activities_ibfk_1` FOREIGN KEY (`plan_id`) REFERENCES `development_plans` (`plan_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `development_plans`
+--
+ALTER TABLE `development_plans`
+  ADD CONSTRAINT `development_plans_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `document_management`
+--
+ALTER TABLE `document_management`
+  ADD CONSTRAINT `document_management_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `educational_background`
+--
+ALTER TABLE `educational_background`
+  ADD CONSTRAINT `educational_background_ibfk_1` FOREIGN KEY (`personal_info_id`) REFERENCES `personal_information` (`personal_info_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_benefits`
+--
+ALTER TABLE `employee_benefits`
+  ADD CONSTRAINT `employee_benefits_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_benefits_ibfk_2` FOREIGN KEY (`benefit_plan_id`) REFERENCES `benefits_plans` (`benefit_plan_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_career_paths`
+--
+ALTER TABLE `employee_career_paths`
+  ADD CONSTRAINT `employee_career_paths_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_career_paths_ibfk_2` FOREIGN KEY (`path_id`) REFERENCES `career_paths` (`path_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_career_paths_ibfk_3` FOREIGN KEY (`current_stage_id`) REFERENCES `career_path_stages` (`stage_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_competencies`
+--
+ALTER TABLE `employee_competencies`
+  ADD CONSTRAINT `cycle_id_fk` FOREIGN KEY (`cycle_id`) REFERENCES `performance_review_cycles` (`cycle_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_competencies_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_competencies_ibfk_2` FOREIGN KEY (`competency_id`) REFERENCES `competencies` (`competency_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_onboarding`
+--
+ALTER TABLE `employee_onboarding`
+  ADD CONSTRAINT `employee_onboarding_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_onboarding_tasks`
+--
+ALTER TABLE `employee_onboarding_tasks`
+  ADD CONSTRAINT `employee_onboarding_tasks_ibfk_1` FOREIGN KEY (`onboarding_id`) REFERENCES `employee_onboarding` (`onboarding_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_onboarding_tasks_ibfk_2` FOREIGN KEY (`task_id`) REFERENCES `onboarding_tasks` (`task_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_profiles`
+--
+ALTER TABLE `employee_profiles`
+  ADD CONSTRAINT `employee_profiles_ibfk_1` FOREIGN KEY (`personal_info_id`) REFERENCES `personal_information` (`personal_info_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employee_profiles_ibfk_2` FOREIGN KEY (`job_role_id`) REFERENCES `job_roles` (`job_role_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `employee_resources`
+--
+ALTER TABLE `employee_resources`
+  ADD CONSTRAINT `employee_resources_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_resources_ibfk_2` FOREIGN KEY (`resource_id`) REFERENCES `learning_resources` (`resource_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_shifts`
+--
+ALTER TABLE `employee_shifts`
+  ADD CONSTRAINT `employee_shifts_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_shifts_ibfk_2` FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`shift_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_skills`
+--
+ALTER TABLE `employee_skills`
+  ADD CONSTRAINT `employee_skills_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_skills_ibfk_2` FOREIGN KEY (`skill_id`) REFERENCES `skill_matrix` (`skill_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employment_history`
+--
+ALTER TABLE `employment_history`
+  ADD CONSTRAINT `employment_history_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employment_history_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employment_history_ibfk_3` FOREIGN KEY (`reporting_manager_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `exits`
+--
+ALTER TABLE `exits`
+  ADD CONSTRAINT `exits_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_checklist`
+--
+ALTER TABLE `exit_checklist`
+  ADD CONSTRAINT `exit_checklist_ibfk_1` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_checklist_approvals`
+--
+ALTER TABLE `exit_checklist_approvals`
+  ADD CONSTRAINT `exit_checklist_approvals_ibfk_1` FOREIGN KEY (`checklist_id`) REFERENCES `exit_checklist` (`checklist_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_checklist_audit`
+--
+ALTER TABLE `exit_checklist_audit`
+  ADD CONSTRAINT `exit_checklist_audit_ibfk_1` FOREIGN KEY (`checklist_id`) REFERENCES `exit_checklist` (`checklist_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_clearance_tracking`
+--
+ALTER TABLE `exit_clearance_tracking`
+  ADD CONSTRAINT `exit_clearance_tracking_ibfk_1` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_documents`
+--
+ALTER TABLE `exit_documents`
+  ADD CONSTRAINT `exit_documents_ibfk_1` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `exit_documents_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_interviews`
+--
+ALTER TABLE `exit_interviews`
+  ADD CONSTRAINT `exit_interviews_ibfk_1` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `exit_interviews_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `exit_physical_items`
+--
+ALTER TABLE `exit_physical_items`
+  ADD CONSTRAINT `exit_physical_items_ibfk_1` FOREIGN KEY (`checklist_id`) REFERENCES `exit_checklist` (`checklist_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `goals`
+--
+ALTER TABLE `goals`
+  ADD CONSTRAINT `goals_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `goal_updates`
+--
+ALTER TABLE `goal_updates`
+  ADD CONSTRAINT `goal_updates_ibfk_1` FOREIGN KEY (`goal_id`) REFERENCES `goals` (`goal_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `interviews`
+--
+ALTER TABLE `interviews`
+  ADD CONSTRAINT `interviews_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `job_applications` (`application_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `interviews_ibfk_2` FOREIGN KEY (`stage_id`) REFERENCES `interview_stages` (`stage_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `interview_stages`
+--
+ALTER TABLE `interview_stages`
+  ADD CONSTRAINT `interview_stages_ibfk_1` FOREIGN KEY (`job_opening_id`) REFERENCES `job_openings` (`job_opening_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `job_applications`
+--
+ALTER TABLE `job_applications`
+  ADD CONSTRAINT `job_applications_ibfk_1` FOREIGN KEY (`job_opening_id`) REFERENCES `job_openings` (`job_opening_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `job_applications_ibfk_2` FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`candidate_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `job_offers`
+--
+ALTER TABLE `job_offers`
+  ADD CONSTRAINT `job_offers_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `job_applications` (`application_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `job_offers_ibfk_2` FOREIGN KEY (`job_opening_id`) REFERENCES `job_openings` (`job_opening_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `job_offers_ibfk_3` FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`candidate_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `offer_letters`
+--
+ALTER TABLE `offer_letters`
+  ADD CONSTRAINT `offer_letters_ibfk_1` FOREIGN KEY (`offer_id`) REFERENCES `job_offers` (`offer_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `offer_letters_ibfk_2` FOREIGN KEY (`application_id`) REFERENCES `job_applications` (`application_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `job_openings`
+--
+ALTER TABLE `job_openings`
+  ADD CONSTRAINT `job_openings_ibfk_1` FOREIGN KEY (`job_role_id`) REFERENCES `job_roles` (`job_role_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `job_openings_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_job_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_job_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `knowledge_transfers`
+--
+ALTER TABLE `knowledge_transfers`
+  ADD CONSTRAINT `knowledge_transfers_ibfk_1` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `knowledge_transfers_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `leave_balances`
+--
+ALTER TABLE `leave_balances`
+  ADD CONSTRAINT `leave_balances_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `leave_balances_ibfk_2` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`leave_type_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  ADD CONSTRAINT `leave_requests_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `leave_requests_ibfk_2` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`leave_type_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `marital_status_history`
+--
+ALTER TABLE `marital_status_history`
+  ADD CONSTRAINT `marital_status_history_ibfk_1` FOREIGN KEY (`personal_info_id`) REFERENCES `personal_information` (`personal_info_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `onboarding_tasks`
+--
+ALTER TABLE `onboarding_tasks`
+  ADD CONSTRAINT `onboarding_tasks_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `payment_disbursements`
+--
+ALTER TABLE `payment_disbursements`
+  ADD CONSTRAINT `payment_disbursements_ibfk_1` FOREIGN KEY (`payroll_transaction_id`) REFERENCES `payroll_transactions` (`payroll_transaction_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `payment_disbursements_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `payroll_transactions`
+--
+ALTER TABLE `payroll_transactions`
+  ADD CONSTRAINT `payroll_transactions_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `payroll_transactions_ibfk_2` FOREIGN KEY (`payroll_cycle_id`) REFERENCES `payroll_cycles` (`payroll_cycle_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `payslips`
+--
+ALTER TABLE `payslips`
+  ADD CONSTRAINT `payslips_ibfk_1` FOREIGN KEY (`payroll_transaction_id`) REFERENCES `payroll_transactions` (`payroll_transaction_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `payslips_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `performance_metrics`
+--
+ALTER TABLE `performance_metrics`
+  ADD CONSTRAINT `performance_metrics_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `performance_reviews`
+--
+ALTER TABLE `performance_reviews`
+  ADD CONSTRAINT `performance_reviews_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `performance_reviews_ibfk_2` FOREIGN KEY (`cycle_id`) REFERENCES `performance_review_cycles` (`cycle_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `post_exit_surveys`
+--
+ALTER TABLE `post_exit_surveys`
+  ADD CONSTRAINT `post_exit_surveys_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `post_exit_surveys_ibfk_2` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `recruitment_analytics`
+--
+ALTER TABLE `recruitment_analytics`
+  ADD CONSTRAINT `recruitment_analytics_ibfk_1` FOREIGN KEY (`job_opening_id`) REFERENCES `job_openings` (`job_opening_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `salary_structures`
+--
+ALTER TABLE `salary_structures`
+  ADD CONSTRAINT `salary_structures_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `settlements`
+--
+ALTER TABLE `settlements`
+  ADD CONSTRAINT `settlements_ibfk_1` FOREIGN KEY (`exit_id`) REFERENCES `exits` (`exit_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `settlements_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `statutory_deductions`
+--
+ALTER TABLE `statutory_deductions`
+  ADD CONSTRAINT `statutory_deductions_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `tax_deductions`
+--
+ALTER TABLE `tax_deductions`
+  ADD CONSTRAINT `tax_deductions_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `training_enrollments`
+--
+ALTER TABLE `training_enrollments`
+  ADD CONSTRAINT `training_enrollments_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `training_sessions` (`session_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `training_enrollments_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `training_needs_assessment`
+--
+ALTER TABLE `training_needs_assessment`
+  ADD CONSTRAINT `training_needs_assessment_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `training_sessions`
+--
+ALTER TABLE `training_sessions`
+  ADD CONSTRAINT `training_sessions_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `training_courses` (`course_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `training_sessions_ibfk_2` FOREIGN KEY (`trainer_id`) REFERENCES `trainers` (`trainer_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE SET NULL;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

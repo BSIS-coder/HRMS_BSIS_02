@@ -1,7 +1,7 @@
 <?php
 // Always return JSON
 header('Content-Type: application/json');
-require_once 'db.php';
+require_once 'config.php';
 
 try {
     // Fetch all cycles ordered by newest first

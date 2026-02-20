@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection
-require_once 'db.php';
+require_once 'dp.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,7 +34,7 @@ require_once 'db.php';
     }
 
     .container {
-        max-width: 1150px;
+        max-width: 85%;
         margin-left: 265px;
         padding-top: 5rem; /* replaces <br><br><br> */
     }
@@ -51,10 +51,10 @@ require_once 'db.php';
         padding: 8px;
         text-align: left;
     }
-    
+
     #cyclesTable tbody tr {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
     }
 
     #cyclesTable tbody tr:hover td {
@@ -110,31 +110,6 @@ require_once 'db.php';
             </ul>
             </nav>
 
-            <!-- Employee Evaluations Section -->
-            <div class="mt-4" id="evaluationsSection" style="display:none;">
-            <h3 class="section-title">
-                Employee Evaluations for <span id="selectedCycleName"></span>
-            </h3>
-
-            <div class="table-responsive">
-                <table class="table table-bordered" id="evaluationsTable">
-                <thead class="table-dark">
-                    <tr>
-                    <th>Employee</th>
-                    <th>Job Role</th>
-                    <th>Competency</th>
-                    <th>Rating</th>
-                    <th>Comments</th>
-                    <th>Assessment Date</th>
-                    <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="evaluationsTableBody">
-                    <!-- Populated dynamically -->
-                </tbody>
-                </table>
-            </div>
-            </div>
 
 
             <!-- Add Cycle Modal -->
@@ -216,29 +191,7 @@ require_once 'db.php';
         </div><!-- End .container -->
     </div><!-- End .row -->
 </div><!-- End .container-fluid -->
-<!-- View Evaluation Modal -->
-<div class="modal fade" id="viewEvalModal" tabindex="-1" aria-labelledby="viewEvalModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="viewEvalModalLabel">Evaluation Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p><strong>Employee:</strong> <span id="viewEmployee"></span></p>
-        <p><strong>Role:</strong> <span id="viewRole"></span></p>
-        <p><strong>Competency:</strong> <span id="viewCompetency"></span></p>
-        <p><strong>Rating:</strong> <span id="viewRating"></span></p>
-        <p><strong>Comments:</strong></p>
-        <p class="border p-2" id="viewComments"></p>
-        <p><strong>Assessment Date:</strong> <span id="viewDate"></span></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 
 <!-- JavaScript Section -->
@@ -271,7 +224,11 @@ require_once 'db.php';
     
     let cyclesData = []; // Store all cycles
     let currentPage = 1;
-    const rowsPerPage = 5;
+    const rowsPerPage = 10;
+
+
+
+
 
     // Load Cycles with automatic status and clickable rows + pagination
     function loadCycles() {
@@ -283,6 +240,7 @@ require_once 'db.php';
                 currentPage = 1;
                 displayCyclesPage(currentPage);
                 setupPagination();
+
             } else {
                 document.getElementById("cyclesTableBody").innerHTML =
                     `<tr><td colspan="5" class="text-center text-muted">No cycles found</td></tr>`;
@@ -440,85 +398,7 @@ function deleteCycle(id){
         })
         .catch(err => console.error("Edit cycle error:", err));
 });
-function loadEvaluations(cycleId, cycleName) {
-    document.getElementById("selectedCycleName").textContent = cycleName;
-    document.getElementById("evaluationsSection").style.display = "block";
 
-    fetch(`get_cycle_evaluations.php?cycle_id=${cycleId}`)
-        .then(res => res.json())
-        .then(data => {
-            const tbody = document.getElementById("evaluationsTableBody");
-            tbody.innerHTML = "";
-
-            if (Array.isArray(data) && data.length > 0) {
-                data.forEach(ev => {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${ev.employee_name}</td>
-                        <td>${ev.role ?? ''}</td>
-                        <td>${ev.name}</td>
-                        <td>${ev.rating ?? ''}</td>
-                        <td>${ev.comments ?? ''}</td>
-                        <td>${ev.assessment_date ?? ''}</td>
-                        <td>
-                            <button class="btn btn-sm btn-info view-eval-btn" 
-                                data-employee="${ev.employee_id}" 
-                                data-competency="${ev.competency_id}" 
-                                data-cycle="${ev.cycle_id}" 
-                                data-date="${ev.assessment_date}" 
-                                data-rating="${ev.rating ?? 0}" 
-                                data-comments="${encodeURIComponent(ev.comments ?? '')}">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } else {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No evaluations found</td></tr>`;
-            }
-        })
-        .catch(err => console.error("Error loading evaluations:", err));
-}
-
-
-// Event delegation for row clicks
-document.getElementById("cyclesTableBody").addEventListener("click", function(e) {
-    let row = e.target.closest("tr"); // get the clicked row
-    if (!row) return;
-
-    // ignore clicks on buttons inside the row
-    if (e.target.tagName.toLowerCase() === "button" || e.target.closest("button")) return;
-
-    // remove previous highlights
-    document.querySelectorAll("#cyclesTableBody tr").forEach(r => r.classList.remove("selected-row"));
-
-    // add highlight to clicked row
-    row.classList.add("selected-row");
-
-    // load evaluations for the selected cycle
-    const cycleId = row.dataset.id;
-    const cycleName = row.cells[0].innerText;
-    loadEvaluations(cycleId, cycleName);
-});
-
-// Event delegation for View buttons
-document.getElementById("evaluationsTableBody").addEventListener("click", function(e) {
-    if (e.target.closest(".view-eval-btn")) {
-        const btn = e.target.closest(".view-eval-btn");
-
-        // Fill modal fields with data
-        document.getElementById("viewEmployee").textContent = btn.closest("tr").cells[0].innerText;
-        document.getElementById("viewRole").textContent = btn.closest("tr").cells[1].innerText;
-        document.getElementById("viewCompetency").textContent = btn.closest("tr").cells[2].innerText;
-        document.getElementById("viewRating").textContent = btn.dataset.rating;
-        document.getElementById("viewComments").textContent = decodeURIComponent(btn.dataset.comments);
-        document.getElementById("viewDate").textContent = btn.dataset.date;
-
-        // Show modal
-        new bootstrap.Modal(document.getElementById("viewEvalModal")).show();
-    }
-});
 
     // Initial load
     document.addEventListener("DOMContentLoaded", loadCycles);

@@ -11,9 +11,20 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
-$pdo = connectToDatabase();
+// Database connection
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Handle form submissions
 $message = '';
@@ -114,14 +125,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             
             case 'delete':
-                // Delete employment history
+                // Archive employment history instead of permanent delete
                 try {
-                    $stmt = $pdo->prepare("DELETE FROM employment_history WHERE history_id=?");
-                    $stmt->execute([$_POST['history_id']]);
-                    $message = "Employment history record deleted successfully!";
-                    $messageType = "success";
+                    $pdo->beginTransaction();
+                    
+                    // Fetch the complete employment history record to be archived
+                    $fetchStmt = $pdo->prepare("SELECT * FROM employment_history WHERE history_id = ?");
+                    $fetchStmt->execute([$_POST['history_id']]);
+                    $recordToArchive = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($recordToArchive) {
+                        // Get current user ID from session
+                        $archived_by = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+                        
+                        // Get employee_id from the record
+                        $employeeId = $recordToArchive['employee_id'] ?? null;
+                        
+                        // Determine archive reason based on employment status
+                        $archiveReason = 'Data Cleanup';
+                        $archiveReasonDetails = 'Employment history record deleted by user';
+                        
+                        if ($recordToArchive['employment_status'] === 'Resigned') {
+                            $archiveReason = 'Resignation';
+                            $archiveReasonDetails = 'Employment history archived after resignation';
+                        } elseif ($recordToArchive['employment_status'] === 'Terminated') {
+                            $archiveReason = 'Termination';
+                            $archiveReasonDetails = 'Employment history archived after termination';
+                        } elseif ($recordToArchive['employment_status'] === 'Retired') {
+                            $archiveReason = 'Retirement';
+                            $archiveReasonDetails = 'Employment history archived after retirement';
+                        }
+                        
+                        // Archive the record
+                        $archiveStmt = $pdo->prepare("INSERT INTO archive_storage (
+                            source_table, 
+                            record_id, 
+                            employee_id, 
+                            archive_reason, 
+                            archive_reason_details, 
+                            archived_by, 
+                            archived_at, 
+                            can_restore, 
+                            record_data, 
+                            notes
+                        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, ?, ?)");
+                        
+                        $archiveStmt->execute([
+                            'employment_history',
+                            $recordToArchive['history_id'],
+                            $employeeId,
+                            $archiveReason,
+                            $archiveReasonDetails,
+                            $archived_by,
+                            json_encode($recordToArchive, JSON_PRETTY_PRINT),
+                            'Employment history archived on deletion. Job Title: ' . ($recordToArchive['job_title'] ?? 'N/A')
+                        ]);
+                        
+                        // Delete from employment_history table
+                        $deleteStmt = $pdo->prepare("DELETE FROM employment_history WHERE history_id=?");
+                        $deleteStmt->execute([$_POST['history_id']]);
+                        
+                        $pdo->commit();
+                        $message = "Employment history archived successfully! You can view it in Archive Storage.";
+                        $messageType = "success";
+                    } else {
+                        $pdo->rollBack();
+                        $message = "Error: Employment history record not found!";
+                        $messageType = "error";
+                    }
                 } catch (PDOException $e) {
-                    $message = "Error deleting employment history: " . $e->getMessage();
+                    $pdo->rollBack();
+                    $message = "Error archiving employment history: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
@@ -1025,7 +1099,7 @@ $managers = $employees; // Same as employees for simplicity
         }
 
         function deleteHistory(historyId) {
-            if (confirm('Are you sure you want to delete this employment history record? This action cannot be undone.')) {
+            if (confirm('Are you sure you want to archive this employment history record? The record will be moved to Archive Storage and can be restored later.')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = `

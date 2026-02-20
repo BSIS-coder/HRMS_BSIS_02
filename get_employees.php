@@ -1,36 +1,30 @@
 <?php
 // get_employees.php
 header('Content-Type: application/json');
-require_once 'db_connect.php';
+require_once 'config.php';
 
 try {
     $sql = "
-        SELECT 
+        SELECT
             ep.employee_id,
             pi.personal_info_id,
             pi.first_name,
-            pi.last_name
+            pi.last_name,
+            ep.job_role_id,
+            jr.title AS job_role
         FROM employee_profiles ep
-        INNER JOIN personal_information pi 
+        INNER JOIN personal_information pi
             ON ep.personal_info_id = pi.personal_info_id
+        LEFT JOIN job_roles jr
+            ON ep.job_role_id = jr.job_role_id
         ORDER BY pi.last_name, pi.first_name
     ";
 
-    $result = $conn->query($sql);
-
-    if (!$result) {
-        echo json_encode(["error" => true, "message" => $conn->error]);
-        exit;
-    }
-
-    $employees = [];
-    while ($row = $result->fetch_assoc()) {
-        $employees[] = $row;
-    }
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode($employees);
-} catch (Throwable $e) {
+} catch (PDOException $e) {
     echo json_encode(["error" => true, "message" => $e->getMessage()]);
 }
-
-$conn->close();

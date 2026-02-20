@@ -1,235 +1,207 @@
-2025-10-01 02:35:01 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:35:01 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:35:15 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:35:15 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:35:19 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:50:16 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:50:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:50:48 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:50:56 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 02:51:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 03:12:26 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 03:13:15 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
-2025-10-01 03:17:41 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:17:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:17:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:17:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:20 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:21 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:21 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:21 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:21 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:18:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:19:58 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:19:59 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:19:59 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:19:59 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:20:26 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 351
-2025-10-01 03:22:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:36 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:36 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:22:36 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 346
-2025-10-01 03:38:35 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 359
-2025-10-01 03:39:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 359
-2025-10-01 03:39:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 359
-2025-10-01 03:39:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 359
-2025-10-01 03:39:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 359
-2025-10-01 03:47:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:39 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:39 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:47:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:48:05 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:48:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:50:10 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:50:10 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:50:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:50:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 365
-2025-10-01 03:52:44 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 396
-2025-10-01 03:52:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 396
-2025-10-01 03:52:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 396
-2025-10-01 03:52:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 396
-2025-10-01 03:55:42 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 396
-2025-10-01 04:02:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:25 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:25 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:27 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:27 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:02:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 399
-2025-10-01 04:05:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:05:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:05:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:05:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:06:20 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:06:29 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:06:30 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:25 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:27 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:35 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:35 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:35 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:44 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:44 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:44 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:44 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:08:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:09:55 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:09:55 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:09:56 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:21 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:10:30 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 412
-2025-10-01 04:15:01 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:42 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:43 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:54 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:56 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:56 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:56 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:16:57 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:17:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:18:42 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:18:42 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:18:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:20:08 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 415
-2025-10-01 04:22:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 418
-2025-10-01 04:25:40 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:27:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:27:45 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:28:26 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:29:28 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:29:40 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:29:40 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:29:40 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:30:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:30:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:30:34 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:31:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:36:12 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:37:42 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:37:48 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:38:15 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 426
-2025-10-01 04:39:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:39:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 431
-2025-10-01 04:42:44 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 402
-2025-10-01 04:42:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 402
-2025-10-01 04:42:50 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 402
-2025-10-01 04:45:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 406
-2025-10-01 04:53:38 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 04:54:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 04:54:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 04:54:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 04:57:14 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 04:57:14 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 04:57:14 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 420
-2025-10-01 05:08:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:10:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:10:26 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:10:26 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:10:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:10:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:10:31 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:23 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:47 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:53 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:53 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:53 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:53 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:54 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:54 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:54 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:11:54 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:12:01 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:12 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:12 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:12 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:15 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:15 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:16 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:13:16 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 411
-2025-10-01 05:14:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:14:51 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:14:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:14:56 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:14:57 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:14:57 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:15:03 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:15:05 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:15:52 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:16:04 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:18:24 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:18:29 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:18:29 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:19:25 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:21:08 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:21:22 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:23:46 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:23:48 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:23:48 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:23:48 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:23:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 405
-2025-10-01 05:36:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php on line 347
+2025-08-26 05:22:08 Exception: Call to a member function query() on null in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\describe_public_holidays.php on line 4
+2025-08-26 05:22:54 Exception: Call to a member function query() on null in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\describe_public_holidays.php on line 5
+2025-08-26 05:23:33 Exception: Call to a member function query() on null in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\describe_public_holidays.php on line 8
+2025-08-26 05:24:42 Exception: Call to a member function query() on null in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\add_holiday_type_column.php on line 6
+2025-08-26 08:41:03 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-08-26 08:41:06 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-08-26 08:41:07 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-08-26 08:41:07 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-08-26 08:41:10 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-08-26 08:41:34 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-08-26 08:41:58 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 60
+2025-09-09 02:00:30 Exception: Call to undefined function getLeaveBalances() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\leave_balances.php on line 14
+2025-09-09 02:00:38 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\shifts.php on line 78
+2025-09-09 02:00:40 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\shifts.php on line 78
+2025-09-09 02:00:43 Exception: Call to undefined function getEmployeeShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 58
+2025-09-09 02:01:00 Exception: Call to undefined function getLeaveBalances() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\leave_balances.php on line 14
+2025-09-14 06:12:24 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\shifts.php on line 78
+2025-09-14 06:12:27 Exception: Call to undefined function getEmployeeShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 58
+2025-09-14 06:12:35 Exception: Call to undefined function getLeaveBalances() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\leave_balances.php on line 14
+2025-09-14 07:03:42 Exception: Call to undefined function getShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\shifts.php on line 78
+2025-09-14 07:07:36 Exception: Call to undefined function getEmployeeShifts() in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\employee_shifts.php on line 58
+2025-09-18 02:01:40 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'c.resume_filename' in 'field list' in C:\Program Files\xampp\htdocs\Human-Resources-Management-System-BSIS-02\job_applications.php on line 149
+2025-10-08 14:29:56 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:29:59 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:30:04 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:31:37 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:31:40 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:32:40 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:32:40 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:32:40 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:32:41 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:32:48 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_id' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php on line 19
+2025-10-08 14:54:33 Exception: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'high_priority FROM training_needs_assessment WHERE priority_level = 'High'' at line 1 in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\training_needs_assessment.php on line 135
+2025-10-08 14:54:37 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\career_path_stages.php on line 72
+2025-10-08 15:37:12 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 304
+2025-10-08 15:38:50 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 304
+2025-10-08 15:39:30 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 304
+2025-10-08 15:39:38 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 304
+2025-10-08 15:39:48 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 304
+2025-10-08 15:39:48 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 304
+2025-10-08 15:43:05 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-08 15:43:06 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-08 15:43:08 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-08 15:43:11 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-08 15:43:12 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-08 15:43:27 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-08 15:43:43 Exception: Call to undefined function getRecentAuditLogs() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\leave_requests.php on line 305
+2025-10-21 06:44:57 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\performance_reviews.php on line 28
+2025-10-23 16:19:31 Exception: Call to undefined function logActivity() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_fixed.php on line 57
+2025-10-23 19:05:59 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_requests.php on line 18
+2025-10-23 19:06:03 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_requests.php on line 18
+2025-10-23 19:06:08 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_requests.php on line 18
+2025-10-23 19:06:12 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_requests.php on line 18
+2025-10-23 19:06:23 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_requests.php on line 18
+2025-10-23 19:06:37 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_leave_requests.php on line 18
+2025-10-23 19:07:15 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:07:20 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:07:26 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:07:38 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:07:46 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:07:52 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:07:58 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:04 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:09 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:15 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:20 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:25 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:31 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:45 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:49 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:54 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:08:58 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:02 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:08 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:13 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:17 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:24 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:29 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:33 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:37 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:42 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:48 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:52 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:09:56 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:01 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:06 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:13 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:18 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:24 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:29 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:34 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:39 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:10:46 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:11:57 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:01 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:06 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:11 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:15 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:20 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:24 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:29 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:34 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:38 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:42 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:47 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:52 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:12:57 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:13:01 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:13:06 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:13:11 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:13:17 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:13:28 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:13:52 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:14:07 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:14:16 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:14:40 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:15:15 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:15:21 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:15:34 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:15:44 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 5
+2025-10-23 19:15:56 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:16:12 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:16:42 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:16:47 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:17:06 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:17:11 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:17:23 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:17:43 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:17:48 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:18:57 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:19:01 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:19:19 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:19:28 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_output.php on line 6
+2025-10-23 19:19:36 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:19:40 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:20:29 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:20:34 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:20:38 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:20:43 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:00 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:05 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:10 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:14 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:24 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:43 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:47 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:21:57 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:02 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:07 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:12 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:29 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:34 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:38 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:42 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-23 19:22:46 Exception: Call to undefined function getLeaveRequests() in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\test_simple.php on line 5
+2025-10-24 15:21:00 Exception: trim(): Argument #1 ($string) must be of type string, array given in C:\xampp\htdocs\HRMS_BSIS_02\assign_competency.php on line 11
+2026-01-17 06:35:46 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'reason' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 34
+2026-01-17 06:36:01 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'reason' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 34
+2026-01-17 06:36:04 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'reason' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 34
+2026-01-17 06:39:14 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 23
+2026-01-17 06:39:19 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 23
+2026-01-17 06:46:55 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 53
+2026-01-17 06:47:01 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 53
+2026-01-17 06:50:16 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 117
+2026-01-17 06:59:27 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 06:59:58 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:05:35 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:05:36 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:06:11 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:06:12 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:06:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:06:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 07:06:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-10 11:14:31 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ep.position' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\exit_documents.php on line 161
+2026-02-10 11:14:43 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ep.position' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\exit_documents.php on line 161
+2026-02-12 11:59:24 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 11:59:32 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:04:09 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:08:47 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:08:49 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:08:49 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:08:49 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:08:49 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:08:54 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-02-12 12:13:43 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-12 12:13:44 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-12 12:13:44 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-12 12:13:44 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-12 12:13:44 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-12 12:13:46 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-14 01:37:49 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-14 01:42:09 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ex.last_working_day' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_exit_survey.php on line 118
+2026-02-14 01:42:10 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ex.last_working_day' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_exit_survey.php on line 118
+2026-02-14 01:42:10 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ex.last_working_day' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_exit_survey.php on line 118
+2026-02-14 01:42:10 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ex.last_working_day' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_exit_survey.php on line 118
+2026-02-14 01:43:21 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ex.last_working_day' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_exit_survey.php on line 123
+2026-02-14 01:43:24 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ex.last_working_day' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_exit_survey.php on line 123
+2026-02-14 01:46:19 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-14 01:50:34 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-16 11:53:17 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-16 11:56:29 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 69
+2026-02-16 11:59:35 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.employees' doesn't exist in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 68
+2026-02-16 14:31:19 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'e.approved_by' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\exits.php on line 245
+2026-02-16 14:31:27 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'e.approved_by' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\exits.php on line 245
+2026-02-16 14:34:19 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'e.approved_by' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\exits.php on line 245
+2026-02-18 11:09:45 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'kt.supervisor_id' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php on line 75
+2026-02-18 11:09:54 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'kt.supervisor_id' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php on line 75

@@ -11,79 +11,99 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'db.php';
+require_once 'dp.php';
 
 // Database connection
-$pdo = connectToDatabase(
-    dbname: 'CC_HR',
-);
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 // Handle form submissions
-$message = '';
-$messageType = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
-                // Add new knowledge transfer
                 try {
                     $stmt = $pdo->prepare("INSERT INTO knowledge_transfers (exit_id, employee_id, handover_details, start_date, completion_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $completion_date = !empty($_POST['completion_date']) ? $_POST['completion_date'] : null;
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
                         $_POST['handover_details'],
-                        $_POST['start_date'],
-                        $completion_date,
+                        $_POST['start_date'] ?: null,
+                        $_POST['completion_date'] ?: null,
                         $_POST['status'],
                         $_POST['notes']
                     ]);
-                    $message = "Knowledge transfer record added successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Knowledge transfer added successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: knowledge_transfers.php");
+                    exit();
                 } catch (PDOException $e) {
-                    $message = "Error adding knowledge transfer: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error adding knowledge transfer: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: knowledge_transfers.php");
+                    exit();
                 }
                 break;
             
             case 'update':
-                // Update knowledge transfer
                 try {
                     $stmt = $pdo->prepare("UPDATE knowledge_transfers SET exit_id=?, employee_id=?, handover_details=?, start_date=?, completion_date=?, status=?, notes=? WHERE transfer_id=?");
-                    $completion_date = !empty($_POST['completion_date']) ? $_POST['completion_date'] : null;
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
                         $_POST['handover_details'],
-                        $_POST['start_date'],
-                        $completion_date,
+                        $_POST['start_date'] ?: null,
+                        $_POST['completion_date'] ?: null,
                         $_POST['status'],
                         $_POST['notes'],
                         $_POST['transfer_id']
                     ]);
-                    $message = "Knowledge transfer record updated successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Knowledge transfer updated successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: knowledge_transfers.php");
+                    exit();
                 } catch (PDOException $e) {
-                    $message = "Error updating knowledge transfer: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error updating knowledge transfer: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: knowledge_transfers.php");
+                    exit();
                 }
                 break;
             
             case 'delete':
-                // Delete knowledge transfer
                 try {
                     $stmt = $pdo->prepare("DELETE FROM knowledge_transfers WHERE transfer_id=?");
                     $stmt->execute([$_POST['transfer_id']]);
-                    $message = "Knowledge transfer record deleted successfully!";
-                    $messageType = "success";
+                    $_SESSION['message'] = "Knowledge transfer deleted successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: knowledge_transfers.php");
+                    exit();
                 } catch (PDOException $e) {
-                    $message = "Error deleting knowledge transfer: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['message'] = "Error deleting knowledge transfer: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: knowledge_transfers.php");
+                    exit();
                 }
                 break;
         }
     }
+}
+
+// Check for flash messages
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    $messageType = $_SESSION['messageType'];
+    unset($_SESSION['message']);
+    unset($_SESSION['messageType']);
 }
 
 // Fetch knowledge transfers with related data
@@ -91,33 +111,51 @@ $stmt = $pdo->query("
     SELECT 
         kt.*,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number,
         jr.title as job_title,
-        jr.department
+        jr.department,
+        e.exit_date,
+        e.exit_type,
+        CONCAT(pi_exit.first_name, ' ', pi_exit.last_name) as exiting_employee_name
     FROM knowledge_transfers kt
     LEFT JOIN employee_profiles ep ON kt.employee_id = ep.employee_id
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
     LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+    LEFT JOIN exits e ON kt.exit_id = e.exit_id
+    LEFT JOIN employee_profiles ep_exit ON e.employee_id = ep_exit.employee_id
+    LEFT JOIN personal_information pi_exit ON ep_exit.personal_info_id = pi_exit.personal_info_id
     ORDER BY kt.transfer_id DESC
 ");
 $transfers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch exits for dropdown
+$stmt = $pdo->query("
+    SELECT 
+        e.exit_id,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        e.exit_date,
+        e.exit_type
+    FROM exits e
+    LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY e.exit_date DESC
+");
+$exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch employees for dropdown
 $stmt = $pdo->query("
     SELECT 
         ep.employee_id,
         CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
-        jr.title as job_title,
-        jr.department
+        ep.employee_number,
+        jr.title as job_title
     FROM employee_profiles ep
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
     LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+    WHERE ep.employment_status = 'Full-time' OR ep.employment_status = 'Part-time'
     ORDER BY pi.first_name
 ");
 $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch exit IDs for dropdown (assuming you have an exits table)
-$stmt = $pdo->query("SELECT DISTINCT exit_id FROM knowledge_transfers ORDER BY exit_id");
-$exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -130,17 +168,17 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Custom styles for knowledge transfer page */
+        /* Additional custom styles for knowledge transfer page */
         :root {
-            --primary-blue: #E91E63;        /* Changed to match system pink */
-            --primary-blue-light: #F06292;  /* Changed to lighter pink */
-            --primary-blue-dark: #C2185B;   /* Changed to darker pink */
-            --primary-blue-lighter: #F8BBD0;/* Changed to very light pink */
-            --primary-blue-pale: #FCE4EC;   /* Changed to palest pink */
+            --azure-blue: #E91E63;
+            --azure-blue-light: #F06292;
+            --azure-blue-dark: #C2185B;
+            --azure-blue-lighter: #F8BBD0;
+            --azure-blue-pale: #FCE4EC;
         }
 
         .section-title {
-            color: var(--primary-blue);
+            color: var(--azure-blue);
             margin-bottom: 30px;
             font-weight: 600;
         }
@@ -155,11 +193,11 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         body {
-            background: var(--primary-blue-pale);
+            background: var(--azure-blue-pale);
         }
 
         .main-content {
-            background: var(--primary-blue-pale);
+            background: var(--azure-blue-pale);
             padding: 20px;
         }
 
@@ -188,7 +226,7 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .search-box input:focus {
-            border-color: var(--primary-blue);
+            border-color: var(--azure-blue);
             outline: none;
             box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
         }
@@ -199,20 +237,6 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             top: 50%;
             transform: translateY(-50%);
             color: #666;
-        }
-
-        .filter-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .filter-select {
-            padding: 8px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 20px;
-            background: white;
-            cursor: pointer;
         }
 
         .btn {
@@ -228,14 +252,14 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
-            background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue-dark) 100%);
+            background: linear-gradient(135deg, var(--azure-blue-light) 0%, var(--azure-blue-dark) 100%);
         }
 
         .btn-success {
@@ -250,6 +274,11 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .btn-warning {
             background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             color: white;
         }
 
@@ -272,11 +301,11 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .table th {
-            background: linear-gradient(135deg, var(--primary-blue-lighter) 0%, #e9ecef 100%);
+            background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #e9ecef 100%);
             padding: 15px;
             text-align: left;
             font-weight: 600;
-            color: var(--primary-blue-dark);
+            color: var(--azure-blue-dark);
             border-bottom: 2px solid #dee2e6;
         }
 
@@ -287,7 +316,7 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .table tbody tr:hover {
-            background-color: var(--primary-blue-lighter);
+            background-color: var(--azure-blue-lighter);
             transform: scale(1.01);
             transition: all 0.2s ease;
         }
@@ -298,16 +327,7 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
-        }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-in-progress {
-            background: #fff3cd;
-            color: #856404;
+            display: inline-block;
         }
 
         .status-not-started {
@@ -315,17 +335,19 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #721c24;
         }
 
-        .handover-preview {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            cursor: pointer;
-            color: #666;
+        .status-in-progress {
+            background: #fff3cd;
+            color: #856404;
         }
 
-        .handover-preview:hover {
-            color: var(--primary-blue);
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-na {
+            background: #e2e3e5;
+            color: #383d41;
         }
 
         .modal {
@@ -342,12 +364,12 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .modal-content {
             background: white;
-            margin: 2% auto;
+            margin: 3% auto;
             padding: 0;
             border-radius: 15px;
             width: 90%;
             max-width: 800px;
-            max-height: 95vh;
+            max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             animation: slideIn 0.3s ease;
@@ -359,7 +381,7 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .modal-header {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
             color: white;
             padding: 20px 30px;
             border-radius: 15px 15px 0 0;
@@ -394,12 +416,12 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--primary-blue-dark);
+            color: var(--azure-blue-dark);
         }
 
         .form-control {
             width: 100%;
-            padding: 12px 15px;
+            padding: 6px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
@@ -407,13 +429,13 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .form-control:focus {
-            border-color: var(--primary-blue);
+            border-color: var(--azure-blue);
             outline: none;
             box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
         }
 
-        .form-control textarea {
-            min-height: 120px;
+        textarea.form-control {
+            min-height: 100px;
             resize: vertical;
         }
 
@@ -457,20 +479,11 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #ddd;
         }
 
-        .transfer-details {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border-left: 4px solid var(--primary-blue);
-        }
-
-        .transfer-meta {
-            display: flex;
-            gap: 20px;
-            font-size: 14px;
+        .info-label {
+            font-size: 12px;
             color: #666;
-            margin-bottom: 10px;
+            display: block;
+            margin-top: 2px;
         }
 
         @media (max-width: 768px) {
@@ -481,10 +494,6 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             .search-box {
                 max-width: none;
-            }
-
-            .filter-controls {
-                justify-content: center;
             }
 
             .form-row {
@@ -509,7 +518,7 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="main-content">
                 <h2 class="section-title">📚 Knowledge Transfer Management</h2>
                 <div class="content">
-                    <?php if ($message): ?>
+                    <?php if (isset($message)): ?>
                         <div class="alert alert-<?= $messageType ?>">
                             <?= htmlspecialchars($message) ?>
                         </div>
@@ -518,64 +527,55 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="controls">
                         <div class="search-box">
                             <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search by employee name, job title, or handover details...">
+                            <input type="text" id="searchInput" placeholder="Search by employee name, status, or exit type...">
                         </div>
-                        <div class="filter-controls">
-                            <select class="filter-select" id="statusFilter">
-                                <option value="">All Status</option>
-                                <option value="Completed">Completed</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Not Started">Not Started</option>
-                            </select>
-                            <button class="btn btn-primary" onclick="openModal('add')">
-                                ➕ Add Knowledge Transfer
-                            </button>
-                        </div>
+                        <button class="btn btn-primary" onclick="openModal('add')">
+                            ➕ Add Knowledge Transfer
+                        </button>
                     </div>
 
                     <div class="table-container">
-                        <table class="table" id="transfersTable">
+                        <table class="table" id="transferTable">
                             <thead>
                                 <tr>
                                     <th>Transfer ID</th>
-                                    <th>Employee</th>
-                                    <th>Job Title</th>
-                                    <th>Department</th>
+                                    <th>Exiting Employee</th>
+                                    <th>Receiving Employee</th>
+                                    <th>Exit Type</th>
                                     <th>Status</th>
                                     <th>Start Date</th>
                                     <th>Completion Date</th>
-                                    <th>Handover Details</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="transfersTableBody">
+                            <tbody id="transferTableBody">
                                 <?php foreach ($transfers as $transfer): ?>
-                                <tr data-status="<?= strtolower(str_replace(' ', '-', $transfer['status'])) ?>">
+                                <tr>
                                     <td><strong>#<?= htmlspecialchars($transfer['transfer_id']) ?></strong></td>
                                     <td>
                                         <div>
-                                            <strong><?= htmlspecialchars($transfer['employee_name']) ?></strong><br>
-                                            <small style="color: #666;">Exit ID: <?= htmlspecialchars($transfer['exit_id']) ?></small>
+                                            <strong><?= htmlspecialchars($transfer['exiting_employee_name']) ?></strong><br>
+                                            <small class="info-label">Exit: <?= date('M d, Y', strtotime($transfer['exit_date'])) ?></small>
                                         </div>
                                     </td>
-                                    <td><?= htmlspecialchars($transfer['job_title']) ?></td>
-                                    <td><?= htmlspecialchars($transfer['department']) ?></td>
+                                    <td>
+                                        <div>
+                                            <strong><?= htmlspecialchars($transfer['employee_name']) ?></strong><br>
+                                            <small class="info-label"><?= htmlspecialchars($transfer['job_title']) ?> - <?= htmlspecialchars($transfer['department']) ?></small>
+                                        </div>
+                                    </td>
+                                    <td><?= htmlspecialchars($transfer['exit_type']) ?></td>
                                     <td>
                                         <span class="status-badge status-<?= strtolower(str_replace(' ', '-', $transfer['status'])) ?>">
                                             <?= htmlspecialchars($transfer['status']) ?>
                                         </span>
                                     </td>
                                     <td><?= $transfer['start_date'] ? date('M d, Y', strtotime($transfer['start_date'])) : 'Not set' ?></td>
+                                    <td><?= $transfer['completion_date'] ? date('M d, Y', strtotime($transfer['completion_date'])) : 'Not set' ?></td>
                                     <td>
-                                        <?= $transfer['completion_date'] ? date('M d, Y', strtotime($transfer['completion_date'])) : '<span style="color: #666;">Pending</span>' ?>
-                                    </td>
-                                    <td>
-                                        <div class="handover-preview" onclick="showHandoverDetails('<?= addslashes($transfer['handover_details']) ?>', '<?= addslashes($transfer['employee_name']) ?>')">
-                                            <?= strlen($transfer['handover_details']) > 50 ? htmlspecialchars(substr($transfer['handover_details'], 0, 50)) . '...' : htmlspecialchars($transfer['handover_details']) ?>
-                                            <br><small style="color: var(--primary-blue);">Click to view full details</small>
-                                        </div>
-                                    </td>
-                                    <td>
+                                        <button class="btn btn-info btn-small" onclick="viewTransfer(<?= $transfer['transfer_id'] ?>)">
+                                            👁️ View
+                                        </button>
                                         <button class="btn btn-warning btn-small" onclick="editTransfer(<?= $transfer['transfer_id'] ?>)">
                                             ✏️ Edit
                                         </button>
@@ -616,18 +616,28 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="exit_id">Exit ID</label>
-                                <input type="number" id="exit_id" name="exit_id" class="form-control" required>
+                                <label for="exit_id">Exit Record *</label>
+                                <select id="exit_id" name="exit_id" class="form-control" required>
+                                    <option value="">Select exit...</option>
+                                    <?php foreach ($exits as $exit): ?>
+                                    <option value="<?= $exit['exit_id'] ?>">
+                                        <?= htmlspecialchars($exit['employee_name']) ?> - <?= htmlspecialchars($exit['exit_type']) ?> (<?= date('M d, Y', strtotime($exit['exit_date'])) ?>)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="employee_id">Employee</label>
+                                <label for="employee_id">Receiving Employee *</label>
                                 <select id="employee_id" name="employee_id" class="form-control" required>
                                     <option value="">Select employee...</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                    <option value="<?= $employee['employee_id'] ?>">
-                                        <?= htmlspecialchars($employee['full_name']) ?> - <?= htmlspecialchars($employee['job_title']) ?>
+                                    <?php foreach ($employees as $emp): ?>
+                                    <option value="<?= $emp['employee_id'] ?>">
+                                        <?= htmlspecialchars($emp['full_name']) ?> - <?= htmlspecialchars($emp['job_title']) ?> (<?= htmlspecialchars($emp['employee_number']) ?>)
                                     </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -637,38 +647,37 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="form-group">
                         <label for="handover_details">Handover Details</label>
-                        <textarea id="handover_details" name="handover_details" class="form-control" rows="6" required placeholder="Describe the knowledge transfer details, procedures, responsibilities, and any important information..."></textarea>
+                        <textarea id="handover_details" name="handover_details" class="form-control" placeholder="Describe the knowledge, responsibilities, and tasks being transferred..."></textarea>
                     </div>
 
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="start_date">Start Date</label>
-                                <input type="date" id="start_date" name="start_date" class="form-control" required>
+                                <input type="date" id="start_date" name="start_date" class="form-control">
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="completion_date">Completion Date</label>
                                 <input type="date" id="completion_date" name="completion_date" class="form-control">
-                                <small style="color: #666;">Leave empty if not yet completed</small>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="status">Status</label>
+                        <label for="status">Status *</label>
                         <select id="status" name="status" class="form-control" required>
-                            <option value="">Select status...</option>
                             <option value="Not Started">Not Started</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Completed">Completed</option>
+                            <option value="N/A">N/A</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label for="notes">Additional Notes</label>
-                        <textarea id="notes" name="notes" class="form-control" rows="4" placeholder="Any additional notes, comments, or observations..."></textarea>
+                        <textarea id="notes" name="notes" class="form-control" placeholder="Any additional information or observations..."></textarea>
                     </div>
 
                     <div style="text-align: center; margin-top: 30px;">
@@ -680,15 +689,15 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <!-- Handover Details Modal -->
-    <div id="handoverModal" class="modal">
+    <!-- View Knowledge Transfer Modal -->
+    <div id="viewModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="handoverModalTitle">Handover Details</h2>
-                <span class="close" onclick="closeHandoverModal()">&times;</span>
+                <h2>📚 Knowledge Transfer Details</h2>
+                <span class="close" onclick="closeViewModal()">&times;</span>
             </div>
-            <div class="modal-body">
-                <div id="handoverContent"></div>
+            <div class="modal-body" id="viewModalBody">
+                <!-- Content will be populated by JavaScript -->
             </div>
         </div>
     </div>
@@ -698,30 +707,22 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
         let transfersData = <?= json_encode($transfers) ?>;
 
         // Search functionality
-        document.getElementById('searchInput').addEventListener('input', filterTable);
-        document.getElementById('statusFilter').addEventListener('change', filterTable);
-
-        function filterTable() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-            const tableBody = document.getElementById('transfersTableBody');
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableBody = document.getElementById('transferTableBody');
             const rows = tableBody.getElementsByTagName('tr');
 
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 const text = row.textContent.toLowerCase();
-                const status = row.getAttribute('data-status');
                 
-                const matchesSearch = text.includes(searchTerm);
-                const matchesStatus = !statusFilter || status.includes(statusFilter.replace(' ', '-'));
-                
-                if (matchesSearch && matchesStatus) {
+                if (text.includes(searchTerm)) {
                     row.style.display = '';
                 } else {
                     row.style.display = 'none';
                 }
             }
-        }
+        });
 
         // Modal functions
         function openModal(mode, transferId = null) {
@@ -752,26 +753,6 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             document.body.style.overflow = 'auto';
         }
 
-        function showHandoverDetails(details, employeeName) {
-            const modal = document.getElementById('handoverModal');
-            const title = document.getElementById('handoverModalTitle');
-            const content = document.getElementById('handoverContent');
-            
-            title.textContent = `Handover Details - ${employeeName}`;
-            content.innerHTML = `
-                <div class="transfer-details">
-                    <h4>Knowledge Transfer Documentation</h4>
-                    <p style="white-space: pre-line; line-height: 1.6;">${details}</p>
-                </div>
-            `;
-            
-            modal.style.display = 'block';
-        }
-
-        function closeHandoverModal() {
-            document.getElementById('handoverModal').style.display = 'none';
-        }
-
         function populateEditForm(transferId) {
             const transfer = transfersData.find(t => t.transfer_id == transferId);
             if (transfer) {
@@ -780,7 +761,7 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('handover_details').value = transfer.handover_details || '';
                 document.getElementById('start_date').value = transfer.start_date || '';
                 document.getElementById('completion_date').value = transfer.completion_date || '';
-                document.getElementById('status').value = transfer.status || '';
+                document.getElementById('status').value = transfer.status || 'Not Started';
                 document.getElementById('notes').value = transfer.notes || '';
             }
         }
@@ -802,38 +783,108 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
-        // Close modals when clicking outside
+        function viewTransfer(transferId) {
+            const transfer = transfersData.find(t => t.transfer_id == transferId);
+            if (!transfer) return;
+
+            const viewModalBody = document.getElementById('viewModalBody');
+            const statusClass = 'status-' + transfer.status.toLowerCase().replace(' ', '-');
+            
+            viewModalBody.innerHTML = `
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Transfer Information</h4>
+                        <p><strong>Transfer ID:</strong> #${transfer.transfer_id}</p>
+                        <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${transfer.status}</span></p>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Employees</h4>
+                        <p><strong>Exiting Employee:</strong> ${transfer.exiting_employee_name}</p>
+                        <p><strong>Exit Date:</strong> ${new Date(transfer.exit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p><strong>Exit Type:</strong> ${transfer.exit_type}</p>
+                        <hr>
+                        <p><strong>Receiving Employee:</strong> ${transfer.employee_name}</p>
+                        <p><strong>Job Title:</strong> ${transfer.job_title}</p>
+                        <p><strong>Department:</strong> ${transfer.department}</p>
+                        <p><strong>Employee Number:</strong> ${transfer.employee_number}</p>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Timeline</h4>
+                        <p><strong>Start Date:</strong> ${transfer.start_date ? new Date(transfer.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not set'}</p>
+                        <p><strong>Completion Date:</strong> ${transfer.completion_date ? new Date(transfer.completion_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not set'}</p>
+                    </div>
+
+                    ${transfer.handover_details ? `
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Handover Details</h4>
+                        <p style="white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px;">${transfer.handover_details}</p>
+                    </div>
+                    ` : ''}
+
+                    ${transfer.notes ? `
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Additional Notes</h4>
+                        <p style="white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px;">${transfer.notes}</p>
+                    </div>
+                    ` : ''}
+
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Record Information</h4>
+                        <p><strong>Created:</strong> ${new Date(transfer.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        <p><strong>Last Updated:</strong> ${new Date(transfer.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="btn btn-primary" onclick="closeViewModal()">Close</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('viewModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeViewModal() {
+            const modal = document.getElementById('viewModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
         window.onclick = function(event) {
             const transferModal = document.getElementById('transferModal');
-            const handoverModal = document.getElementById('handoverModal');
+            const viewModal = document.getElementById('viewModal');
+            
             if (event.target === transferModal) {
                 closeModal();
-            } else if (event.target === handoverModal) {
-                closeHandoverModal();
+            } else if (event.target === viewModal) {
+                closeViewModal();
             }
         }
 
         // Form validation
         document.getElementById('transferForm').addEventListener('submit', function(e) {
-            const startDate = new Date(document.getElementById('start_date').value);
-            const completionDate = document.getElementById('completion_date').value;
-            const status = document.getElementById('status').value;
+            if (this.submitted) {
+                e.preventDefault();
+                return;
+            }
             
-            if (completionDate) {
-                const compDate = new Date(completionDate);
-                if (compDate < startDate) {
-                    e.preventDefault();
-                    alert('Completion date cannot be earlier than start date');
-                    return;
-                }
+            const startDate = document.getElementById('start_date').value;
+            const completionDate = document.getElementById('completion_date').value;
+
+            if (startDate && completionDate && new Date(completionDate) < new Date(startDate)) {
+                e.preventDefault();
+                alert('Completion date cannot be earlier than start date');
+                return;
             }
 
-            if (status === 'Completed' && !completionDate) {
-                if (!confirm('Status is marked as Completed but no completion date is set. Continue anyway?')) {
-                    e.preventDefault();
-                    return;
-                }
-            }
+            // Disable submit button and mark form as submitted
+            this.submitted = true;
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
         });
 
         // Auto-hide alerts
@@ -848,28 +899,10 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }, 5000);
 
-        // Status-based completion date handling
-        document.getElementById('status').addEventListener('change', function() {
-            const completionDateField = document.getElementById('completion_date');
-            const status = this.value;
-            
-            if (status === 'Completed') {
-                completionDateField.setAttribute('required', 'required');
-                if (!completionDateField.value) {
-                    completionDateField.value = new Date().toISOString().split('T')[0];
-                }
-            } else {
-                completionDateField.removeAttribute('required');
-                if (status === 'Not Started') {
-                    completionDateField.value = '';
-                }
-            }
-        });
-
         // Initialize tooltips and animations
         document.addEventListener('DOMContentLoaded', function() {
             // Add hover effects to table rows
-            const tableRows = document.querySelectorAll('#transfersTable tbody tr');
+            const tableRows = document.querySelectorAll('#transferTable tbody tr');
             tableRows.forEach(row => {
                 row.addEventListener('mouseenter', function() {
                     this.style.transform = 'scale(1.02)';
@@ -880,272 +913,20 @@ $exitIds = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 });
             });
 
-            // Progress indicator for in-progress transfers
-            updateProgressIndicators();
+            // Auto-set today's date as default for start date when adding new transfer
+            const startDateInput = document.getElementById('start_date');
+            if (startDateInput && !startDateInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                startDateInput.setAttribute('max', '2099-12-31');
+            }
+
+            // Set completion date min to start date
+            document.getElementById('start_date').addEventListener('change', function() {
+                const completionDateInput = document.getElementById('completion_date');
+                completionDateInput.setAttribute('min', this.value);
+            });
         });
-
-        function updateProgressIndicators() {
-            const inProgressRows = document.querySelectorAll('[data-status="in-progress"]');
-            inProgressRows.forEach(row => {
-                const statusCell = row.querySelector('.status-badge');
-                if (statusCell) {
-                    statusCell.style.animation = 'pulse 2s infinite';
-                }
-            });
-        }
-
-        // Export functionality
-        function exportTransfers() {
-            const table = document.getElementById('transfersTable');
-            const rows = [];
-            
-            // Get headers
-            const headers = [];
-            table.querySelectorAll('thead th').forEach(th => {
-                if (th.textContent.trim() !== 'Actions') {
-                    headers.push(th.textContent.trim());
-                }
-            });
-            rows.push(headers.join(','));
-            
-            // Get visible rows data
-            const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(row => 
-                row.style.display !== 'none'
-            );
-            
-            visibleRows.forEach(row => {
-                const cells = [];
-                const tds = row.querySelectorAll('td');
-                for (let i = 0; i < tds.length - 1; i++) { // Exclude actions column
-                    let cellText = tds[i].textContent.trim().replace(/\n/g, ' ').replace(/,/g, ';');
-                    cells.push(`"${cellText}"`);
-                }
-                rows.push(cells.join(','));
-            });
-            
-            // Create and download CSV
-            const csv = rows.join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `knowledge_transfers_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-
-        // Add export button to controls
-        document.addEventListener('DOMContentLoaded', function() {
-            const controls = document.querySelector('.filter-controls');
-            const exportBtn = document.createElement('button');
-            exportBtn.className = 'btn';
-            exportBtn.style.background = '#17a2b8';
-            exportBtn.style.color = 'white';
-            exportBtn.innerHTML = '📊 Export CSV';
-            exportBtn.onclick = exportTransfers;
-            controls.insertBefore(exportBtn, controls.lastElementChild);
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl/Cmd + N to add new transfer
-            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-                e.preventDefault();
-                openModal('add');
-            }
-            
-            // Escape to close modal
-            if (e.key === 'Escape') {
-                closeModal();
-                closeHandoverModal();
-            }
-        });
-
-        // Real-time status updates
-        function updateTransferStatus(transferId, newStatus) {
-            fetch('update_transfer_status.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    transfer_id: transferId,
-                    status: newStatus
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload(); // Refresh to show updated status
-                } else {
-                    alert('Error updating status: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error updating status');
-            });
-        }
-
-        // Add quick status update buttons (you can uncomment this if you want quick status changes)
-        /*
-        function addQuickStatusButtons() {
-            document.querySelectorAll('#transfersTable tbody tr').forEach(row => {
-                const statusCell = row.querySelector('.status-badge');
-                const transferId = row.querySelector('td:first-child strong').textContent.replace('#', '');
-                
-                if (statusCell && !statusCell.parentNode.querySelector('.quick-status-btns')) {
-                    const quickBtns = document.createElement('div');
-                    quickBtns.className = 'quick-status-btns';
-                    quickBtns.style.marginTop = '5px';
-                    quickBtns.innerHTML = `
-                        <button onclick="updateTransferStatus(${transferId}, 'In Progress')" 
-                                style="font-size: 10px; padding: 2px 6px; margin: 1px; background: #ffc107; border: none; border-radius: 3px; cursor: pointer;">
-                            ⏳
-                        </button>
-                        <button onclick="updateTransferStatus(${transferId}, 'Completed')" 
-                                style="font-size: 10px; padding: 2px 6px; margin: 1px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                            ✅
-                        </button>
-                    `;
-                    statusCell.parentNode.appendChild(quickBtns);
-                }
-            });
-        }
-        */
-
-        // Performance optimization for large datasets
-        function initializeVirtualScrolling() {
-            // This would be implemented for very large datasets
-            // For now, we'll use pagination instead
-            const rowsPerPage = 25;
-            let currentPage = 1;
-            
-            function showPage(page) {
-                const tbody = document.getElementById('transfersTableBody');
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                const start = (page - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-                
-                rows.forEach((row, index) => {
-                    if (index >= start && index < end) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-            
-            // Add pagination controls if there are many records
-            if (transfersData.length > rowsPerPage) {
-                const totalPages = Math.ceil(transfersData.length / rowsPerPage);
-                const paginationHtml = `
-                    <div class="pagination-controls" style="text-align: center; margin-top: 20px;">
-                        <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
-                        <span>Page ${currentPage} of ${totalPages}</span>
-                        <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
-                    </div>
-                `;
-                document.querySelector('.table-container').insertAdjacentHTML('afterend', paginationHtml);
-                showPage(1);
-            }
-        }
-
-        function changePage(page) {
-            // Implementation for pagination
-            currentPage = page;
-            showPage(page);
-        }
     </script>
-
-    <!-- Additional CSS for animations -->
-    <style>
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-
-        .quick-status-btns button:hover {
-            transform: scale(1.1);
-        }
-
-        .pagination-controls {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
-
-        .pagination-controls button {
-            background: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            margin: 0 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .pagination-controls button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .pagination-controls span {
-            font-weight: 600;
-            color: var(--primary-blue);
-        }
-
-        /* Responsive enhancements */
-        @media (max-width: 992px) {
-            .handover-preview {
-                max-width: 200px;
-            }
-            
-            .btn-small {
-                padding: 6px 10px;
-                font-size: 12px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .table th, .table td {
-                padding: 8px;
-                font-size: 14px;
-            }
-            
-            .modal-content {
-                margin: 5% auto;
-                width: 95%;
-            }
-            
-            .form-row {
-                flex-direction: column;
-                gap: 0;
-            }
-            
-            .handover-preview {
-                max-width: 150px;
-            }
-        }
-
-        /* Print styles */
-        @media print {
-            .controls, .btn, .modal {
-                display: none !important;
-            }
-            
-            .main-content {
-                background: white !important;
-            }
-            
-            .table-container {
-                box-shadow: none !important;
-            }
-        }
-    </style>
-
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
