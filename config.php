@@ -1,9 +1,16 @@
 <?php
+
+
+$nost = getenv('DB_HOST') ?? 'localhost';
+$name = getenv('DB_NAME') ?? 'hr_system';
+$user = getenv('DB_USER') ?? 'root';
+$pass = getenv('DB_PASS') ?? '';
+
 // Database configuration
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'hr_system');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST', $host);
+define('DB_NAME', $name);
+define('DB_USER', $user);
+define('DB_PASS', $pass);
 
 // Error reporting
 error_reporting(E_ALL);
@@ -93,46 +100,55 @@ define('FEATURE_FILE_UPLOAD', true);
 define('FEATURE_EXPORT_DATA', true);
 
 // Custom functions
-function sanitizeInput($data) {
+function sanitizeInput($data)
+{
     $data = trim($data);
     $data = stripslashes($data);
     $data = htmlspecialchars($data);
     return $data;
 }
 
-function generateCSRFToken() {
+function generateCSRFToken()
+{
     if (!isset($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['csrf_token'];
 }
 
-function validateCSRFToken($token) {
+function validateCSRFToken($token)
+{
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-function formatDate($date, $format = 'Y-m-d H:i:s') {
+function formatDate($date, $format = 'Y-m-d H:i:s')
+{
     return date($format, strtotime($date));
 }
 
-function formatCurrency($amount) {
+function formatCurrency($amount)
+{
     return number_format($amount, 2, '.', ',');
 }
 
-function getFileExtension($filename) {
+function getFileExtension($filename)
+{
     return strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 }
 
-function isAllowedFileType($filename) {
+function isAllowedFileType($filename)
+{
     return in_array(getFileExtension($filename), ALLOWED_FILE_TYPES);
 }
 
-function generateUniqueFilename($originalFilename) {
+function generateUniqueFilename($originalFilename)
+{
     $extension = getFileExtension($originalFilename);
     return uniqid() . '_' . time() . '.' . $extension;
 }
 
-function createDirectoryIfNotExists($path) {
+function createDirectoryIfNotExists($path)
+{
     if (!file_exists($path)) {
         mkdir($path, 0777, true);
     }
@@ -144,7 +160,8 @@ createDirectoryIfNotExists(CACHE_DIR);
 createDirectoryIfNotExists(LOG_DIR);
 
 // Set error handler
-function customErrorHandler($errno, $errstr, $errfile, $errline) {
+function customErrorHandler($errno, $errstr, $errfile, $errline)
+{
     if (!(error_reporting() & $errno)) {
         return false;
     }
@@ -162,9 +179,10 @@ function customErrorHandler($errno, $errstr, $errfile, $errline) {
 set_error_handler("customErrorHandler");
 
 // Set exception handler
-function customExceptionHandler($exception) {
-    $error = date('Y-m-d H:i:s') . " Exception: " . $exception->getMessage() . 
-             " in " . $exception->getFile() . " on line " . $exception->getLine() . "\n";
+function customExceptionHandler($exception)
+{
+    $error = date('Y-m-d H:i:s') . " Exception: " . $exception->getMessage() .
+        " in " . $exception->getFile() . " on line " . $exception->getLine() . "\n";
     error_log($error, 3, LOG_DIR . 'exception.log');
 
     if (LOG_LEVEL === 'DEBUG') {
@@ -173,4 +191,3 @@ function customExceptionHandler($exception) {
 }
 
 set_exception_handler("customExceptionHandler");
-?>
