@@ -53,15 +53,13 @@ function calculateStatutoryDeduction($monthly_salary, $deduction_type) {
     $amount = 0;
 
     switch ($deduction_type) {
-        case 'SSS':
-            $salary_credit = min(max($monthly_salary, 4000), 30000);
-            $amount = $salary_credit * 0.045;
-            break;
         case 'PhilHealth':
+            // PhilHealth: 2% of monthly salary, capped at ₱90,000, minimum ₱10,000
             $philhealth_salary = min(max($monthly_salary, 10000), 90000);
             $amount = $philhealth_salary * 0.02;
             break;
         case 'Pag-IBIG':
+            // Pag-IBIG: ₱100 for salary > ₱5,000, otherwise 2% of salary
             if ($monthly_salary > 5000) {
                 $amount = 100.00;
             } else {
@@ -69,8 +67,83 @@ function calculateStatutoryDeduction($monthly_salary, $deduction_type) {
             }
             break;
         case 'GSIS':
+            // GSIS: 9% of monthly salary, capped at ₱60,000
             $gsis_salary = min($monthly_salary, 60000);
             $amount = $gsis_salary * 0.09;
+            break;
+        case 'SSS':
+            // SSS: Progressive rates (simplified for municipal)
+            if ($monthly_salary <= 3250) {
+                $amount = 135.00;
+            } elseif ($monthly_salary <= 3750) {
+                $amount = 157.50;
+            } elseif ($monthly_salary <= 4250) {
+                $amount = 180.00;
+            } elseif ($monthly_salary <= 4750) {
+                $amount = 202.50;
+            } elseif ($monthly_salary <= 5250) {
+                $amount = 225.00;
+            } elseif ($monthly_salary <= 5750) {
+                $amount = 247.50;
+            } elseif ($monthly_salary <= 6250) {
+                $amount = 270.00;
+            } elseif ($monthly_salary <= 6750) {
+                $amount = 292.50;
+            } elseif ($monthly_salary <= 7250) {
+                $amount = 315.00;
+            } elseif ($monthly_salary <= 7750) {
+                $amount = 337.50;
+            } elseif ($monthly_salary <= 8250) {
+                $amount = 360.00;
+            } elseif ($monthly_salary <= 8750) {
+                $amount = 382.50;
+            } elseif ($monthly_salary <= 9250) {
+                $amount = 405.00;
+            } elseif ($monthly_salary <= 9750) {
+                $amount = 427.50;
+            } elseif ($monthly_salary <= 10250) {
+                $amount = 450.00;
+            } elseif ($monthly_salary <= 10750) {
+                $amount = 472.50;
+            } elseif ($monthly_salary <= 11250) {
+                $amount = 495.00;
+            } elseif ($monthly_salary <= 11750) {
+                $amount = 517.50;
+            } elseif ($monthly_salary <= 12250) {
+                $amount = 540.00;
+            } elseif ($monthly_salary <= 12750) {
+                $amount = 562.50;
+            } elseif ($monthly_salary <= 13250) {
+                $amount = 585.00;
+            } elseif ($monthly_salary <= 13750) {
+                $amount = 607.50;
+            } elseif ($monthly_salary <= 14250) {
+                $amount = 630.00;
+            } elseif ($monthly_salary <= 14750) {
+                $amount = 652.50;
+            } elseif ($monthly_salary <= 15250) {
+                $amount = 675.00;
+            } elseif ($monthly_salary <= 15750) {
+                $amount = 697.50;
+            } elseif ($monthly_salary <= 16250) {
+                $amount = 720.00;
+            } elseif ($monthly_salary <= 16750) {
+                $amount = 742.50;
+            } elseif ($monthly_salary <= 17250) {
+                $amount = 765.00;
+            } elseif ($monthly_salary <= 17750) {
+                $amount = 787.50;
+            } elseif ($monthly_salary <= 18250) {
+                $amount = 810.00;
+            } elseif ($monthly_salary <= 18750) {
+                $amount = 832.50;
+            } elseif ($monthly_salary <= 19250) {
+                $amount = 855.00;
+            } elseif ($monthly_salary <= 19750) {
+                $amount = 877.50;
+            } else {
+                $amount = 900.00; // Maximum SSS contribution
+            }
             break;
         default:
             $amount = 0;
@@ -89,17 +162,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $effective_date = $_POST['effective_date'];
 
                 // Calculate deduction amount based on employee salary and deduction type
-                $amount_sql = "SELECT cp.base_salary FROM compensation_packages cp WHERE cp.employee_id = ?";
+                $amount_sql = "SELECT ep.current_salary FROM employee_profiles ep WHERE ep.employee_id = ?";
                 $amount_stmt = $conn->prepare($amount_sql);
                 $amount_stmt->execute([$employee_id]);
                 $salary_data = $amount_stmt->fetch(PDO::FETCH_ASSOC);
 
-                $deduction_amount = $_POST['deduction_amount'];
-if (empty($deduction_amount) && $salary_data) {
-    // fallback only if user didn't input any amount
-    $monthly_salary = $salary_data['base_salary'];
-    $deduction_amount = calculateStatutoryDeduction($monthly_salary, $deduction_type);
-}
+                if (in_array($deduction_type, ['PhilHealth', 'Pag-IBIG', 'GSIS'])) {
+                    // Always calculate for salary-dependent deductions
+                    $monthly_salary = $salary_data['current_salary'];
+                    $deduction_amount = calculateStatutoryDeduction($monthly_salary, $deduction_type);
+                } else {
+                    // Use entered amount for other deductions
+                    $deduction_amount = $_POST['deduction_amount'];
+                }
 
                 try {
                     $sql = "INSERT INTO statutory_deductions (employee_id, deduction_type, deduction_amount, effective_date) 
@@ -147,45 +222,57 @@ if (empty($deduction_amount) && $salary_data) {
                 $deduction_amount = $_POST['bulk_deduction_amount'];
                 $effective_date = $_POST['bulk_effective_date'];
                 $department_filter = $_POST['department_filter'] ?? '';
-                
+
                 try {
-                    // Get employees based on filter
-                    $emp_sql = "SELECT DISTINCT ep.employee_id
+                    // Get employees with their salaries based on filter
+                    $emp_sql = "SELECT DISTINCT ep.employee_id, ep.current_salary
                                 FROM employee_profiles ep
                                 LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
                                 LEFT JOIN departments d ON jr.department = d.department_name
                                 WHERE ep.employment_status IN ('Full-time', 'Part-time', 'Contract')";
-                    
+
                     $params = [];
                     if ($department_filter) {
                         $emp_sql .= " AND d.department_id = ?";
                         $params[] = $department_filter;
                     }
-                    
+
                     $emp_stmt = $conn->prepare($emp_sql);
                     $emp_stmt->execute($params);
-                    $employees = $emp_stmt->fetchAll(PDO::FETCH_COLUMN);
-                    
+                    $employees = $emp_stmt->fetchAll(PDO::FETCH_ASSOC);
+
                     $applied_count = 0;
-                    
-                    foreach ($employees as $employee_id) {
+
+                    foreach ($employees as $employee) {
+                        $employee_id = $employee['employee_id'];
+                        $salary = $employee['current_salary'] ?? 0;
+
+                        // Calculate amount based on deduction type and salary
+                        if (in_array($deduction_type, ['PhilHealth', 'Pag-IBIG', 'GSIS'])) {
+                            // Salary-dependent calculation
+                            $calculated_amount = calculateStatutoryDeduction($salary, $deduction_type);
+                        } else {
+                            // Fixed amount for "Other" deductions
+                            $calculated_amount = $deduction_amount;
+                        }
+
                         // Check if statutory deduction already exists for this employee and type
-                        $check_sql = "SELECT COUNT(*) FROM statutory_deductions 
+                        $check_sql = "SELECT COUNT(*) FROM statutory_deductions
                                      WHERE employee_id = ? AND deduction_type = ? AND effective_date = ?";
                         $check_stmt = $conn->prepare($check_sql);
                         $check_stmt->execute([$employee_id, $deduction_type, $effective_date]);
-                        
+
                         if ($check_stmt->fetchColumn() == 0) {
-                            $insert_sql = "INSERT INTO statutory_deductions (employee_id, deduction_type, deduction_amount, effective_date) 
+                            $insert_sql = "INSERT INTO statutory_deductions (employee_id, deduction_type, deduction_amount, effective_date)
                                           VALUES (?, ?, ?, ?)";
                             $insert_stmt = $conn->prepare($insert_sql);
-                            $insert_stmt->execute([$employee_id, $deduction_type, $deduction_amount, $effective_date]);
+                            $insert_stmt->execute([$employee_id, $deduction_type, $calculated_amount, $effective_date]);
                             $applied_count++;
                         }
                     }
-                    
+
                     $success_message = "Statutory deduction applied to {$applied_count} employees successfully!";
-                    
+
                 } catch (PDOException $e) {
                     $error_message = "Error applying bulk statutory deduction: " . $e->getMessage();
                 }
@@ -264,9 +351,8 @@ try {
     $departments = [];
 }
 
-// Philippine Statutory Deduction Types
+// Philippine Statutory Deduction Types (Municipal)
 $deduction_types = [
-    'SSS' => 'SSS Contribution',
     'PhilHealth' => 'PhilHealth Contribution',
     'Pag-IBIG' => 'Pag-IBIG Contribution',
     'GSIS' => 'GSIS Contribution',
@@ -460,7 +546,6 @@ $deduction_types = [
             font-size: 0.8rem;
             font-weight: bold;
         }
-        .deduction-type-sss { background-color: #007bff; color: white; }
         .deduction-type-philhealth { background-color: #28a745; color: white; }
         .deduction-type-pagibig { background-color: #ffc107; color: #212529; }
         .deduction-type-gsis { background-color: #17a2b8; color: white; }
@@ -505,10 +590,6 @@ $deduction_types = [
     box-shadow: 0 3px 6px rgba(0,0,0,0.2);
 }
 
-/* Badge color styles */
-.deduction-type-sss {
-    background-color: #007bff; /* Blue */
-}
 
 .deduction-type-philhealth {
     background-color: #28a745; /* Green */
@@ -685,9 +766,6 @@ if (!empty($statutory_deductions)):
     // Choose icon based on normalized type
     $icon = '';
     switch ($raw_type) {
-        case 'sss':
-            $icon = '<i class="fas fa-id-card"></i>';
-            break;
         case 'philhealth':
             $icon = '<i class="fas fa-heartbeat"></i>';
             break;
@@ -735,67 +813,6 @@ else:
     <td colspan="7" class="text-center">No statutory deductions found.</td>
 </tr>
 <?php endif; ?>
-</tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Philippine Statutory Deduction Guide -->
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-calculator mr-2"></i> Philippine Statutory Deduction Guide (2024)
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>SSS Contributions</h6>
-                                <div class="calculation-method">
-                                    <strong>Monthly Contribution:</strong><br>
-                                    • Employee: 4.5% of monthly salary credit<br>
-                                    • Employer: 8.5% of monthly salary credit<br>
-                                    • Maximum salary credit: ₱30,000<br>
-                                    • Minimum salary credit: ₱4,000
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>PhilHealth Contributions</h6>
-                                <div class="calculation-method">
-                                    <strong>Monthly Contribution:</strong><br>
-                                    • Employee: 2% of monthly salary<br>
-                                    • Employer: 2% of monthly salary<br>
-                                    • Maximum monthly salary: ₱90,000<br>
-                                    • Minimum monthly salary: ₱10,000
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <h6>Pag-IBIG Contributions</h6>
-                                <div class="calculation-method">
-                                    <strong>Monthly Contribution:</strong><br>
-                                    • Employee: ₱100 (fixed)<br>
-                                    • Employer: ₱100 (fixed)<br>
-                                    • For salaries above ₱5,000: 2% of monthly salary<br>
-                                    • Maximum contribution: ₱200
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>GSIS Contributions</h6>
-                                <div class="calculation-method">
-                                    <strong>Monthly Contribution:</strong><br>
-                                    • Employee: 9% of monthly salary<br>
-                                    • Employer: 12% of monthly salary<br>
-                                    • For government employees only<br>
-                                    • Maximum salary: ₱60,000
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Add Statutory Deduction Modal -->
     <div class="modal fade" id="addDeductionModal" tabindex="-1" role="dialog">
@@ -959,10 +976,14 @@ else:
                         
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group">
+                                <div class="form-group" id="bulk_amount_group">
                                     <label for="bulk_deduction_amount">Deduction Amount (₱)</label>
-                                    <input type="number" class="form-control" id="bulk_deduction_amount" name="bulk_deduction_amount" 
-                                           step="0.01" min="0" placeholder="e.g., 500.00" required>
+                                    <input type="number" class="form-control" id="bulk_deduction_amount" name="bulk_deduction_amount"
+                                           step="0.01" min="0" placeholder="e.g., 500.00">
+                                    <small class="form-text text-muted" id="bulk_amount_help">
+                                        For salary-dependent deductions (PhilHealth, Pag-IBIG, GSIS), amount will be calculated automatically based on each employee's salary.
+                                        For "Other" deductions, enter the fixed amount here.
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -1067,11 +1088,6 @@ else:
             let deductionAmount = 0;
 
             switch (deductionType) {
-                case 'SSS':
-                    // SSS calculation based on salary credit
-                    const sssSalary = Math.min(Math.max(grossSalary, 4000), 30000);
-                    deductionAmount = sssSalary * 0.045;
-                    break;
                 case 'PhilHealth':
                     // PhilHealth calculation
                     const philhealthSalary = Math.min(Math.max(grossSalary, 10000), 90000);

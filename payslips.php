@@ -90,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $sql = "SELECT 
             p.*, 
             pt.gross_pay, pt.net_pay, pt.tax_deductions, 
-            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'sss' THEN sd.deduction_amount END), 0) AS sss_contribution,
             COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'gsis' THEN sd.deduction_amount END), 0) AS gsis_contribution,
             COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'philhealth' THEN sd.deduction_amount END), 0) AS philhealth_contribution,
             COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'pag-ibig' THEN sd.deduction_amount END), 0) AS pagibig_contribution,
@@ -106,7 +105,7 @@ $sql = "SELECT
         LEFT JOIN departments d ON jr.department = d.department_name
         LEFT JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
         LEFT JOIN statutory_deductions sd ON sd.employee_id = ep.employee_id
-        GROUP BY p.payslip_id";
+        WHERE 1=1";
 
 $params = [];
 
@@ -137,6 +136,8 @@ if ($year_filter) {
     $sql .= " AND YEAR(pt.processed_date) = ?";
     $params[] = $year_filter;
 }
+
+$sql .= " GROUP BY p.payslip_id";
 
 $sql .= " ORDER BY pt.processed_date DESC, pi.first_name ASC";
 
@@ -497,14 +498,14 @@ try {
                                             <div class="pay-summary">
                                                 <div>
                                                     <div class="pay-label">Gross Pay</div>
-                                                    <div class="pay-amount">₱<?php echo number_format($payslip['gross_pay'], 2); ?></div>
+                                                    <div class="pay-amount">Confidential</div>
                                                 </div>
                                                 <div class="text-center">
-                                                    <i class="fas fa-arrow-right" style="color: #800000; font-size: 1.5rem;"></i>
+                                                    <i class="fas fa-lock" style="color: #800000; font-size: 1.2rem;"></i>
                                                 </div>
                                                 <div class="text-right">
                                                     <div class="pay-label">Net Pay</div>
-                                                    <div class="pay-amount">₱<?php echo number_format($payslip['net_pay'], 2); ?></div>
+                                                    <div class="pay-amount">Confidential</div>
                                                 </div>
                                             </div>
                                             
@@ -582,8 +583,8 @@ try {
                                             <th>Department</th>
                                             <th>Payroll Cycle</th>
                                             <th>Pay Period</th>
-                                            <th>Gross Pay</th>
-                                            <th>Net Pay</th>
+                                            <!-- Gross/Net hidden for privacy; use View Details -->
+                                            <th class="text-muted">Amounts (hidden)</th>
                                             <th>Generated Date</th>
                                             <th>Status</th>
                                             <th>Actions</th>
@@ -591,7 +592,14 @@ try {
                                     </thead>
                                     <tbody>
                                         <?php if (!empty($payslips)): ?>
-                                            <?php foreach ($payslips as $payslip): ?>
+                                            <?php foreach ($payslips as $payslip): 
+                                                // Calculate net pay dynamically: Gross - Tax - Statutory - Other
+                                                $gross = floatval($payslip['gross_pay']);
+                                                $tax = floatval($payslip['tax_deductions'] ?? 0);
+                                                $statutory = floatval($payslip['statutory_deductions'] ?? 0);
+                                                $other = floatval($payslip['other_deductions'] ?? 0);
+                                                $calculated_net = $gross - $tax - $statutory - $other;
+                                            ?>
                                                 <tr>
                                                     <td><?php echo htmlspecialchars($payslip['first_name'] . ' ' . $payslip['last_name']); ?></td>
                                                     <td><?php echo htmlspecialchars($payslip['employee_number']); ?></td>
@@ -601,8 +609,7 @@ try {
                                                         <?php echo date('M d', strtotime($payslip['pay_period_start'])); ?> - 
                                                         <?php echo date('M d, Y', strtotime($payslip['pay_period_end'])); ?>
                                                     </td>
-                                                    <td class="salary-amount">₱<?php echo number_format($payslip['gross_pay'], 2); ?></td>
-                                                    <td class="salary-amount">₱<?php echo number_format($payslip['net_pay'], 2); ?></td>
+                                                    <td class="text-muted">Confidential</td>
                                                     <td><?php echo date('M d, Y g:i A', strtotime($payslip['generated_date'])); ?></td>
                                                     <td>
                                                         <?php 
@@ -659,7 +666,7 @@ try {
     <div class="modal-content" style="font-family: 'Segoe UI', sans-serif; color: #333;">
       <div class="modal-header bg-light">
         <h5 class="modal-title font-weight-bold text-dark">
-          <i class="fas fa-file-invoice-dollar mr-2"></i>Payslip Details
+          
         </h5>
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
       </div>
@@ -726,7 +733,6 @@ try {
               </thead>
               <tbody>
                 <tr><td>Tax</td><td id="detail_tax">0.00</td></tr>
-                <tr><td>SSS</td><td id="detail_sss">0.00</td></tr>
                 <tr><td>GSIS</td><td id="detail_gsis">0.00</td></tr>
                 <tr><td>PhilHealth</td><td id="detail_philhealth">0.00</td></tr>
                 <tr><td>Pag-IBIG</td><td id="detail_pagibig">0.00</td></tr>
@@ -799,7 +805,6 @@ try {
             $('#detail_gross_pay').text('₱' + parseFloat(payslip.gross_pay).toLocaleString('en-US', {minimumFractionDigits: 2}));
             $('#detail_net_pay').text('₱' + parseFloat(payslip.net_pay).toLocaleString('en-US', {minimumFractionDigits: 2}));
             $('#detail_tax').text('₱' + (payslip.tax_deductions ? parseFloat(payslip.tax_deductions).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
-            $('#detail_sss').text('₱' + (payslip.sss_contribution ? parseFloat(payslip.sss_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#detail_gsis').text('₱' + (payslip.gsis_contribution ? parseFloat(payslip.gsis_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#detail_philhealth').text('₱' + (payslip.philhealth_contribution ? parseFloat(payslip.philhealth_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#detail_pagibig').text('₱' + (payslip.pagibig_contribution ? parseFloat(payslip.pagibig_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
