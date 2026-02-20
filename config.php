@@ -5,6 +5,7 @@ define('DB_HOST', getenv('DB_HOST') ?? 'localhost');
 define('DB_NAME', getenv('DB_NAME') ?? 'hr_system');
 define('DB_USER', getenv('DB_USER') ?? 'root');
 define('DB_PASS', getenv('DB_PASS') ?? '');
+define('DB_PORT', getenv('DB_PORT') ?? 3306);
 
 // Error reporting
 error_reporting(E_ALL);
@@ -21,7 +22,7 @@ date_default_timezone_set('UTC');
 // Database connection
 try {
     $conn = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
+        "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME,
         DB_USER,
         DB_PASS,
         array(
