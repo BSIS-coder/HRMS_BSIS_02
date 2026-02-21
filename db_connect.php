@@ -1,8 +1,8 @@
 <?php
-$servername = "localhost";   // usually "localhost"
-$username   = "root";        // your MySQL username
-$password   = "";            // your MySQL password ("" if none)
-$dbname     = "hr_system";     // your database name
+$servername = getenv('DB_HOST') ?? "localhost";   // usually "localhost"
+$username   = getenv('DB_USER') ?? "root";        // your MySQL username
+$password   = getenv('DB_PASS') ?? "";            // your MySQL password ("" if none)
+$dbname     = getenv('DB_NAME') ?? "hr_system";     // your database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

@@ -417,11 +417,11 @@ try {
                         
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Notice Date <span class="text-danger">*</span></label>
+                                <label> Submission Date <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" name="notice_date" 
                                        min="<?php echo date('Y-m-d'); ?>" 
                                        value="<?php echo date('Y-m-d'); ?>" required>
-                                <small class="form-text text-muted">The date you are submitting this resignation</small>
+                                <small class="form-text text-muted">The date you submitted the resignation</small>
                             </div>
                         </div>
                         
@@ -438,7 +438,7 @@ try {
                             <div class="form-group">
                                 <label>Reason for Leaving <span class="text-danger">*</span></label>
                                 <textarea class="form-control" name="exit_reason" rows="5" 
-                                          placeholder="Please provide your reason for resignation..." required></textarea>
+                                          placeholder="Please provide your reason for leaving..." required></textarea>
                                 <small class="form-text text-muted">Please be as detailed as possible</small>
                             </div>
                         </div>

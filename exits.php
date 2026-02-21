@@ -20,10 +20,10 @@ require_once 'dp.php';
 
 // Database connection (use existing $pdo from dp.php if available)
 if (!isset($pdo) || !($pdo instanceof PDO)) {
-    $host = 'localhost';
-    $dbname = 'hr_system';
-    $username = 'root';
-    $password = '';
+    $host = getenv('DB_HOST') ?? 'localhost';
+    $dbname = getenv('DB_NAME') ?? 'hr_system';
+    $username = getenv('DB_USER') ?? 'root';
+    $password = getenv('DB_PASS') ?? '';
     try {
         $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
