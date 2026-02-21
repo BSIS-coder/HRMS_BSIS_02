@@ -7,10 +7,10 @@ session_start();
 require_once 'config.php';
 
 // Database connection
-$host = DB_HOST;
-$dbname = DB_NAME;
-$username = DB_USER;
-$password = DB_PASS;
+$host = getenv('DB_HOST') ?? 'localhost';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);

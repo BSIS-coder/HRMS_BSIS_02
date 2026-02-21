@@ -22,8 +22,13 @@ require_once 'dp.php';
 require_once 'feedback_360_integration.php';
 
 // Set up database connection as PDO
+$host = getenv('DB_HOST') ?? 'localhost';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
+
 try {
-    $conn = new PDO('mysql:host=localhost;dbname=hr_system', 'root', '');
+    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());

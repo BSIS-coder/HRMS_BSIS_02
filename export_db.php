@@ -1,5 +1,17 @@
 <?php
-$conn = new PDO('mysql:host=localhost;dbname=hr_system', 'root', '');
+
+$host = getenv('DB_HOST') ?? 'localhost';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
+
+try {
+    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+
 $tables = $conn->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
 $sql = '';
 foreach ($tables as $table) {
