@@ -1,17 +1,9 @@
 <?php
-
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
-
-try {
-    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
-
+$db_host = getenv('DB_HOST') ?? 'localhost';
+$db_name = getenv('DB_NAME') ?? 'hr_system';
+$db_user = getenv('DB_USER') ?? 'root';
+$db_pass = getenv('DB_PASS') ?? '';
+$conn = new PDO('mysql:host=' . $db_host . ';dbname=' . $db_name, $db_user, $db_pass);
 $tables = $conn->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
 $sql = '';
 foreach ($tables as $table) {

@@ -7,6 +7,7 @@ define('DB_USER', getenv('DB_USER') ?? 'root');
 define('DB_PASS', getenv('DB_PASS') ?? '');
 define('DB_PORT', getenv('DB_PORT') ?? 3306);
 
+
 // Error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -186,3 +187,6 @@ function customExceptionHandler($exception)
 }
 
 set_exception_handler("customExceptionHandler");
+?>
+
+

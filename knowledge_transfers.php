@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add':
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO knowledge_transfers (exit_id, employee_id, handover_details, start_date, completion_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO knowledge_transfers (exit_id, employee_id, handover_details, start_date, completion_date, status, notes, progress_percentage, successor_acknowledgment, meeting_date, meeting_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
@@ -40,7 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['start_date'] ?: null,
                         $_POST['completion_date'] ?: null,
                         $_POST['status'],
-                        $_POST['notes']
+                        $_POST['notes'],
+                        $_POST['progress_percentage'] ?? 0,
+                        $_POST['successor_acknowledgment'] ?? 0,
+                        $_POST['meeting_date'] ?: null,
+                        $_POST['meeting_notes'] ?? ''
                     ]);
                     $_SESSION['message'] = "Knowledge transfer added successfully!";
                     $_SESSION['messageType'] = "success";
@@ -56,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             case 'update':
                 try {
-                    $stmt = $pdo->prepare("UPDATE knowledge_transfers SET exit_id=?, employee_id=?, handover_details=?, start_date=?, completion_date=?, status=?, notes=? WHERE transfer_id=?");
+                    $stmt = $pdo->prepare("UPDATE knowledge_transfers SET exit_id=?, employee_id=?, handover_details=?, start_date=?, completion_date=?, status=?, notes=?, progress_percentage=?, successor_acknowledgment=?, meeting_date=?, meeting_notes=? WHERE transfer_id=?");
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
@@ -65,6 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['completion_date'] ?: null,
                         $_POST['status'],
                         $_POST['notes'],
+                        $_POST['progress_percentage'] ?? 0,
+                        $_POST['successor_acknowledgment'] ?? 0,
+                        $_POST['meeting_date'] ?: null,
+                        $_POST['meeting_notes'] ?? '',
                         $_POST['transfer_id']
                     ]);
                     $_SESSION['message'] = "Knowledge transfer updated successfully!";
@@ -89,6 +97,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 } catch (PDOException $e) {
                     $_SESSION['message'] = "Error deleting knowledge transfer: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: knowledge_transfers.php");
+                    exit();
+                }
+                break;
+                
+            case 'update_progress':
+                try {
+                    $stmt = $pdo->prepare("UPDATE knowledge_transfers SET progress_percentage=?, status=? WHERE transfer_id=?");
+                    $newStatus = $_POST['progress_percentage'] >= 100 ? 'Completed' : ($_POST['progress_percentage'] > 0 ? 'In Progress' : 'Not Started');
+                    $stmt->execute([
+                        $_POST['progress_percentage'],
+                        $newStatus,
+                        $_POST['transfer_id']
+                    ]);
+                    $_SESSION['message'] = "Progress updated successfully!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: knowledge_transfers.php");
+                    exit();
+                } catch (PDOException $e) {
+                    $_SESSION['message'] = "Error updating progress: " . $e->getMessage();
+                    $_SESSION['messageType'] = "error";
+                    header("Location: knowledge_transfers.php");
+                    exit();
+                }
+                break;
+                
+            case 'submit_approval':
+                try {
+                    $stmt = $pdo->prepare("UPDATE knowledge_transfers SET status='Pending Approval', submitted_for_approval=1, submission_date=NOW() WHERE transfer_id=?");
+                    $stmt->execute([$_POST['transfer_id']]);
+                    $_SESSION['message'] = "Knowledge transfer submitted for approval!";
+                    $_SESSION['messageType'] = "success";
+                    header("Location: knowledge_transfers.php");
+                    exit();
+                } catch (PDOException $e) {
+                    $_SESSION['message'] = "Error submitting for approval: " . $e->getMessage();
                     $_SESSION['messageType'] = "error";
                     header("Location: knowledge_transfers.php");
                     exit();
@@ -543,8 +588,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th>Receiving Employee</th>
                                     <th>Exit Type</th>
                                     <th>Status</th>
-                                    <th>Start Date</th>
-                                    <th>Completion Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -570,17 +613,12 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?= htmlspecialchars($transfer['status']) ?>
                                         </span>
                                     </td>
-                                    <td><?= $transfer['start_date'] ? date('M d, Y', strtotime($transfer['start_date'])) : 'Not set' ?></td>
-                                    <td><?= $transfer['completion_date'] ? date('M d, Y', strtotime($transfer['completion_date'])) : 'Not set' ?></td>
                                     <td>
                                         <button class="btn btn-info btn-small" onclick="viewTransfer(<?= $transfer['transfer_id'] ?>)">
                                             👁️ View
                                         </button>
                                         <button class="btn btn-warning btn-small" onclick="editTransfer(<?= $transfer['transfer_id'] ?>)">
                                             ✏️ Edit
-                                        </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteTransfer(<?= $transfer['transfer_id'] ?>)">
-                                            🗑️ Delete
                                         </button>
                                     </td>
                                 </tr>
@@ -647,22 +685,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="form-group">
                         <label for="handover_details">Handover Details</label>
-                        <textarea id="handover_details" name="handover_details" class="form-control" placeholder="Describe the knowledge, responsibilities, and tasks being transferred..."></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="start_date">Start Date</label>
-                                <input type="date" id="start_date" name="start_date" class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="completion_date">Completion Date</label>
-                                <input type="date" id="completion_date" name="completion_date" class="form-control">
-                            </div>
-                        </div>
+                        <textarea id="handover_details" name="handover_details" class="form-control" placeholder="Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -677,7 +700,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="form-group">
                         <label for="notes">Additional Notes</label>
-                        <textarea id="notes" name="notes" class="form-control" placeholder="Any additional information or observations..."></textarea>
+                        <textarea id="notes" name="notes" class="form-control" placeholder="Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
                     </div>
 
                     <div style="text-align: center; margin-top: 30px;">
@@ -759,8 +782,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('exit_id').value = transfer.exit_id || '';
                 document.getElementById('employee_id').value = transfer.employee_id || '';
                 document.getElementById('handover_details').value = transfer.handover_details || '';
-                document.getElementById('start_date').value = transfer.start_date || '';
-                document.getElementById('completion_date').value = transfer.completion_date || '';
                 document.getElementById('status').value = transfer.status || 'Not Started';
                 document.getElementById('notes').value = transfer.notes || '';
             }
@@ -808,12 +829,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <p><strong>Job Title:</strong> ${transfer.job_title}</p>
                         <p><strong>Department:</strong> ${transfer.department}</p>
                         <p><strong>Employee Number:</strong> ${transfer.employee_number}</p>
-                    </div>
-
-                    <div style="margin-bottom: 25px;">
-                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Timeline</h4>
-                        <p><strong>Start Date:</strong> ${transfer.start_date ? new Date(transfer.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not set'}</p>
-                        <p><strong>Completion Date:</strong> ${transfer.completion_date ? new Date(transfer.completion_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not set'}</p>
                     </div>
 
                     ${transfer.handover_details ? `
@@ -870,15 +885,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 e.preventDefault();
                 return;
             }
-            
-            const startDate = document.getElementById('start_date').value;
-            const completionDate = document.getElementById('completion_date').value;
-
-            if (startDate && completionDate && new Date(completionDate) < new Date(startDate)) {
-                e.preventDefault();
-                alert('Completion date cannot be earlier than start date');
-                return;
-            }
 
             // Disable submit button and mark form as submitted
             this.submitted = true;
@@ -911,19 +917,6 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 row.addEventListener('mouseleave', function() {
                     this.style.transform = 'scale(1)';
                 });
-            });
-
-            // Auto-set today's date as default for start date when adding new transfer
-            const startDateInput = document.getElementById('start_date');
-            if (startDateInput && !startDateInput.value) {
-                const today = new Date().toISOString().split('T')[0];
-                startDateInput.setAttribute('max', '2099-12-31');
-            }
-
-            // Set completion date min to start date
-            document.getElementById('start_date').addEventListener('change', function() {
-                const completionDateInput = document.getElementById('completion_date');
-                completionDateInput.setAttribute('min', this.value);
             });
         });
     </script>
