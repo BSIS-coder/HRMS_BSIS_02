@@ -171,3 +171,7 @@
 2026-01-17 07:06:33 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
 2026-01-17 07:06:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
 2026-01-17 07:06:49 Exception: Call to undefined method PDOStatement::bind_param() in C:\xampp\htdocs\HRMS_BSIS_02\file_resignation.php on line 65
+2026-01-17 18:17:26 Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'hr_system.educational_background' doesn't exist in C:\xampp\htdocs\HRMS-BSIS02-L&D\HRMS_BSIS_02\personal_information.php on line 1101
+2026-01-25 06:11:38 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\xampp\htdocs\HRMS-BSIS02-L&D\HRMS_BSIS_02\employee_career_paths.php on line 90
+2026-02-20 18:30:00 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\xampp\htdocs\HRMS-BSIS02-L&D\HRMS_BSIS_02\employee_career_paths.php on line 90
+2026-02-21 04:29:10 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\xampp\htdocs\HRMS-BSIS02-L&D\HRMS_BSIS_02\employee_career_paths.php on line 90
