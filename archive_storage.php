@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Database connection (kept local to avoid impacting other includes)
-$host = getenv('DB_HOST') ?? '127.0.0.1';
+$host = getenv('DB_HOST') ?? 'localhost';
 $dbname = getenv('DB_NAME') ?? 'hr_system';
 $username = getenv('DB_USER') ?? 'root';
 $password = getenv('DB_PASS') ?? '';
