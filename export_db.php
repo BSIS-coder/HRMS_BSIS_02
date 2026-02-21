@@ -1,5 +1,9 @@
 <?php
-$conn = new PDO('mysql:host=localhost;dbname=hr_system', 'root', '');
+$db_host = getenv('DB_HOST') ?? 'localhost';
+$db_name = getenv('DB_NAME') ?? 'hr_system';
+$db_user = getenv('DB_USER') ?? 'root';
+$db_pass = getenv('DB_PASS') ?? '';
+$conn = new PDO('mysql:host=' . $db_host . ';dbname=' . $db_name, $db_user, $db_pass);
 $tables = $conn->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
 $sql = '';
 foreach ($tables as $table) {
