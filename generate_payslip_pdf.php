@@ -12,8 +12,8 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 //  FIXED PATH
-require_once 'C:/xampp/htdocs/HRMS_BSIS_02/config.php';
-require_once 'C:/xampp/htdocs/HRMS_BSIS_02/libs/fpdf.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/libs/fpdf.php';
 // Validate ID
 if (!isset($_GET['payslip_id']) || !is_numeric($_GET['payslip_id'])) {
     die('Invalid payslip ID.');
