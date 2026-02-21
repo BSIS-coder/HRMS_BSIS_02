@@ -187,6 +187,3 @@ function customExceptionHandler($exception)
 }
 
 set_exception_handler("customExceptionHandler");
-?>
-
-
