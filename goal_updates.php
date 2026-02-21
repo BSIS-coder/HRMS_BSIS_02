@@ -21,10 +21,10 @@ if (!in_array($user_role, ['admin', 'hr'])) {
 require_once 'dp.php';
 
 // Database connection
-$host = 'localhost';
-$dbname = 'hr_system';
-$username = 'root';
-$password = '';
+$host = getenv('DB_HOST') ?? 'localhost';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -37,31 +37,185 @@ try {
 $message = '';
 $messageType = '';
 
+// Helper function to add goal update with full tracking
+function addGoalUpdate($pdo, $goal_id, $progress, $comments, $user_id = null, $status_change = null) {
+    try {
+        // First, try with full columns. If it fails, fall back to basic columns
+        $current_status = null;
+        
+        if ($status_change) {
+            $stmt_status = $pdo->prepare("SELECT status FROM goals WHERE goal_id = ?");
+            $stmt_status->execute([$goal_id]);
+            $current_status = $stmt_status->fetchColumn();
+        }
+        
+        $status_before = $current_status;
+        $status_after = $status_change ?? null;
+        $updated_by = $user_id ?? $_SESSION['user_id'] ?? null;
+        
+        // Try to insert with all columns
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO goal_updates (
+                    goal_id,
+                    update_date,
+                    progress,
+                    comments,
+                    updated_by,
+                    status_before,
+                    status_after
+                ) VALUES (?, CURDATE(), ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $goal_id,
+                $progress,
+                $comments,
+                $updated_by,
+                $status_before,
+                $status_after
+            ]);
+        } catch (PDOException $e) {
+            // If that fails, try without the new columns
+            if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                $stmt = $pdo->prepare("
+                    INSERT INTO goal_updates (
+                        goal_id,
+                        update_date,
+                        progress,
+                        comments
+                    ) VALUES (?, CURDATE(), ?, ?)
+                ");
+                
+                $stmt->execute([
+                    $goal_id,
+                    $progress,
+                    $comments
+                ]);
+            } else {
+                throw $e;
+            }
+        }
+        
+        return true;
+    } catch (PDOException $e) {
+        throw new Exception("Error adding update: " . $e->getMessage());
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add_comment':
-                // Add comment to goal update
+                // Add comment to goal update with tracking
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO goal_updates (goal_id, update_date, progress, comments) VALUES (?, CURDATE(), (SELECT progress FROM goals WHERE goal_id = ?), ?)");
-                    $stmt->execute([$_POST['goal_id'], $_POST['goal_id'], $_POST['comment']]);
+                    $goal_id = $_POST['goal_id'];
+                    $comment = $_POST['comment'];
+                    
+                    // Get current progress
+                    $stmt = $pdo->prepare("SELECT progress FROM goals WHERE goal_id = ?");
+                    $stmt->execute([$goal_id]);
+                    $progress = $stmt->fetchColumn();
+                    
+                    addGoalUpdate($pdo, $goal_id, $progress, $comment);
+                    
                     $message = "Comment added successfully!";
                     $messageType = "success";
-                } catch (PDOException $e) {
+                } catch (Exception $e) {
                     $message = "Error adding comment: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
 
             case 'update_goal_status':
-                // Update goal status
+                // Update goal status with tracking
                 try {
-                    $stmt = $pdo->prepare("UPDATE goals SET status=? WHERE goal_id=?");
-                    $stmt->execute([$_POST['status'], $_POST['goal_id']]);
+                    $goal_id = $_POST['goal_id'];
+                    $new_status = $_POST['status'];
+                    
+                    // Get current progress
+                    $stmt = $pdo->prepare("SELECT progress FROM goals WHERE goal_id = ?");
+                    $stmt->execute([$goal_id]);
+                    $progress = $stmt->fetchColumn();
+                    
+                    // Update status in goals table
+                    $stmt = $pdo->prepare("UPDATE goals SET status = ? WHERE goal_id = ?");
+                    $stmt->execute([$new_status, $goal_id]);
+                    
+                    // Track the status change
+                    addGoalUpdate($pdo, $goal_id, $progress, "Status changed to: " . $new_status, null, $new_status);
+                    
                     $message = "Goal status updated successfully!";
                     $messageType = "success";
-                } catch (PDOException $e) {
+                } catch (Exception $e) {
                     $message = "Error updating goal status: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+            case 'update_progress':
+                // Update goal progress
+                try {
+                    $goal_id = $_POST['goal_id'];
+                    $new_progress = $_POST['progress'];
+                    $comment = $_POST['comment'] ?? '';
+                    
+                    // Update progress in goals table
+                    $stmt = $pdo->prepare("UPDATE goals SET progress = ? WHERE goal_id = ?");
+                    $stmt->execute([$new_progress, $goal_id]);
+                    
+                    // Track the progress change
+                    $update_comment = "Progress updated to: " . $new_progress . "%";
+                    if ($comment) {
+                        $update_comment .= " - " . $comment;
+                    }
+                    
+                    addGoalUpdate($pdo, $goal_id, $new_progress, $update_comment);
+                    
+                    $message = "Goal progress updated successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "Error updating progress: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+            case 'delete_update':
+                // Delete an update (only admins or the person who created it)
+                try {
+                    $update_id = $_POST['update_id'];
+                    
+                    // Try to get updated_by, handling both old and new column names
+                    try {
+                        $stmt = $pdo->prepare("SELECT updated_by FROM goal_updates WHERE goal_update_id = ?");
+                        $stmt->execute([$update_id]);
+                        $update_creator = $stmt->fetchColumn();
+                    } catch (PDOException $e) {
+                        // If goal_update_id doesn't exist, try update_id
+                        $stmt = $pdo->prepare("SELECT updated_by FROM goal_updates WHERE update_id = ?");
+                        $stmt->execute([$update_id]);
+                        $update_creator = $stmt->fetchColumn();
+                    }
+                    
+                    // Verify authorization
+                    $user_id = $_SESSION['user_id'] ?? null;
+                    if ($_SESSION['role'] !== 'admin' && $update_creator != $user_id) {
+                        throw new Exception("You don't have permission to delete this update");
+                    }
+                    
+                    // Try to delete using goal_update_id first, then update_id
+                    try {
+                        $stmt = $pdo->prepare("DELETE FROM goal_updates WHERE goal_update_id = ?");
+                        $stmt->execute([$update_id]);
+                    } catch (PDOException $e) {
+                        $stmt = $pdo->prepare("DELETE FROM goal_updates WHERE update_id = ?");
+                        $stmt->execute([$update_id]);
+                    }
+                    
+                    $message = "Update deleted successfully!";
+                    $messageType = "success";
+                } catch (Exception $e) {
+                    $message = "Error deleting update: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
@@ -515,7 +669,10 @@ $overdueGoals = count(array_filter($goals, function($goal) {
                                 <button class="btn btn-sm btn-outline-info" onclick="viewUpdates(<?= $goal['goal_id'] ?>)">
                                     <i class="fas fa-history"></i> Updates (<?= $goal['update_count'] ?>)
                                 </button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="addComment(<?= $goal['goal_id'] ?>)">
+                                <button class="btn btn-sm btn-outline-primary" onclick="updateProgress(<?= $goal['goal_id'] ?>, <?= $goal['progress'] ?>)">
+                                    <i class="fas fa-chart-line"></i> Progress
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="addComment(<?= $goal['goal_id'] ?>)">
                                     <i class="fas fa-comment"></i> Comment
                                 </button>
                                 <button class="btn btn-sm btn-outline-warning" onclick="updateStatus(<?= $goal['goal_id'] ?>, '<?= $goal['status'] ?>')">
@@ -623,6 +780,42 @@ $overdueGoals = count(array_filter($goals, function($goal) {
         </div>
     </div>
 
+    <!-- Progress Update Modal -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Update Goal Progress</h4>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="progressForm" method="POST">
+                    <input type="hidden" name="action" value="update_progress">
+                    <input type="hidden" id="progress_goal_id" name="goal_id">
+
+                    <div class="form-group">
+                        <label for="goal_progress">Progress (%)</label>
+                        <input type="range" id="goal_progress" name="progress" class="form-control" 
+                               min="0" max="100" value="50" oninput="updateProgressValue(this.value)">
+                        <div class="mt-2">
+                            <span id="progressValue">50</span>%
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="progress_comment">Comment (Optional)</label>
+                        <textarea id="progress_comment" name="comment" class="form-control" rows="3"
+                                  placeholder="Add notes about this progress update..."></textarea>
+                    </div>
+
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary mr-2" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">Update Progress</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Updates History Modal -->
     <div id="updatesModal" class="modal">
         <div class="modal-content">
@@ -654,11 +847,45 @@ $overdueGoals = count(array_filter($goals, function($goal) {
             document.body.style.overflow = 'hidden';
         }
 
+        function updateProgress(goalId, currentProgress) {
+            const modal = document.getElementById('progressModal');
+            document.getElementById('progress_goal_id').value = goalId;
+            document.getElementById('goal_progress').value = currentProgress;
+            document.getElementById('progressValue').textContent = currentProgress;
+            document.getElementById('progress_comment').value = '';
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function updateProgressValue(value) {
+            document.getElementById('progressValue').textContent = value;
+        }
+
+        function deleteUpdate(updateId, goalId) {
+            if (confirm('Are you sure you want to delete this update? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = '<input type="hidden" name="action" value="delete_update"><input type="hidden" name="update_id" value="' + updateId + '">';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function deleteUpdateConfirm(updateId) {
+            if (confirm('Are you sure you want to delete this update? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = '<input type="hidden" name="action" value="delete_update"><input type="hidden" name="update_id" value="' + updateId + '">';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
         function viewUpdates(goalId) {
             const modal = document.getElementById('updatesModal');
             const content = document.getElementById('updatesContent');
 
-            // Load updates via AJAX (simplified - in real implementation, use fetch API)
+            // Load updates via AJAX
             fetch(`get_goal_updates.php?goal_id=${goalId}`)
                 .then(response => response.text())
                 .then(data => {
@@ -667,7 +894,7 @@ $overdueGoals = count(array_filter($goals, function($goal) {
                     document.body.style.overflow = 'hidden';
                 })
                 .catch(error => {
-                    content.innerHTML = '<p class="text-danger">Error loading updates.</p>';
+                    content.innerHTML = '<p class="text-danger">Error loading updates: ' + error.message + '</p>';
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
                 });
@@ -676,6 +903,7 @@ $overdueGoals = count(array_filter($goals, function($goal) {
         function closeModal() {
             document.getElementById('commentModal').style.display = 'none';
             document.getElementById('statusModal').style.display = 'none';
+            document.getElementById('progressModal').style.display = 'none';
             document.getElementById('updatesModal').style.display = 'none';
             document.body.style.overflow = 'auto';
         }
@@ -684,9 +912,11 @@ $overdueGoals = count(array_filter($goals, function($goal) {
         window.onclick = function(event) {
             const commentModal = document.getElementById('commentModal');
             const statusModal = document.getElementById('statusModal');
+            const progressModal = document.getElementById('progressModal');
             const updatesModal = document.getElementById('updatesModal');
 
-            if (event.target === commentModal || event.target === statusModal || event.target === updatesModal) {
+            if (event.target === commentModal || event.target === statusModal || 
+                event.target === progressModal || event.target === updatesModal) {
                 closeModal();
             }
         }

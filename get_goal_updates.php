@@ -23,10 +23,10 @@ if (!in_array($user_role, ['admin', 'hr'])) {
 require_once 'dp.php';
 
 // Database connection
-$host = 'localhost';
-$dbname = 'hr_system';
-$username = 'root';
-$password = '';
+$host = getenv('DB_HOST') ?? 'localhost';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -62,16 +62,61 @@ if (!$goal) {
     exit;
 }
 
-// Get goal updates
+// Get goal updates with enhanced details
 $stmt = $pdo->prepare("
-    SELECT gu.*, u.username as updated_by_name
+    SELECT gu.*,
+           u.username as updated_by_name,
+           CASE 
+               WHEN gu.status_after IS NOT NULL THEN 'Status Changed'
+               WHEN gu.comments LIKE 'Progress updated%' THEN 'Progress Updated'
+               ELSE 'Comment Added'
+           END as update_type
     FROM goal_updates gu
     LEFT JOIN users u ON gu.updated_by = u.user_id
     WHERE gu.goal_id = ?
-    ORDER BY gu.update_date DESC, gu.created_at DESC
+    ORDER BY gu.created_at DESC, gu.update_date DESC
 ");
-$stmt->execute([$goal_id]);
-$updates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+try {
+    $stmt->execute([$goal_id]);
+    $updates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // If query fails due to missing columns, try simpler query
+    $stmt = $pdo->prepare("
+        SELECT gu.*,
+               NULL as updated_by_name,
+               'Comment Added' as update_type
+        FROM goal_updates gu
+        WHERE gu.goal_id = ?
+        ORDER BY gu.created_at DESC, gu.update_date DESC
+    ");
+    $stmt->execute([$goal_id]);
+    $updates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Helper function to format update type
+function getUpdateTypeIcon($update_type) {
+    switch ($update_type) {
+        case 'Status Changed':
+            return '<i class="fas fa-sync-alt text-primary"></i>';
+        case 'Progress Updated':
+            return '<i class="fas fa-chart-line text-success"></i>';
+        default:
+            return '<i class="fas fa-comment text-info"></i>';
+    }
+}
+
+// Helper function to format update type badge color
+function getUpdateTypeBadgeClass($update_type) {
+    switch ($update_type) {
+        case 'Status Changed':
+            return 'badge-primary';
+        case 'Progress Updated':
+            return 'badge-success';
+        default:
+            return 'badge-info';
+    }
+}
 
 // Return HTML content for the modal
 ?>
@@ -87,33 +132,70 @@ $updates = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </p>
         </div>
         <div class="col-md-6">
-            <p><strong>Progress:</strong> <?= $goal['progress'] ?>%</p>
+            <p><strong>Current Progress:</strong> <strong class="text-<?= $goal['progress'] >= 100 ? 'success' : ($goal['progress'] >= 50 ? 'primary' : 'warning') ?>"><?= $goal['progress'] ?>%</strong></p>
             <p><strong>Period:</strong> <?= date('M d, Y', strtotime($goal['start_date'])) ?> - <?= date('M d, Y', strtotime($goal['end_date'])) ?></p>
         </div>
     </div>
     <p><strong>Description:</strong> <?= htmlspecialchars($goal['description']) ?></p>
+    <hr>
 </div>
 
 <?php if (!empty($updates)): ?>
 <div class="timeline">
-    <?php foreach ($updates as $update): ?>
+    <h5 class="mb-4"><i class="fas fa-history"></i> Update History (<?= count($updates) ?> total)</h5>
+    <?php foreach ($updates as $index => $update): ?>
     <div class="timeline-item">
         <div class="bg-light p-3 rounded">
             <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h6 class="mb-1">Progress Update: <?= $update['progress'] ?>%</h6>
+                <div class="flex-grow-1">
+                    <div class="mb-2">
+                        <span class="badge <?= getUpdateTypeBadgeClass($update['update_type']) ?>">
+                            <?= $update['update_type'] ?>
+                        </span>
+                        <?php if ($update['progress'] !== null): ?>
+                            <span class="badge badge-secondary">Progress: <?= $update['progress'] ?>%</span>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if ($update['status_before'] && $update['status_after']): ?>
+                    <p class="mb-2 small"><strong>Status Change:</strong>
+                        <span class="text-muted"><?= htmlspecialchars($update['status_before']) ?></span>
+                        <i class="fas fa-arrow-right text-muted"></i>
+                        <strong><?= htmlspecialchars($update['status_after']) ?></strong>
+                    </p>
+                    <?php endif; ?>
+                    
                     <?php if ($update['comments']): ?>
-                    <p class="mb-1 text-muted small">
+                    <p class="mb-1 text-dark">
                         <?= htmlspecialchars($update['comments']) ?>
                     </p>
                     <?php endif; ?>
                 </div>
-                <small class="text-muted">
-                    <?= date('M d, Y', strtotime($update['update_date'])) ?>
-                    <?php if ($update['updated_by_name']): ?>
-                        <br>by <?= htmlspecialchars($update['updated_by_name']) ?>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-end mt-2 pt-2 border-top">
+                <div>
+                    <small class="text-muted">
+                        <i class="far fa-calendar"></i> <?= date('M d, Y \a\t H:i', strtotime($update['created_at'])) ?>
+                        <?php if ($update['updated_by_name']): ?>
+                            <br><i class="fas fa-user-circle"></i> by <strong><?= htmlspecialchars($update['updated_by_name']) ?></strong>
+                        <?php endif; ?>
+                    </small>
+                </div>
+                <div>
+                    <?php 
+                    // Check if user can delete (admin or creator)
+                    $user_id = $_SESSION['user_id'] ?? null;
+                    $is_editable = ($_SESSION['role'] === 'admin' || $update['updated_by'] == $user_id);
+                    $primary_key_id = $update['goal_update_id'] ?? $update['update_id'] ?? null;
+                    
+                    if ($is_editable && $primary_key_id): 
+                    ?>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUpdateConfirm(<?= $primary_key_id ?>)">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
                     <?php endif; ?>
-                </small>
+                </div>
             </div>
         </div>
     </div>

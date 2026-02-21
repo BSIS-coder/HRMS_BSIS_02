@@ -5,6 +5,7 @@ define('DB_NAME', 'hr_system');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
+
 // Error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -174,3 +175,5 @@ function customExceptionHandler($exception) {
 
 set_exception_handler("customExceptionHandler");
 ?>
+
+

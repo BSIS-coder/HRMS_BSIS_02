@@ -70,15 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($next_stage_info) {
                         // Move to next stage
                         $stmt = $conn->prepare("UPDATE candidates SET source = ? WHERE candidate_id = ?");
-                        $stmt->execute([$next_stage_info['stage_name'], $interview['candidate_id']]);
+                        $stmt->execute(['Interview - ' . $next_stage_info['stage_name'], $interview['candidate_id']]);
                         
                         // Create next interview
                         $stmt = $conn->prepare("INSERT INTO interviews (application_id, stage_id, schedule_date, duration, interview_type, status) VALUES (?, ?, NOW(), 60, 'Interview', 'Rescheduled')");
                         $stmt->execute([$interview['application_id'], $next_stage_info['stage_id']]);
                         
-                        // Update job application status to reflect the new stage
-                        $updateApp = $conn->prepare("UPDATE job_applications SET status = ? WHERE application_id = ?");
-                        $updateApp->execute([$next_stage_info['stage_name'], $interview['application_id']]);
+                        // Keep status as 'Interview' - don't change it
                     } else {
                         // No more stages
                         // No more stages: mark for assessment
@@ -131,26 +129,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($next_stage_info) {
                         // Move to next interview stage
                         $stmt = $conn->prepare("UPDATE candidates SET source = ? WHERE candidate_id = ?");
-                        $stmt->execute([$next_stage_info['stage_name'], $interview_data['candidate_id']]);
+                        $stmt->execute(['Interview - ' . $next_stage_info['stage_name'], $interview_data['candidate_id']]);
                         
                         // Create next interview with Rescheduled status
                         $stmt = $conn->prepare("INSERT INTO interviews (application_id, stage_id, schedule_date, duration, interview_type, status) VALUES (?, ?, NOW(), 60, 'Interview', 'Rescheduled')");
                         $stmt->execute([$interview_data['application_id'], $next_stage_info['stage_id']]);
                             
-                            // Update job application status to next stage
-                            $updateApp = $conn->prepare("UPDATE job_applications SET status = ? WHERE application_id = ?");
-                            $updateApp->execute([$next_stage_info['stage_name'], $interview_data['application_id']]);
+                        // Keep job application status as 'Interview' - don't change it
+                        // The stage is tracked in the interviews table via stage_id
                         
                         $success_message = "✅ Interview completed! Candidate moved to {$next_stage_info['stage_name']}.";
                     } else {
-                            // No more stages - set status to Assessment so HR can review
-                            $stmt = $conn->prepare("UPDATE job_applications SET status = 'Assessment' WHERE application_id = ?");
-                            $stmt->execute([$interview_data['application_id']]);
-                            
-                            $stmt = $conn->prepare("UPDATE candidates SET source = 'Assessment' WHERE candidate_id = ?");
-                            $stmt->execute([$interview_data['candidate_id']]);
-                            
-                            $success_message = "✅ All interview stages completed! Moved to Assessment for final review.";
+                        // No more stages - set status to Assessment so HR can review
+                        $stmt = $conn->prepare("UPDATE job_applications SET status = 'Assessment' WHERE application_id = ?");
+                        $stmt->execute([$interview_data['application_id']]);
+                        
+                        $stmt = $conn->prepare("UPDATE candidates SET source = 'Assessment' WHERE candidate_id = ?");
+                        $stmt->execute([$interview_data['candidate_id']]);
+                        
+                        $success_message = "✅ All interview stages completed! Moved to Assessment for final review.";
                     }
                 } else {
                     // Clear all interview history for this candidate
@@ -348,7 +345,10 @@ $stats = [
                             <div class="row">
                                 <?php foreach($pending_interviews as $interview): ?>
                                 <div class="col-md-4 mb-3">
-                                    <div class="card border-warning" style="cursor: pointer;" onclick="scheduleInterview(<?php echo $interview['interview_id']; ?>, '<?php echo htmlspecialchars($interview['first_name'] . ' ' . $interview['last_name']); ?>', '<?php echo htmlspecialchars($interview['job_title']); ?>')">
+                                    <div class="card border-warning schedule-card" style="cursor: pointer;" 
+                                         data-interview-id="<?php echo $interview['interview_id']; ?>"
+                                         data-candidate-name="<?php echo htmlspecialchars($interview['first_name'] . ' ' . $interview['last_name']); ?>"
+                                         data-job-title="<?php echo htmlspecialchars($interview['job_title']); ?>">
                                         <div class="card-body text-center">
                                             <h6 class="card-title">
                                                 👤 <?php echo htmlspecialchars($interview['first_name'] . ' ' . $interview['last_name']); ?>
@@ -599,16 +599,36 @@ $stats = [
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js">
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     
     <script>
+        $(document).ready(function() {
+            // Handle schedule card clicks
+            $(document).on('click', '.schedule-card', function() {
+                var interviewId = $(this).data('interview-id');
+                var candidateName = $(this).data('candidate-name');
+                var jobTitle = $(this).data('job-title');
+                
+                console.log('Schedule interview:', interviewId, candidateName, jobTitle);
+                
+                document.getElementById('scheduleInterviewId').value = interviewId;
+                document.getElementById('candidateName').textContent = candidateName;
+                document.getElementById('jobTitle').textContent = jobTitle;
+                $('#scheduleModal').modal('show');
+            });
+        });
+        
         function completeInterview(interviewId) {
+            console.log('Complete interview:', interviewId);
             document.getElementById('modalInterviewId').value = interviewId;
             $('#completeModal').modal('show');
         }
         
         function scheduleInterview(interviewId, candidateName, jobTitle) {
+            console.log('Schedule interview (direct):', interviewId, candidateName, jobTitle);
             document.getElementById('scheduleInterviewId').value = interviewId;
             document.getElementById('candidateName').textContent = candidateName;
             document.getElementById('jobTitle').textContent = jobTitle;

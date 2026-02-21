@@ -14,10 +14,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 require_once 'dp.php';
 
 // Database connection
-$host = 'localhost';
-$dbname = 'hr_system';
-$username = 'root';
-$password = '';
+$host = getenv('DB_HOST') ?? 'localhost';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -149,10 +149,11 @@ $stmt = $pdo->query("
 ");
 $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch exits for dropdown
+// Fetch exits for dropdown with employee_id
 $stmt = $pdo->query("
     SELECT 
         ex.exit_id,
+        ex.employee_id,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
         ex.exit_date,
         ex.exit_type
@@ -1002,30 +1003,19 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </small>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group" id="employeeGroup">
-                                <label for="employee_id">Employee</label>
-                                <select id="employee_id" name="employee_id" class="form-control">
-                                    <option value="">Select employee...</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                    <option value="<?= $employee['employee_id'] ?>"><?= htmlspecialchars($employee['full_name']) ?> (<?= htmlspecialchars($employee['employee_number']) ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="exit_id">Exit Record</label>
-                                <select id="exit_id" name="exit_id" class="form-control" required>
-                                    <option value="">Select exit record...</option>
-                                    <?php foreach ($exits as $exit): ?>
-                                    <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="exit_id">Exit Record <span class="text-danger">*</span></label>
+                        <select id="exit_id" name="exit_id" class="form-control" required>
+                            <option value="">Select exit record...</option>
+                            <?php foreach ($exits as $exit): ?>
+                            <option value="<?= $exit['exit_id'] ?>" data-employee-id="<?= $exit['employee_id'] ?? '' ?>">
+                                <?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="form-text text-muted">Select the exit record - employee will be auto-filled</small>
                     </div>
+                    <input type="hidden" id="employee_id" name="employee_id">
 
                     <div class="form-row">
                         <div class="form-col">
@@ -1152,17 +1142,30 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
         // Toggle anonymous survey
         function toggleAnonymous() {
             const isAnonymous = document.getElementById('is_anonymous').checked;
-            const employeeGroup = document.getElementById('employeeGroup');
-            
+            // Anonymous surveys don't need employee_id
             if (isAnonymous) {
-                employeeGroup.style.opacity = '0.5';
-                employeeGroup.style.pointerEvents = 'none';
                 document.getElementById('employee_id').value = '';
             } else {
-                employeeGroup.style.opacity = '1';
-                employeeGroup.style.pointerEvents = 'auto';
+                // Re-populate from exit selection
+                const exitSelect = document.getElementById('exit_id');
+                const selectedOption = exitSelect.options[exitSelect.selectedIndex];
+                if (selectedOption) {
+                    const employeeId = selectedOption.getAttribute('data-employee-id');
+                    document.getElementById('employee_id').value = employeeId || '';
+                }
             }
         }
+        
+        // Auto-populate employee_id when exit record is selected
+        document.getElementById('exit_id').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const employeeId = selectedOption.getAttribute('data-employee-id');
+            const isAnonymous = document.getElementById('is_anonymous').checked;
+            
+            if (!isAnonymous) {
+                document.getElementById('employee_id').value = employeeId || '';
+            }
+        });
 
         // Update evaluation score display
         function updateScoreDisplay() {

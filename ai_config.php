@@ -195,6 +195,77 @@ function generateMockJob($jobRoleTitle, $jobRoleDescription, $departmentName, $e
 }
 
 /**
+ * Generate mock offer letter (no API needed - for testing)
+ */
+function generateMockOfferLetter($candidateName, $jobTitle, $departmentName, $salary, $startDate, $benefits) {
+    $formattedSalary = number_format($salary, 2);
+    $formattedStartDate = date('F j, Y', strtotime($startDate));
+    $acceptanceDeadline = date('F j, Y', strtotime('+7 days'));
+    $currentDate = date('F j, Y');
+    
+    $letter = <<<EOL
+{$currentDate}
+
+Dear {$candidateName},
+
+SUBJECT: JOB OFFER - {$jobTitle}
+
+We are pleased to extend to you an offer of employment with the Municipal Government in the position of {$jobTitle} within the {$departmentName}.
+
+After careful consideration of your qualifications, experience, and performance throughout the selection process, we believe you will be an excellent addition to our team and will contribute significantly to our mission of serving the community.
+
+POSITION DETAILS:
+
+Position Title: {$jobTitle}
+Department: {$departmentName}
+Employment Type: Full-time
+Start Date: {$formattedStartDate}
+Salary: ₱{$formattedSalary} per month
+
+BENEFITS PACKAGE:
+
+{$benefits}
+
+KEY RESPONSIBILITIES:
+
+As {$jobTitle}, you will be responsible for:
+• Performing duties and responsibilities as outlined in the job description
+• Collaborating with team members to achieve departmental objectives
+• Maintaining high standards of professionalism and public service
+• Adhering to all municipal policies, procedures, and regulations
+• Contributing to the continuous improvement of departmental operations
+
+TERMS AND CONDITIONS:
+
+This offer is contingent upon:
+• Successful completion of pre-employment requirements
+• Verification of credentials and references
+• Compliance with all municipal employment policies
+
+ACCEPTANCE:
+
+To accept this offer, please sign and return this letter by {$acceptanceDeadline}. If you have any questions or need clarification regarding any aspect of this offer, please do not hesitate to contact our HR Department.
+
+We are excited about the prospect of you joining our team and look forward to your positive response.
+
+Sincerely,
+
+Human Resources Department
+Municipal Government
+
+---
+
+ACCEPTANCE OF OFFER
+
+I, {$candidateName}, hereby accept the position of {$jobTitle} with the Municipal Government under the terms and conditions stated above.
+
+Signature: _____________________     Date: _____________________
+EOL;
+    
+    return $letter;
+}
+
+/**
  * Build the prompt for AI
  */
 function buildJobPrompt($jobRoleTitle, $jobRoleDescription, $departmentName, $employmentType, $salaryMin, $salaryMax) {
@@ -381,6 +452,114 @@ function callOpenAI($prompt) {
         } else {
             return ['error' => 'Failed to parse AI response: ' . json_last_error_msg()];
         }
+    }
+    
+    return ['error' => 'Invalid response from OpenAI API'];
+}
+
+/**
+ * Call Gemini API specifically for offer letter generation (returns plain text)
+ */
+function callGeminiForOfferLetter($prompt) {
+    $apiKey = GEMINI_API_KEY;
+    $url = GEMINI_API_URL . '?key=' . $apiKey;
+    
+    $data = [
+        'contents' => [
+            [
+                'parts' => [
+                    ['text' => $prompt]
+                ]
+            ]
+        ],
+        'generationConfig' => [
+            'temperature' => 0.7,
+            'maxOutputTokens' => 2048,
+        ]
+    ];
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode !== 200) {
+        $errorData = json_decode($response, true);
+        
+        if ($httpCode === 429) {
+            $errorMsg = "⏱️ Gemini API Rate Limit Reached. Please wait a few minutes or switch to Mock mode.";
+            return ['error' => $errorMsg];
+        }
+        
+        return ['error' => 'Gemini API Error: ' . $response];
+    }
+    
+    $result = json_decode($response, true);
+    
+    if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
+        $letter = $result['candidates'][0]['content']['parts'][0]['text'];
+        $letter = trim($letter);
+        
+        return ['success' => true, 'letter' => $letter];
+    }
+    
+    return ['error' => 'Invalid response from Gemini API'];
+}
+
+/**
+ * Call OpenAI API specifically for offer letter generation (returns plain text)
+ */
+function callOpenAIForOfferLetter($prompt) {
+    $apiKey = OPENAI_API_KEY;
+    $url = OPENAI_API_URL;
+    
+    $data = [
+        'model' => OPENAI_MODEL,
+        'messages' => [
+            [
+                'role' => 'system',
+                'content' => 'You are an expert HR professional creating formal job offer letters. Write professional, well-formatted offer letters in plain text format.'
+            ],
+            [
+                'role' => 'user',
+                'content' => $prompt
+            ]
+        ],
+        'temperature' => 0.7,
+        'max_tokens' => 2000
+    ];
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $apiKey
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode !== 200) {
+        return ['error' => 'OpenAI API Error: ' . $response];
+    }
+    
+    $result = json_decode($response, true);
+    
+    if (isset($result['choices'][0]['message']['content'])) {
+        $letter = $result['choices'][0]['message']['content'];
+        $letter = trim($letter);
+        
+        return ['success' => true, 'letter' => $letter];
     }
     
     return ['error' => 'Invalid response from OpenAI API'];

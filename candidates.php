@@ -19,50 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $application_id = $_POST['application_id'];
                     
-                    // Get candidate and application details
-                    $cand_stmt = $conn->prepare("SELECT c.candidate_id, c.email, c.first_name, c.last_name FROM candidates c 
-                                                 JOIN job_applications ja ON c.candidate_id = ja.candidate_id 
-                                                 WHERE ja.application_id = ?");
-                    $cand_stmt->execute([$application_id]);
-                    $cand_data = $cand_stmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    // Update job application status
+                    // Update job application status to Reference Check
                     $stmt = $conn->prepare("UPDATE job_applications SET status = 'Reference Check' WHERE application_id = ?");
                     $stmt->execute([$application_id]);
                     
-                    // Create or get employee profile
-                    $emp_check = $conn->prepare("SELECT employee_id FROM employee_profiles WHERE work_email = ?");
-                    $emp_check->execute([$cand_data['email']]);
-                    $emp_data = $emp_check->fetch(PDO::FETCH_ASSOC);
-                    
-                    if (!$emp_data) {
-                        // Create personal information with candidate data
-                        $phone = isset($cand_data['phone']) ? $cand_data['phone'] : '000-0000-0000';
-                        $personal_stmt = $conn->prepare("INSERT INTO personal_information (first_name, last_name, date_of_birth, gender, marital_status, nationality, phone_number) 
-                                                        VALUES (?, ?, DATE_SUB(CURDATE(), INTERVAL 30 YEAR), 'Prefer not to say', 'Single', 'Not specified', ?)");
-                        $personal_stmt->execute([$cand_data['first_name'], $cand_data['last_name'], $phone]);
-                        $personal_info_id = $conn->lastInsertId();
-                        
-                        // Create employee profile linking to personal information
-                        $emp_number = 'EMP' . str_pad($cand_data['candidate_id'], 4, '0', STR_PAD_LEFT);
-                        $emp_stmt = $conn->prepare("INSERT INTO employee_profiles (personal_info_id, employee_number, work_email, hire_date, employment_status, current_salary) 
-                                                    VALUES (?, ?, ?, CURDATE(), 'Full-time', 0)");
-                        $emp_stmt->execute([$personal_info_id, $emp_number, $cand_data['email']]);
-                        $employee_id = $conn->lastInsertId();
-                    } else {
-                        $employee_id = $emp_data['employee_id'];
-                    }
-                    
-                    // Create onboarding record if it doesn't exist
-                    $onboard_check = $conn->prepare("SELECT onboarding_id FROM employee_onboarding WHERE employee_id = ?");
-                    $onboard_check->execute([$employee_id]);
-                    if (!$onboard_check->fetch()) {
-                        $onboard_stmt = $conn->prepare("INSERT INTO employee_onboarding (employee_id, start_date, expected_completion_date, status) 
-                                                        VALUES (?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'In Progress')");
-                        $onboard_stmt->execute([$employee_id]);
-                    }
-                    
-                    $success_message = "✅ Candidate moved to Reference Check!";
+                    $success_message = "✅ Candidate moved to Reference Check! Onboarding will start in the Onboarding page.";
                 } catch (Exception $e) {
                     $error_message = "Error: " . $e->getMessage();
                 }
@@ -168,6 +129,7 @@ $recent_activities = $conn->query("SELECT c.first_name, c.last_name, ja.status, 
     <title>Candidates Dashboard - HR Management System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
         .toast-container { position: fixed; top: 80px; right: 20px; z-index: 9999; }
@@ -465,20 +427,12 @@ $recent_activities = $conn->query("SELECT c.first_name, c.last_name, ja.status, 
                                                         </button>
                                                         
                                                         <?php if ($candidate['status'] == 'Assessment'): ?>
-                                                            <form method="POST" style="display:inline;" class="ml-1" onsubmit="return confirm('Move this candidate to Reference Check?');">
-                                                                <input type="hidden" name="action" value="approve_candidate">
-                                                                <input type="hidden" name="application_id" value="<?php echo $candidate['application_id']; ?>">
-                                                                <button type="submit" class="btn btn-success btn-sm">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                            </form>
-                                                            <form method="POST" style="display:inline;" class="ml-1" onsubmit="return confirm('Reject this candidate? This action cannot be undone.');">
-                                                                <input type="hidden" name="action" value="reject_candidate">
-                                                                <input type="hidden" name="application_id" value="<?php echo $candidate['application_id']; ?>">
-                                                                <button type="submit" class="btn btn-danger btn-sm">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </form>
+                                                            <button type="button" class="btn btn-success btn-sm ml-1" onclick="approveCandidate(<?php echo $candidate['application_id']; ?>)">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-danger btn-sm ml-1" onclick="rejectCandidate(<?php echo $candidate['application_id']; ?>)">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
                                                         <?php endif; ?>
                                                     </td>
                                                 </tr>
@@ -662,20 +616,12 @@ $recent_activities = $conn->query("SELECT c.first_name, c.last_name, ja.status, 
                                 </div>
                                 <div class="modal-footer">
                                     <?php if ($candidate['status'] == 'Assessment'): ?>
-                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Move this candidate to Reference Check?');">
-                                            <input type="hidden" name="action" value="approve_candidate">
-                                            <input type="hidden" name="application_id" value="<?php echo $candidate['application_id']; ?>">
-                                            <button type="submit" class="btn btn-success">
-                                                <i class="fas fa-check"></i> Move to Reference Check
-                                            </button>
-                                        </form>
-                                        <form method="POST" style="display:inline;" class="ml-2" onsubmit="return confirm('Reject this candidate? This action cannot be undone.');">
-                                            <input type="hidden" name="action" value="reject_candidate">
-                                            <input type="hidden" name="application_id" value="<?php echo $candidate['application_id']; ?>">
-                                            <button type="submit" class="btn btn-danger">
-                                                <i class="fas fa-times"></i> Reject
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-success" onclick="approveCandidate(<?php echo $candidate['application_id']; ?>)">
+                                            <i class="fas fa-check"></i> Move to Reference Check
+                                        </button>
+                                        <button type="button" class="btn btn-danger ml-2" onclick="rejectCandidate(<?php echo $candidate['application_id']; ?>)">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
                                     <?php endif; ?>
                                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
@@ -688,6 +634,7 @@ $recent_activities = $conn->query("SELECT c.first_name, c.last_name, ja.status, 
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
         function showToast(message, type = 'error') {
@@ -710,6 +657,57 @@ $recent_activities = $conn->query("SELECT c.first_name, c.last_name, ja.status, 
             `;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
+        }
+        
+        // SweetAlert2 functions for approve/reject
+        function approveCandidate(applicationId) {
+            Swal.fire({
+                title: 'Approve Candidate?',
+                text: 'Move this candidate to Reference Check stage?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-check"></i> Yes, Approve',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create and submit form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="action" value="approve_candidate">
+                        <input type="hidden" name="application_id" value="${applicationId}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+        
+        function rejectCandidate(applicationId) {
+            Swal.fire({
+                title: 'Reject Candidate?',
+                text: 'This action cannot be undone!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-times"></i> Yes, Reject',
+                cancelButtonText: '<i class="fas fa-ban"></i> Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create and submit form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="action" value="reject_candidate">
+                        <input type="hidden" name="application_id" value="${applicationId}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
         }
     </script>
 </body>

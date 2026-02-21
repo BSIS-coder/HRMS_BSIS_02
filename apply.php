@@ -40,15 +40,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['pds']) && !isset($_P
             throw new Exception('PDS must contain first name, last name, and email');
         }
         
-        // Create temporary candidate
-        $stmt = $conn->prepare("INSERT INTO candidates (first_name, last_name, email, source) VALUES (?, ?, ?, 'Website')");
-        $stmt->execute([$result['data']['first_name'], $result['data']['last_name'], $result['data']['email']]);
-        $tempCandidateId = $conn->lastInsertId();
+        // Check if email already exists
+        $stmt = $conn->prepare("SELECT candidate_id FROM candidates WHERE email = ?");
+        $stmt->execute([$result['data']['email']]);
+        $existingCandidate = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Create pds_data with raw file
-        $stmt = $conn->prepare("INSERT INTO pds_data (candidate_id, pds_file_blob, pds_file_name, pds_file_type, pds_file_size) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$tempCandidateId, $pdsFileBlob, $_FILES['pds']['name'], $_FILES['pds']['type'], $_FILES['pds']['size']]);
-        $pdsId = $conn->lastInsertId();
+        if ($existingCandidate) {
+            // Check if they already applied for this job
+            $stmt = $conn->prepare("SELECT application_id FROM job_applications WHERE job_opening_id = ? AND candidate_id = ?");
+            $stmt->execute([$job_id, $existingCandidate['candidate_id']]);
+            if ($stmt->fetch()) {
+                throw new Exception('You have already applied for this position with this email address.');
+            }
+            
+            // Use existing candidate
+            $tempCandidateId = $existingCandidate['candidate_id'];
+            
+            // Check if pds_data exists for this candidate
+            $stmt = $conn->prepare("SELECT pds_id FROM pds_data WHERE candidate_id = ?");
+            $stmt->execute([$tempCandidateId]);
+            $existingPDS = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existingPDS) {
+                // Update existing pds_data with new file
+                $stmt = $conn->prepare("UPDATE pds_data SET pds_file_blob = ?, pds_file_name = ?, pds_file_type = ?, pds_file_size = ?, updated_at = NOW() WHERE pds_id = ?");
+                $stmt->execute([$pdsFileBlob, $_FILES['pds']['name'], $_FILES['pds']['type'], $_FILES['pds']['size'], $existingPDS['pds_id']]);
+                $pdsId = $existingPDS['pds_id'];
+            } else {
+                // Create new pds_data
+                $stmt = $conn->prepare("INSERT INTO pds_data (candidate_id, pds_file_blob, pds_file_name, pds_file_type, pds_file_size) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$tempCandidateId, $pdsFileBlob, $_FILES['pds']['name'], $_FILES['pds']['type'], $_FILES['pds']['size']]);
+                $pdsId = $conn->lastInsertId();
+            }
+        } else {
+            // Create new candidate
+            $stmt = $conn->prepare("INSERT INTO candidates (first_name, last_name, email, source) VALUES (?, ?, ?, 'Website')");
+            $stmt->execute([$result['data']['first_name'], $result['data']['last_name'], $result['data']['email']]);
+            $tempCandidateId = $conn->lastInsertId();
+            
+            // Create pds_data with raw file
+            $stmt = $conn->prepare("INSERT INTO pds_data (candidate_id, pds_file_blob, pds_file_name, pds_file_type, pds_file_size) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$tempCandidateId, $pdsFileBlob, $_FILES['pds']['name'], $_FILES['pds']['type'], $_FILES['pds']['size']]);
+            $pdsId = $conn->lastInsertId();
+        }
         
         $extractedData = $result['data'];
         $extractedData['pds_id'] = $pdsId;
