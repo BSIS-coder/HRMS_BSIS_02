@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     
                     $authenticated = true;
                     
-                    $_SESSION['employee_id'] = $row['user_id'];
+                    $_SESSION['employee_id'] = $user['user_id'];
 
                     // Redirect based on role
                     if ($user['role'] === 'employee') {
