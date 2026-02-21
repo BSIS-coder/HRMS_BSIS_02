@@ -156,6 +156,44 @@ CREATE TABLE `career_path_stages` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `certifications`
+--
+
+CREATE TABLE `certifications` (
+  `certification_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `skill_id` int(11) DEFAULT NULL,
+  `certification_name` varchar(255) NOT NULL,
+  `issuing_organization` varchar(255) NOT NULL,
+  `certification_number` varchar(100) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `proficiency_level` enum('Beginner','Intermediate','Advanced','Expert') NOT NULL,
+  `assessment_score` decimal(5,2) DEFAULT NULL,
+  `issue_date` date NOT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `assessed_date` date NOT NULL,
+  `certification_url` varchar(500) DEFAULT NULL,
+  `certificate_file_path` varchar(500) DEFAULT NULL,
+  `status` enum('Active','Expired','Suspended','Pending Renewal') DEFAULT 'Active',
+  `verification_status` enum('Verified','Pending','Failed') DEFAULT 'Pending',
+  `cost` decimal(10,2) DEFAULT 0.00,
+  `training_hours` int(11) DEFAULT 0,
+  `cpe_credits` decimal(5,2) DEFAULT 0.00,
+  `renewal_required` tinyint(1) DEFAULT 0,
+  `renewal_period_months` int(11) DEFAULT NULL,
+  `renewal_reminder_sent` tinyint(1) DEFAULT 0,
+  `next_renewal_date` date DEFAULT NULL,
+  `prerequisites` text DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `tags` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `compensation_packages`
 --
 
@@ -435,6 +473,39 @@ INSERT INTO `document_management` (`document_id`, `employee_id`, `document_type`
 (30, 14, 'Certificate', 'Professional Driver License', '/documents/licenses/eduardo_hernandez_driver_license.pdf', '2025-09-09 02:00:16', '2025-12-31', 'Active', 'Professional driver\'s license', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
 (31, 15, 'Contract', 'Employment Contract - Security Personnel', '/documents/contracts/rosario_gonzales_contract.pdf', '2025-09-09 02:00:16', '2024-11-05', 'Active', 'Municipal facility security', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
 (32, 15, 'Certificate', 'Security Guard License', '/documents/licenses/rosario_gonzales_security_license.pdf', '2025-09-09 02:00:16', '2025-08-31', 'Active', 'SOSIA security guard license', '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_assignments`
+--
+
+CREATE TABLE `employee_assignments` (
+  `assignment_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `assignment_type` enum('Training','Project','Task','Mentorship','Special Assignment') NOT NULL,
+  `assignment_title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `session_id` int(11) DEFAULT NULL,
+  `course_id` int(11) DEFAULT NULL,
+  `assigned_date` date NOT NULL,
+  `start_date` date NOT NULL,
+  `due_date` date NOT NULL,
+  `completion_date` date DEFAULT NULL,
+  `status` enum('Assigned','In Progress','Completed','Overdue','Cancelled') DEFAULT 'Assigned',
+  `progress_percentage` decimal(5,2) DEFAULT 0.00,
+  `assigned_by_employee_id` int(11) DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `priority` enum('Low','Medium','High','Urgent') DEFAULT 'Medium',
+  `estimated_hours` decimal(5,2) DEFAULT NULL,
+  `actual_hours` decimal(5,2) DEFAULT NULL,
+  `completion_notes` text DEFAULT NULL,
+  `evaluation_rating` int(11) DEFAULT NULL,
+  `evaluation_comments` text DEFAULT NULL,
+  `attachments_url` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1573,6 +1644,34 @@ CREATE TABLE `training_enrollments` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `training_feedback`
+--
+
+CREATE TABLE `training_feedback` (
+  `feedback_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `feedback_type` enum('Training Session','Learning Resource','Trainer','Course') NOT NULL,
+  `session_id` int(11) DEFAULT NULL,
+  `resource_id` int(11) DEFAULT NULL,
+  `trainer_id` int(11) DEFAULT NULL,
+  `course_id` int(11) DEFAULT NULL,
+  `overall_rating` int(11) NOT NULL,
+  `content_rating` int(11) DEFAULT NULL,
+  `instructor_rating` int(11) DEFAULT NULL,
+  `what_worked_well` text DEFAULT NULL,
+  `what_could_improve` text DEFAULT NULL,
+  `additional_comments` text DEFAULT NULL,
+  `would_recommend` tinyint(1) DEFAULT 1,
+  `met_expectations` tinyint(1) DEFAULT 1,
+  `feedback_date` date NOT NULL DEFAULT curdate(),
+  `is_anonymous` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `training_needs_assessment`
 --
 
@@ -1727,6 +1826,14 @@ ALTER TABLE `career_path_stages`
   ADD KEY `job_role_id` (`job_role_id`);
 
 --
+-- Indexes for table `certifications`
+--
+ALTER TABLE `certifications`
+  ADD PRIMARY KEY (`certification_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `skill_id` (`skill_id`);
+
+--
 -- Indexes for table `compensation_packages`
 --
 ALTER TABLE `compensation_packages`
@@ -1766,6 +1873,17 @@ ALTER TABLE `development_plans`
 ALTER TABLE `document_management`
   ADD PRIMARY KEY (`document_id`),
   ADD KEY `employee_id` (`employee_id`);
+
+--
+-- Indexes for table `employee_assignments`
+--
+ALTER TABLE `employee_assignments`
+  ADD PRIMARY KEY (`assignment_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `session_id` (`session_id`),
+  ADD KEY `course_id` (`course_id`),
+  ADD KEY `assigned_by_employee_id` (`assigned_by_employee_id`),
+  ADD KEY `department_id` (`department_id`);
 
 --
 -- Indexes for table `employee_benefits`
@@ -2124,6 +2242,17 @@ ALTER TABLE `training_enrollments`
   ADD KEY `employee_id` (`employee_id`);
 
 --
+-- Indexes for table `training_feedback`
+--
+ALTER TABLE `training_feedback`
+  ADD PRIMARY KEY (`feedback_id`),
+  ADD KEY `employee_id` (`employee_id`),
+  ADD KEY `session_id` (`session_id`),
+  ADD KEY `resource_id` (`resource_id`),
+  ADD KEY `trainer_id` (`trainer_id`),
+  ADD KEY `course_id` (`course_id`);
+
+--
 -- Indexes for table `training_needs_assessment`
 --
 ALTER TABLE `training_needs_assessment`
@@ -2200,6 +2329,12 @@ ALTER TABLE `career_path_stages`
   MODIFY `stage_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `certifications`
+--
+ALTER TABLE `certifications`
+  MODIFY `certification_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `compensation_packages`
 --
 ALTER TABLE `compensation_packages`
@@ -2234,6 +2369,12 @@ ALTER TABLE `development_plans`
 --
 ALTER TABLE `document_management`
   MODIFY `document_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `employee_assignments`
+--
+ALTER TABLE `employee_assignments`
+  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `employee_benefits`
@@ -2518,6 +2659,12 @@ ALTER TABLE `training_enrollments`
   MODIFY `enrollment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `training_feedback`
+--
+ALTER TABLE `training_feedback`
+  MODIFY `feedback_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `training_needs_assessment`
 --
 ALTER TABLE `training_needs_assessment`
@@ -2578,6 +2725,13 @@ ALTER TABLE `career_path_stages`
   ADD CONSTRAINT `career_path_stages_ibfk_2` FOREIGN KEY (`job_role_id`) REFERENCES `job_roles` (`job_role_id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `certifications`
+--
+ALTER TABLE `certifications`
+  ADD CONSTRAINT `certifications_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `certifications_ibfk_2` FOREIGN KEY (`skill_id`) REFERENCES `skill_matrix` (`skill_id`) ON DELETE SET NULL;
+
+--
 -- Constraints for table `compensation_packages`
 --
 ALTER TABLE `compensation_packages`
@@ -2606,6 +2760,16 @@ ALTER TABLE `development_plans`
 --
 ALTER TABLE `document_management`
   ADD CONSTRAINT `document_management_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_assignments`
+--
+ALTER TABLE `employee_assignments`
+  ADD CONSTRAINT `employee_assignments_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employee_assignments_ibfk_2` FOREIGN KEY (`session_id`) REFERENCES `training_sessions` (`session_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employee_assignments_ibfk_3` FOREIGN KEY (`course_id`) REFERENCES `training_courses` (`course_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employee_assignments_ibfk_4` FOREIGN KEY (`assigned_by_employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employee_assignments_ibfk_5` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `employee_benefits`
@@ -2857,6 +3021,16 @@ ALTER TABLE `tax_deductions`
 ALTER TABLE `training_enrollments`
   ADD CONSTRAINT `training_enrollments_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `training_sessions` (`session_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `training_enrollments_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `training_feedback`
+--
+ALTER TABLE `training_feedback`
+  ADD CONSTRAINT `training_feedback_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `training_feedback_ibfk_2` FOREIGN KEY (`session_id`) REFERENCES `training_sessions` (`session_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `training_feedback_ibfk_3` FOREIGN KEY (`resource_id`) REFERENCES `learning_resources` (`resource_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `training_feedback_ibfk_4` FOREIGN KEY (`trainer_id`) REFERENCES `trainers` (`trainer_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `training_feedback_ibfk_5` FOREIGN KEY (`course_id`) REFERENCES `training_courses` (`course_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `training_needs_assessment`
