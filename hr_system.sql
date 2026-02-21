@@ -21,29 +21,6 @@ SET time_zone = "+00:00";
 -- Database: `hr_system`
 --
 
-DELIMITER $$
---
--- Procedures
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_clearance_status` (IN `p_checklist_id` INT)   BEGIN
-    DECLARE v_status VARCHAR(20);
-    DECLARE v_approval VARCHAR(20);
-    
-    SELECT status, approval_status INTO v_status, v_approval
-    FROM exit_checklist
-    WHERE checklist_id = p_checklist_id;
-    
-    IF v_status = 'Completed' AND v_approval = 'Approved' THEN
-        UPDATE exit_checklist
-        SET clearance_status = 'Cleared',
-            clearance_date = CURDATE(),
-            cleared_by = COALESCE(approved_by, 'System')
-        WHERE checklist_id = p_checklist_id;
-    END IF;
-END$$
-
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
@@ -1002,38 +979,6 @@ CREATE TABLE `exit_checklist` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Triggers `exit_checklist`
---
-DELIMITER $$
-CREATE TRIGGER `after_checklist_update` AFTER UPDATE ON `exit_checklist` FOR EACH ROW BEGIN
-    -- Log the change in audit table
-    IF OLD.status != NEW.status OR OLD.approval_status != NEW.approval_status OR OLD.clearance_status != NEW.clearance_status THEN
-        INSERT INTO exit_checklist_audit (checklist_id, action_type, field_changed, old_value, new_value, changed_by)
-        VALUES (NEW.checklist_id, 'Updated', 
-                CASE 
-                    WHEN OLD.status != NEW.status THEN 'status'
-                    WHEN OLD.approval_status != NEW.approval_status THEN 'approval_status'
-                    WHEN OLD.clearance_status != NEW.clearance_status THEN 'clearance_status'
-                    ELSE 'general'
-                END,
-                CASE 
-                    WHEN OLD.status != NEW.status THEN OLD.status
-                    WHEN OLD.approval_status != NEW.approval_status THEN OLD.approval_status
-                    WHEN OLD.clearance_status != NEW.clearance_status THEN OLD.clearance_status
-                    ELSE NULL
-                END,
-                CASE 
-                    WHEN OLD.status != NEW.status THEN NEW.status
-                    WHEN OLD.approval_status != NEW.approval_status THEN NEW.approval_status
-                    WHEN OLD.clearance_status != NEW.clearance_status THEN NEW.clearance_status
-                    ELSE NULL
-                END,
-                COALESCE(NEW.approved_by, 'System'));
-    END IF;
-END
-$$
-DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -1793,6 +1738,12 @@ CREATE TABLE `personal_information` (
   `date_of_birth` date NOT NULL,
   `gender` enum('Male','Female','Non-binary','Prefer not to say') NOT NULL,
   `marital_status` enum('Single','Married','Divorced','Widowed') NOT NULL,
+  `marital_status_date` date DEFAULT NULL,
+  `spouse_name` varchar(100) DEFAULT NULL,
+  `marital_status_document` varchar(255) DEFAULT NULL,
+  `marital_status_document_type` enum('Marriage Certificate','Divorce Decree','Death Certificate','Annulment Decree','Legal Separation','Other') DEFAULT NULL,
+  `marital_status_document_number` varchar(50) DEFAULT NULL,
+  `marital_status_issuing_authority` varchar(150) DEFAULT NULL,
   `nationality` varchar(50) NOT NULL,
   `tax_id` varchar(20) DEFAULT NULL,
   `social_security_number` varchar(20) DEFAULT NULL,
@@ -1817,22 +1768,22 @@ CREATE TABLE `personal_information` (
 -- Dumping data for table `personal_information`
 --
 
-INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `nationality`, `tax_id`, `social_security_number`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
-(1, 'Maria', 'Santos', '1985-03-12', 'Female', 'Married', 'Filipino', '123-45-6789', '123456789', NULL, NULL, '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901', 'Bachelor''s Degree', 'Business Administration', 'University of the Philippines', 2007, 'Certified Public Accountant (CPA)', 'Advanced Excel Training, Leadership Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(2, 'Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', 'Filipino', '234-56-7890', '234567890', NULL, NULL, '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012', 'Master''s Degree', 'Information Technology', 'Ateneo de Manila University', 2002, 'Project Management Professional (PMP), ITIL Foundation', 'Agile Scrum Master Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(3, 'Jennifer', 'Reyes', '1988-11-08', 'Female', 'Single', 'Filipino', '345-67-8901', '345678901', NULL, NULL, '0917-345-6789', 'Mark Reyes', 'Brother', '0917-789-0123', 'Bachelor''s Degree', 'Marketing', 'De La Salle University', 2010, 'Google Analytics Certification, Digital Marketing Certificate', 'Social Media Marketing Bootcamp', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(4, 'Antonio', 'Garcia', '1975-01-25', 'Male', 'Married', 'Filipino', '456-78-9012', '456789012', NULL, NULL, '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234', 'Vocational/Technical', 'Automotive Technology', 'Technical Education and Skills Development Authority (TESDA)', 1995, 'NC II Automotive Servicing, Welding NC II', 'Heavy Equipment Operation Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(5, 'Lisa', 'Mendoza', '1982-09-14', 'Female', 'Divorced', 'Filipino', '567-89-0123', '567890123', NULL, NULL, '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345', 'Bachelor''s Degree', 'Nursing', 'University of Santo Tomas', 2004, 'Registered Nurse (RN), Basic Life Support (BLS)', 'Intensive Care Unit (ICU) Specialized Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(6, 'Michael', 'Torres', '1980-06-03', 'Male', 'Married', 'Filipino', '678-90-1234', '678901234', NULL, NULL, '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456', 'Bachelor''s Degree', 'Civil Engineering', 'Mapua University', 2002, 'Licensed Civil Engineer, LEED Green Associate', 'Construction Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(7, 'Carmen', 'Dela Cruz', '1987-12-18', 'Female', 'Single', 'Filipino', '789-01-2345', '789012345', NULL, NULL, '0917-789-0123', 'Pedro Dela Cruz', 'Father', '0917-123-4567', 'Bachelor''s Degree', 'Education', 'Philippine Normal University', 2009, 'Licensed Professional Teacher (LPT)', 'Child Psychology Training, Montessori Method Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(8, 'Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', 'Filipino', '890-12-3456', '890123456', NULL, NULL, '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678', 'High School', NULL, 'San Juan National High School', 1988, 'Sales Excellence Certificate', 'Customer Service Training, Product Knowledge Seminars', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(9, 'Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', 'Filipino', '901-23-4567', '901234567', NULL, NULL, '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789', 'Master''s Degree', 'Human Resource Management', 'Asian Institute of Management', 2008, 'SHRM-CP, Certified Compensation Professional', 'Organizational Development Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(10, 'Jose', 'Ramos', '1972-05-15', 'Male', 'Married', 'Filipino', '012-34-5678', '012345678', NULL, NULL, '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890', 'Bachelor''s Degree', 'Electrical Engineering', 'Polytechnic University of the Philippines', 1994, 'Licensed Electrical Engineer', 'Power Systems Analysis Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(11, 'Ana', 'Morales', '1986-10-30', 'Female', 'Single', 'Filipino', '123-56-7890', '123567890', NULL, NULL, '0917-135-7890', 'Maria Morales', 'Mother', '0917-579-0123', 'Bachelor''s Degree', 'Psychology', 'University of the Philippines', 2008, 'Licensed Psychologist, Certified Career Coach', 'Cognitive Behavioral Therapy Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(12, 'Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', 'Filipino', '234-67-8901', '234678901', NULL, NULL, '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234', 'Vocational/Technical', 'Computer Technology', 'TESDA', 1998, 'Computer Systems Servicing NC II', 'Web Development Bootcamp, Network Administration', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(13, 'Grace', 'Lopez', '1983-09-07', 'Female', 'Married', 'Filipino', '345-78-9012', '345789012', NULL, NULL, '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345', 'Bachelor''s Degree', 'Accountancy', 'Far Eastern University', 2005, 'Certified Public Accountant (CPA), Certified Internal Auditor', 'Tax Planning and Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(15, 'Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', 'Filipino', '567-90-1234', '567901234', NULL, NULL, '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567', 'Bachelor''s Degree', 'Communication Arts', 'University of the Philippines', 2011, 'Certified Digital Content Creator', 'Video Production Workshop, Social Media Strategy Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
+INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `marital_status_date`, `spouse_name`, `marital_status_document`, `marital_status_document_type`, `marital_status_document_number`, `marital_status_issuing_authority`, `nationality`, `tax_id`, `social_security_number`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
+(1, 'Maria', 'Santos', '1985-03-12', 'Female', 'Married', '2010-06-15', 'Carlos Santos', 'docs/marital/maria_santos_marriage_cert.pdf', 'Marriage Certificate', 'MC-2010-06-789456', 'Philippine Statistics Authority - NCR', 'Filipino', '123-45-6789', '123456789', NULL, NULL, '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901', 'Bachelor''s Degree', 'Business Administration', 'University of the Philippines', 2007, 'Certified Public Accountant (CPA)', 'Advanced Excel Training, Leadership Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(2, 'Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', '2005-03-22', 'Elena Cruz', 'docs/marital/roberto_cruz_marriage_cert.pdf', 'Marriage Certificate', 'MC-2005-03-334512', 'Philippine Statistics Authority - NCR', 'Filipino', '234-56-7890', '234567890', NULL, NULL, '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012', 'Master''s Degree', 'Information Technology', 'Ateneo de Manila University', 2002, 'Project Management Professional (PMP), ITIL Foundation', 'Agile Scrum Master Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(3, 'Jennifer', 'Reyes', '1988-11-08', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '345-67-8901', '345678901', NULL, NULL, '0917-345-6789', 'Mark Reyes', 'Brother', '0917-789-0123', 'Bachelor''s Degree', 'Marketing', 'De La Salle University', 2010, 'Google Analytics Certification, Digital Marketing Certificate', 'Social Media Marketing Bootcamp', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(4, 'Antonio', 'Garcia', '1975-01-25', 'Male', 'Married', '2003-12-10', 'Rosa Garcia', 'docs/marital/antonio_garcia_marriage_cert.pdf', 'Marriage Certificate', 'MC-2003-12-556789', 'Philippine Statistics Authority - Cebu', 'Filipino', '456-78-9012', '456789012', NULL, NULL, '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234', 'Vocational/Technical', 'Automotive Technology', 'Technical Education and Skills Development Authority (TESDA)', 1995, 'NC II Automotive Servicing, Welding NC II', 'Heavy Equipment Operation Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(5, 'Lisa', 'Mendoza', '1982-09-14', 'Female', 'Divorced', '2015-08-20', NULL, 'docs/marital/lisa_mendoza_divorce_decree.pdf', 'Divorce Decree', 'DD-2015-08-112233', 'Regional Trial Court - Manila', 'Filipino', '567-89-0123', '567890123', NULL, NULL, '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345', 'Bachelor''s Degree', 'Nursing', 'University of Santo Tomas', 2004, 'Registered Nurse (RN), Basic Life Support (BLS)', 'Intensive Care Unit (ICU) Specialized Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(6, 'Michael', 'Torres', '1980-06-03', 'Male', 'Married', '2008-11-14', 'Anna Torres', 'docs/marital/michael_torres_marriage_cert.pdf', 'Marriage Certificate', 'MC-2008-11-778901', 'Philippine Statistics Authority - Davao', 'Filipino', '678-90-1234', '678901234', NULL, NULL, '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456', 'Bachelor''s Degree', 'Civil Engineering', 'Mapua University', 2002, 'Licensed Civil Engineer, LEED Green Associate', 'Construction Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(7, 'Carmen', 'Dela Cruz', '1987-12-18', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '789-01-2345', '789012345', NULL, NULL, '0917-789-0123', 'Pedro Dela Cruz', 'Father', '0917-123-4567', 'Bachelor''s Degree', 'Education', 'Philippine Normal University', 2009, 'Licensed Professional Teacher (LPT)', 'Child Psychology Training, Montessori Method Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(8, 'Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', '1995-05-20', 'Diana Villanueva', 'docs/marital/ricardo_villanueva_marriage_cert.pdf', 'Marriage Certificate', 'MC-1995-05-223344', 'Philippine Statistics Authority - Laguna', 'Filipino', '890-12-3456', '890123456', NULL, NULL, '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678', 'High School', NULL, 'San Juan National High School', 1988, 'Sales Excellence Certificate', 'Customer Service Training, Product Knowledge Seminars', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(9, 'Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', '2012-02-28', 'Luis Pascual', 'docs/marital/sandra_pascual_marriage_cert.pdf', 'Marriage Certificate', 'MC-2012-02-445566', 'Philippine Statistics Authority - Quezon City', 'Filipino', '901-23-4567', '901234567', NULL, NULL, '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789', 'Master''s Degree', 'Human Resource Management', 'Asian Institute of Management', 2008, 'SHRM-CP, Certified Compensation Professional', 'Organizational Development Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(10, 'Jose', 'Ramos', '1972-05-15', 'Male', 'Married', '2001-09-08', 'Teresa Ramos', 'docs/marital/jose_ramos_marriage_cert.pdf', 'Marriage Certificate', 'MC-2001-09-667788', 'Philippine Statistics Authority - Makati', 'Filipino', '012-34-5678', '012345678', NULL, NULL, '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890', 'Bachelor''s Degree', 'Electrical Engineering', 'Polytechnic University of the Philippines', 1994, 'Licensed Electrical Engineer', 'Power Systems Analysis Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(11, 'Ana', 'Morales', '1986-10-30', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '123-56-7890', '123567890', NULL, NULL, '0917-135-7890', 'Maria Morales', 'Mother', '0917-579-0123', 'Bachelor''s Degree', 'Psychology', 'University of the Philippines', 2008, 'Licensed Psychologist, Certified Career Coach', 'Cognitive Behavioral Therapy Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(12, 'Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', '2007-07-15', 'Carmen Fernandez', 'docs/marital/pablo_fernandez_marriage_cert.pdf', 'Marriage Certificate', 'MC-2007-07-889900', 'Philippine Statistics Authority - Bulacan', 'Filipino', '234-67-8901', '234678901', NULL, NULL, '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234', 'Vocational/Technical', 'Computer Technology', 'TESDA', 1998, 'Computer Systems Servicing NC II', 'Web Development Bootcamp, Network Administration', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(13, 'Grace', 'Lopez', '1983-09-07', 'Female', 'Married', '2009-05-03', 'David Lopez', 'docs/marital/grace_lopez_marriage_cert.pdf', 'Marriage Certificate', 'MC-2009-05-001122', 'Philippine Statistics Authority - Pasig', 'Filipino', '345-78-9012', '345789012', NULL, NULL, '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345', 'Bachelor''s Degree', 'Accountancy', 'Far Eastern University', 2005, 'Certified Public Accountant (CPA), Certified Internal Auditor', 'Tax Planning and Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', '2004-11-12', 'Sofia Hernandez', 'docs/marital/eduardo_hernandez_marriage_cert.pdf', 'Marriage Certificate', 'MC-2004-11-334455', 'Philippine Statistics Authority - Manila', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(15, 'Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '567-90-1234', '567901234', NULL, NULL, '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567', 'Bachelor''s Degree', 'Communication Arts', 'University of the Philippines', 2011, 'Certified Digital Content Creator', 'Video Production Workshop, Social Media Strategy Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
 
 -- --------------------------------------------------------
 
@@ -2201,12 +2152,7 @@ INSERT INTO `user_roles` (`role_id`, `role_name`, `description`) VALUES
 
 -- --------------------------------------------------------
 
---
--- Structure for view `exit_clearance_summary`
---
-DROP TABLE IF EXISTS `exit_clearance_summary`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `exit_clearance_summary`  AS SELECT `e`.`exit_id` AS `exit_id`, `e`.`employee_id` AS `employee_id`, concat(`pi`.`first_name`,' ',`pi`.`last_name`) AS `employee_name`, `ep`.`employee_number` AS `employee_number`, `e`.`exit_date` AS `exit_date`, count(`ec`.`checklist_id`) AS `total_items`, sum(case when `ec`.`status` = 'Completed' then 1 else 0 end) AS `completed_items`, sum(case when `ec`.`approval_status` = 'Approved' then 1 else 0 end) AS `approved_items`, sum(case when `ec`.`clearance_status` = 'Cleared' then 1 else 0 end) AS `cleared_items`, CASE WHEN count(`ec`.`checklist_id`) = sum(case when `ec`.`clearance_status` = 'Cleared' then 1 else 0 end) THEN 'Fully Cleared' WHEN sum(case when `ec`.`clearance_status` = 'Cleared' then 1 else 0 end) > 0 THEN 'Partially Cleared' ELSE 'Not Cleared' END AS `overall_clearance_status` FROM (((`exits` `e` left join `employee_profiles` `ep` on(`e`.`employee_id` = `ep`.`employee_id`)) left join `personal_information` `pi` on(`ep`.`personal_info_id` = `pi`.`personal_info_id`)) left join `exit_checklist` `ec` on(`e`.`exit_id` = `ec`.`exit_id`)) GROUP BY `e`.`exit_id`, `e`.`employee_id`, `pi`.`first_name`, `pi`.`last_name`, `ep`.`employee_number`, `e`.`exit_date` ;
 
 --
 -- Indexes for dumped tables
