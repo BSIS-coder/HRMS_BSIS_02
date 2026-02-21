@@ -8,10 +8,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Database connection (kept local to avoid impacting other includes)
-$host = '127.0.0.1';
-$dbname = 'hr_system';
-$username = 'root';
-$password = '';
+$host = getenv('DB_HOST') ?? '127.0.0.1';
+$dbname = getenv('DB_NAME') ?? 'hr_system';
+$username = getenv('DB_USER') ?? 'root';
+$password = getenv('DB_PASS') ?? '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
