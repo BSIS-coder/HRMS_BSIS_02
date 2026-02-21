@@ -16,10 +16,16 @@ require_once 'config.php';
 // Use the global database connection
 $pdo = $conn;
 
-// Handle form submissions
+// Pull flash message from session (Post-Redirect-Get)
 $message = '';
 $messageType = '';
+if (isset($_SESSION['flash_message'])) {
+    $message = $_SESSION['flash_message'];
+    $messageType = $_SESSION['flash_type'] ?? 'success';
+    unset($_SESSION['flash_message'], $_SESSION['flash_type']);
+}
 
+// Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
@@ -31,47 +37,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['skill_id'],
                         $_POST['proficiency_level'],
                         $_POST['assessed_date'],
-                        $_POST['certification_url'],
-                        $_POST['expiry_date'],
-                        $_POST['notes']
+                        $_POST['certification_url'] ?: null,
+                        (isset($_POST['expiry_date']) && $_POST['expiry_date'] !== '') ? $_POST['expiry_date'] : null,
+                        $_POST['notes'] ?: null
                     ]);
-                    $message = "Certification added successfully!";
-                    $messageType = "success";
+                    $_SESSION['flash_message'] = "Certification added successfully!";
+                    $_SESSION['flash_type'] = 'success';
                 } catch (PDOException $e) {
-                    $message = "Error adding certification: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['flash_message'] = "Error adding certification: " . $e->getMessage();
+                    $_SESSION['flash_type'] = 'error';
                 }
+                header('Location: certifications.php');
+                exit();
                 break;
-            
+
             case 'update_certification':
                 try {
                     $stmt = $pdo->prepare("UPDATE employee_skills SET proficiency_level = ?, assessed_date = ?, certification_url = ?, expiry_date = ?, notes = ? WHERE employee_skill_id = ?");
                     $stmt->execute([
                         $_POST['proficiency_level'],
                         $_POST['assessed_date'],
-                        $_POST['certification_url'],
-                        $_POST['expiry_date'],
-                        $_POST['notes'],
+                        $_POST['certification_url'] ?: null,
+                        (isset($_POST['expiry_date']) && $_POST['expiry_date'] !== '') ? $_POST['expiry_date'] : null,
+                        $_POST['notes'] ?: null,
                         $_POST['employee_skill_id']
                     ]);
-                    $message = "Certification updated successfully!";
-                    $messageType = "success";
+                    $_SESSION['flash_message'] = "Certification updated successfully!";
+                    $_SESSION['flash_type'] = 'success';
                 } catch (PDOException $e) {
-                    $message = "Error updating certification: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['flash_message'] = "Error updating certification: " . $e->getMessage();
+                    $_SESSION['flash_type'] = 'error';
                 }
+                header('Location: certifications.php');
+                exit();
                 break;
-            
+
             case 'delete_certification':
                 try {
                     $stmt = $pdo->prepare("DELETE FROM employee_skills WHERE employee_skill_id=?");
                     $stmt->execute([$_POST['employee_skill_id']]);
-                    $message = "Certification deleted successfully!";
-                    $messageType = "success";
+                    $_SESSION['flash_message'] = "Certification deleted successfully!";
+                    $_SESSION['flash_type'] = 'success';
                 } catch (PDOException $e) {
-                    $message = "Error deleting certification: " . $e->getMessage();
-                    $messageType = "error";
+                    $_SESSION['flash_message'] = "Error deleting certification: " . $e->getMessage();
+                    $_SESSION['flash_type'] = 'error';
                 }
+                header('Location: certifications.php');
+                exit();
                 break;
         }
     }
@@ -164,6 +176,7 @@ function getStatusBadgeClass($expiryDate) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
+        /* Match career_paths / skill_matrix L&D frontend */
         :root {
             --azure-blue: #E91E63;
             --azure-blue-light: #F06292;
@@ -177,37 +190,90 @@ function getStatusBadgeClass($expiryDate) {
             margin-bottom: 30px;
             font-weight: 600;
         }
-        
-        body {
-            background: var(--azure-blue-pale);
-        }
+
+        .container-fluid { padding: 0; }
+        .row { margin-right: 0; margin-left: 0; }
+
+        body { background: var(--azure-blue-pale); }
 
         .main-content {
             background: var(--azure-blue-pale);
             padding: 20px;
         }
 
-        .btn-primary {
-            background: var(--azure-blue);
-            border-color: var(--azure-blue);
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e0e0e0;
             border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
         }
 
-        .card {
+        .search-box input:focus {
+            border-color: var(--azure-blue);
+            outline: none;
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .btn {
+            padding: 12px 25px;
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
         }
 
-        .card-header {
-            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-dark) 100%);
+        .btn-primary {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
             color: white;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 20px;
-            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
+            background: linear-gradient(135deg, var(--azure-blue-light) 0%, var(--azure-blue-dark) 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: white; }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin: 0 3px;
         }
 
         .stats-card {
@@ -225,6 +291,39 @@ function getStatusBadgeClass($expiryDate) {
             margin-bottom: 15px;
         }
 
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #e9ecef 100%);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f1f1;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--azure-blue-lighter);
+            transition: all 0.2s ease;
+        }
+
         .status-badge {
             padding: 5px 12px;
             border-radius: 20px;
@@ -238,56 +337,58 @@ function getStatusBadgeClass($expiryDate) {
         .status-expired { background: #f8d7da; color: #721c24; }
         .status-unknown { background: #e2e3e5; color: #383d41; }
 
-        .certification-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            border-left: 5px solid var(--azure-blue);
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
 
-        .certification-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
+        .modal-content { background: white; margin: 5% auto; padding: 0; border-radius: 15px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; }
 
-        .certification-title {
-            color: var(--azure-blue-dark);
-            font-weight: 600;
-            margin: 0;
-        }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        .certification-meta {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
+        .modal-header { background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%); color: white; padding: 20px 30px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header .close { cursor: pointer; font-size: 28px; line-height: 1; opacity: 0.9; }
 
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 14px;
-            color: #666;
-        }
+        .modal-body { padding: 30px; }
 
-        .meta-item i {
-            color: var(--azure-blue);
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--azure-blue-dark); }
+
+        .form-control { width: 100%; padding: 6px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: all 0.3s ease; }
+
+        .form-control:focus { border-color: var(--azure-blue); outline: none; box-shadow: 0 0 10px rgba(233, 30, 99, 0.3); }
+
+        .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .form-col { flex: 1; min-width: 0; }
+
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            .search-box { max-width: none; }
+            .form-row { flex-direction: column; }
+            .table-container { overflow-x: auto; }
         }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <?php include 'navigation.php'; ?>
+
+        <!-- Flash modal -->
+        <div id="flashModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="flashModalTitle">Notification</h2>
+                    <span class="close" onclick="closeFlashModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p id="flashMessageText"><?php echo htmlspecialchars($message); ?></p>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
                 <h2 class="section-title">Certifications Management</h2>
-                
+
                 <!-- Statistics Cards -->
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -301,7 +402,7 @@ function getStatusBadgeClass($expiryDate) {
                         <div class="stats-card">
                             <i class="fas fa-check-circle"></i>
                             <h3><?php echo $activeCertifications; ?></h3>
-                            <h6>Active Certifications</h6>
+                            <h6>Active</h6>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -315,317 +416,289 @@ function getStatusBadgeClass($expiryDate) {
                         <div class="stats-card">
                             <i class="fas fa-times-circle"></i>
                             <h3><?php echo $expiredCertifications; ?></h3>
-                            <h6>Expired Certifications</h6>
+                            <h6>Expired</h6>
                         </div>
                     </div>
                 </div>
 
                 <!-- Controls -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="input-group" style="max-width: 400px;">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        </div>
-                        <input type="text" class="form-control" id="certificationSearch" placeholder="Search certifications...">
+                <div class="controls">
+                    <div class="search-box">
+                        <span class="search-icon">&#128269;</span>
+                        <input type="text" id="certificationSearch" placeholder="Search certifications..." onkeyup="searchCertifications()">
                     </div>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#addCertificationModal">
-                        <i class="fas fa-plus"></i> Add Certification
+                    <button class="btn btn-primary" onclick="openModal('addCertification')">
+                        &#10133; Add Certification
                     </button>
                 </div>
 
-                <!-- Certifications Grid -->
-                <div class="row" id="certificationsGrid">
-                    <?php foreach ($certifications as $cert): ?>
-                    <div class="col-md-6 col-lg-4 certification-item">
-                        <div class="certification-card">
-                            <div class="certification-header">
-                                <h5 class="certification-title"><?php echo htmlspecialchars($cert['skill_name']); ?></h5>
-                                <span class="status-badge <?php echo getStatusBadgeClass($cert['expiry_date']); ?>">
-                                    <?php 
-                                    if (!$cert['expiry_date']) {
-                                        echo 'No Expiry';
-                                    } elseif (new DateTime($cert['expiry_date']) < new DateTime()) {
-                                        echo 'Expired';
-                                    } elseif ((new DateTime($cert['expiry_date']))->diff(new DateTime())->days <= 30) {
-                                        echo 'Expiring Soon';
-                                    } else {
-                                        echo 'Active';
-                                    }
-                                    ?>
-                                </span>
-                            </div>
-                            
-                            <div class="certification-meta">
-                                <div class="meta-item">
-                                    <i class="fas fa-user"></i>
-                                    <span><?php echo htmlspecialchars($cert['first_name'] . ' ' . $cert['last_name']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-tag"></i>
-                                    <span><?php echo htmlspecialchars($cert['category']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-star"></i>
-                                    <span><?php echo htmlspecialchars($cert['proficiency_level']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-calendar"></i>
-                                    <span><?php echo date('M d, Y', strtotime($cert['assessed_date'])); ?></span>
-                                </div>
-                            </div>
-                            
-                            <?php if ($cert['expiry_date']): ?>
-                            <div class="mb-3">
-                                <small class="text-muted">
-                                    <strong>Expires:</strong> <?php echo date('M d, Y', strtotime($cert['expiry_date'])); ?>
-                                    <?php 
-                                    $expiry = new DateTime($cert['expiry_date']);
-                                    $today = new DateTime();
-                                    if ($expiry < $today) {
-                                        echo ' <span class="text-danger">(' . $today->diff($expiry)->days . ' days overdue)</span>';
-                                    } elseif ($expiry->diff($today)->days <= 30) {
-                                        echo ' <span class="text-warning">(' . $expiry->diff($today)->days . ' days remaining)</span>';
-                                    }
-                                    ?>
-                                </small>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if ($cert['notes']): ?>
-                            <div class="mb-3">
-                                <small class="text-muted"><?php echo htmlspecialchars($cert['notes']); ?></small>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <?php if ($cert['certification_url']): ?>
-                                    <a href="<?php echo htmlspecialchars($cert['certification_url']); ?>" target="_blank" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-external-link-alt"></i> View Certificate
-                                    </a>
-                                    <?php endif; ?>
-                                </div>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="editCertification(<?php echo $cert['employee_skill_id']; ?>)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCertification(<?php echo $cert['employee_skill_id']; ?>)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-
                 <!-- Certifications Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-certificate"></i> Certifications List</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Employee</th>
-                                        <th>Certification</th>
-                                        <th>Category</th>
-                                        <th>Level</th>
-                                        <th>Assessed Date</th>
-                                        <th>Expiry Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($certifications as $cert): ?>
-                                    <tr>
-                                        <td><strong><?php echo htmlspecialchars($cert['first_name'] . ' ' . $cert['last_name']); ?></strong></td>
-                                        <td><?php echo htmlspecialchars($cert['skill_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($cert['category']); ?></td>
-                                        <td><?php echo htmlspecialchars($cert['proficiency_level']); ?></td>
-                                        <td><?php echo date('M d, Y', strtotime($cert['assessed_date'])); ?></td>
-                                        <td><?php echo $cert['expiry_date'] ? date('M d, Y', strtotime($cert['expiry_date'])) : 'No Expiry'; ?></td>
-                                        <td>
-                                            <span class="status-badge <?php echo getStatusBadgeClass($cert['expiry_date']); ?>">
-                                                <?php 
-                                                if (!$cert['expiry_date']) {
-                                                    echo 'No Expiry';
-                                                } elseif (new DateTime($cert['expiry_date']) < new DateTime()) {
-                                                    echo 'Expired';
-                                                } elseif ((new DateTime($cert['expiry_date']))->diff(new DateTime())->days <= 30) {
-                                                    echo 'Expiring Soon';
-                                                } else {
-                                                    echo 'Active';
-                                                }
-                                                ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($cert['certification_url']): ?>
-                                            <a href="<?php echo htmlspecialchars($cert['certification_url']); ?>" target="_blank" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-external-link-alt"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="editCertification(<?php echo $cert['employee_skill_id']; ?>)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCertification(<?php echo $cert['employee_skill_id']; ?>)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="table-container">
+                    <table class="table" id="certificationsTable">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Certification</th>
+                                <th>Category</th>
+                                <th>Level</th>
+                                <th>Assessed Date</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($certifications)): ?>
+                            <tr>
+                                <td colspan="8" class="no-results">
+                                    <i class="fas fa-certificate"></i>
+                                    <h3>No certifications found</h3>
+                                    <p>Add certifications linked to employee skills (with certificate URL).</p>
+                                </td>
+                            </tr>
+                            <?php else: ?>
+                            <?php foreach ($certifications as $cert): ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($cert['first_name'] . ' ' . $cert['last_name']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($cert['skill_name']); ?></td>
+                                <td><?php echo htmlspecialchars($cert['category'] ?? 'N/A'); ?></td>
+                                <td><?php echo htmlspecialchars($cert['proficiency_level']); ?></td>
+                                <td><?php echo date('M d, Y', strtotime($cert['assessed_date'])); ?></td>
+                                <td><?php echo ($cert['expiry_date'] ?? '') ? date('M d, Y', strtotime($cert['expiry_date'])) : 'No Expiry'; ?></td>
+                                <td>
+                                    <span class="status-badge <?php echo getStatusBadgeClass($cert['expiry_date'] ?? null); ?>">
+                                        <?php
+                                        if (empty($cert['expiry_date'])) {
+                                            echo 'No Expiry';
+                                        } elseif (new DateTime($cert['expiry_date']) < new DateTime()) {
+                                            echo 'Expired';
+                                        } elseif ((new DateTime($cert['expiry_date']))->diff(new DateTime())->days <= 30) {
+                                            echo 'Expiring Soon';
+                                        } else {
+                                            echo 'Active';
+                                        }
+                                        ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if (!empty($cert['certification_url'])): ?>
+                                    <a href="<?php echo htmlspecialchars($cert['certification_url']); ?>" target="_blank" class="btn btn-small btn-primary" title="View certificate">&#128279;</a>
+                                    <?php endif; ?>
+                                    <button class="btn btn-warning btn-small" onclick="editCertification(<?php echo (int)$cert['employee_skill_id']; ?>, '<?php echo addslashes($cert['proficiency_level']); ?>', '<?php echo (isset($cert['assessed_date']) ? substr($cert['assessed_date'], 0, 10) : ''); ?>', '<?php echo addslashes($cert['certification_url'] ?? ''); ?>', '<?php echo (isset($cert['expiry_date']) && $cert['expiry_date']) ? substr($cert['expiry_date'], 0, 10) : ''; ?>', '<?php echo addslashes($cert['notes'] ?? ''); ?>')">&#9998; Edit</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteCertification(<?php echo (int)$cert['employee_skill_id']; ?>)">&#128465; Delete</button>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Add Certification Modal -->
-    <div class="modal fade" id="addCertificationModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-plus"></i> Add New Certification</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add_certification">
-                        <div class="form-group">
-                            <label>Employee *</label>
-                            <select class="form-control" name="employee_id" required>
-                                <option value="">Select Employee</option>
-                                <?php foreach ($employees as $employee): ?>
-                                <option value="<?php echo $employee['employee_id']; ?>">
-                                    <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Certification/Skill *</label>
-                            <select class="form-control" name="skill_id" required>
-                                <option value="">Select Certification</option>
-                                <?php foreach ($skills as $skill): ?>
-                                <option value="<?php echo $skill['skill_id']; ?>">
-                                    <?php echo htmlspecialchars($skill['skill_name'] . ' (' . $skill['category'] . ')'); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Proficiency Level *</label>
-                                    <select class="form-control" name="proficiency_level" required>
-                                        <option value="">Select Level</option>
-                                        <option value="Beginner">Beginner</option>
-                                        <option value="Intermediate">Intermediate</option>
-                                        <option value="Advanced">Advanced</option>
-                                        <option value="Expert">Expert</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Assessment Date *</label>
-                                    <input type="date" class="form-control" name="assessed_date" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Certificate URL</label>
-                            <input type="url" class="form-control" name="certification_url" placeholder="Link to digital certificate">
-                        </div>
-                        <div class="form-group">
-                            <label>Expiry Date</label>
-                            <input type="date" class="form-control" name="expiry_date">
-                        </div>
-                        <div class="form-group">
-                            <label>Notes</label>
-                            <textarea class="form-control" name="notes" rows="3" placeholder="Additional notes about the certification"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Certification</button>
-                    </div>
-                </form>
+    <div id="addCertificationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Certification</h2>
+                <span class="close" onclick="closeModal('addCertification')">&times;</span>
             </div>
-        </div>
-    </div>
-
-    <!-- Success/Error Message Modal -->
-    <?php if ($message): ?>
-    <div class="modal fade" id="messageModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header <?php echo $messageType === 'success' ? 'bg-success' : 'bg-danger'; ?> text-white">
-                    <h5 class="modal-title">
-                        <?php echo $messageType === 'success' ? '<i class="fas fa-check-circle"></i> Success' : '<i class="fas fa-exclamation-circle"></i> Error'; ?>
-                    </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
+            <form method="POST">
                 <div class="modal-body">
-                    <p><?php echo htmlspecialchars($message); ?></p>
+                    <input type="hidden" name="action" value="add_certification">
+                    <div class="form-group">
+                        <label>Employee *</label>
+                        <select class="form-control" name="employee_id" required>
+                            <option value="">Select Employee</option>
+                            <?php foreach ($employees as $employee): ?>
+                            <option value="<?php echo $employee['employee_id']; ?>"><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Certification/Skill *</label>
+                        <select class="form-control" name="skill_id" required>
+                            <option value="">Select Certification</option>
+                            <?php foreach ($skills as $skill): ?>
+                            <option value="<?php echo $skill['skill_id']; ?>"><?php echo htmlspecialchars($skill['skill_name'] . ' (' . ($skill['category'] ?? '') . ')'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label>Proficiency Level *</label>
+                                <select class="form-control" name="proficiency_level" required>
+                                    <option value="">Select Level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                    <option value="Expert">Expert</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label>Assessment Date *</label>
+                                <input type="date" class="form-control" name="assessed_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Certificate URL</label>
+                        <input type="url" class="form-control" name="certification_url" placeholder="Link to digital certificate">
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date</label>
+                        <input type="date" class="form-control" name="expiry_date">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Additional notes"></textarea>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal('addCertification')">Cancel</button>
+                        <button type="submit" class="btn btn-success">&#128190; Save Certification</button>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
-    <?php endif; ?>
 
-    <!-- Scripts -->
+    <!-- Edit Certification Modal -->
+    <div id="editCertificationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Certification</h2>
+                <span class="close" onclick="closeModal('editCertification')">&times;</span>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="update_certification">
+                    <input type="hidden" name="employee_skill_id" id="edit_employee_skill_id">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label>Proficiency Level *</label>
+                                <select class="form-control" name="proficiency_level" id="edit_proficiency_level" required>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                    <option value="Expert">Expert</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label>Assessment Date *</label>
+                                <input type="date" class="form-control" name="assessed_date" id="edit_assessed_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Certificate URL</label>
+                        <input type="url" class="form-control" name="certification_url" id="edit_certification_url" placeholder="Link to digital certificate">
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date</label>
+                        <input type="date" class="form-control" name="expiry_date" id="edit_expiry_date">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea class="form-control" name="notes" id="edit_notes" rows="3"></textarea>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal('editCertification')">Cancel</button>
+                        <button type="submit" class="btn btn-success">&#128190; Update Certification</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    
     <script>
-        // Show message modal if there's a message
-        <?php if ($message): ?>
-        $(document).ready(function() {
-            $('#messageModal').modal('show');
-        });
-        <?php endif; ?>
-
-        // Search functionality
-        $('#certificationSearch').on('keyup', function() {
-            var value = $(this).val().toLowerCase();
-            $('.certification-item').filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-            });
-        });
-
-        // Edit certification function
-        function editCertification(certificationId) {
-            alert('Edit certification with ID: ' + certificationId);
+        function openModal(type) {
+            if (type === 'addCertification') {
+                document.getElementById('addCertificationModal').style.display = 'block';
+            } else if (type === 'editCertification') {
+                document.getElementById('editCertificationModal').style.display = 'block';
+            }
         }
 
-        // Delete certification function
-        function deleteCertification(certificationId) {
+        function closeModal(type) {
+            if (type === 'addCertification') {
+                document.getElementById('addCertificationModal').style.display = 'none';
+            } else if (type === 'editCertification') {
+                document.getElementById('editCertificationModal').style.display = 'none';
+            }
+        }
+
+        function editCertification(id, proficiency, assessedDate, certUrl, expiryDate, notes) {
+            document.getElementById('edit_employee_skill_id').value = id;
+            document.getElementById('edit_proficiency_level').value = proficiency || 'Beginner';
+            document.getElementById('edit_assessed_date').value = (assessedDate || '').toString().substr(0, 10);
+            document.getElementById('edit_certification_url').value = certUrl || '';
+            document.getElementById('edit_expiry_date').value = (expiryDate || '').toString().substr(0, 10);
+            document.getElementById('edit_notes').value = notes || '';
+            document.getElementById('editCertificationModal').style.display = 'block';
+        }
+
+        function deleteCertification(id) {
             if (confirm('Are you sure you want to delete this certification?')) {
                 var form = document.createElement('form');
                 form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete_certification">
-                    <input type="hidden" name="employee_skill_id" value="${certificationId}">
-                `;
+                form.innerHTML = '<input type="hidden" name="action" value="delete_certification"><input type="hidden" name="employee_skill_id" value="' + id + '">';
                 document.body.appendChild(form);
                 form.submit();
             }
+        }
+
+        function searchCertifications() {
+            var input = document.getElementById('certificationSearch');
+            var filter = input.value.toLowerCase();
+            var table = document.getElementById('certificationsTable');
+            var tr = table.getElementsByTagName('tr');
+            for (var i = 1; i < tr.length; i++) {
+                var td = tr[i].getElementsByTagName('td');
+                var found = false;
+                for (var j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        var txt = td[j].textContent || td[j].innerText;
+                        if (txt.toLowerCase().indexOf(filter) > -1) { found = true; break; }
+                    }
+                }
+                tr[i].style.display = found ? '' : 'none';
+            }
+        }
+
+        window.onclick = function(event) {
+            var modals = ['addCertificationModal', 'editCertificationModal', 'flashModal'];
+            modals.forEach(function(id) {
+                var m = document.getElementById(id);
+                if (m && event.target === m) m.style.display = 'none';
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var flashMessage = <?php echo json_encode($message); ?>;
+            if (flashMessage) {
+                var textEl = document.getElementById('flashMessageText');
+                var modal = document.getElementById('flashModal');
+                if (textEl) textEl.textContent = flashMessage;
+                if (modal) {
+                    modal.style.display = 'block';
+                    setTimeout(function() { document.getElementById('flashModal').style.display = 'none'; }, 3500);
+                }
+            }
+        });
+
+        function closeFlashModal() {
+            var m = document.getElementById('flashModal');
+            if (m) m.style.display = 'none';
         }
     </script>
 </body>
