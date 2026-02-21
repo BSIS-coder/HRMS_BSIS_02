@@ -70,11 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $stmt = $pdo->prepare("INSERT INTO personal_information (
                             first_name, last_name, date_of_birth, gender, marital_status, marital_status_date, 
-                            marital_status_document_url, nationality, tax_id, social_security_number, 
+                            spouse_name, marital_status_document, marital_status_document_type, marital_status_document_number, marital_status_issuing_authority,
+                            nationality, tax_id, social_security_number, 
                             pag_ibig_id, philhealth_id, phone_number, 
                             emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
-                            highest_educational_attainment, course_degree, school_university, year_graduated
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            highest_education_level, field_of_study, institution_name, graduation_year
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                         
                         $stmt->execute([
                             $_POST['first_name'],
@@ -83,7 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['gender'],
                             $_POST['marital_status'],
                             !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $_POST['spouse_name'] ?? null,
                             $maritalDocUrl,
+                            $_POST['supporting_document_type'] ?? null,
+                            $_POST['document_number'] ?? null,
+                            $_POST['issuing_authority'] ?? null,
                             $_POST['nationality'],
                             $_POST['tax_id'],
                             $_POST['social_security_number'],
@@ -153,10 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $stmt = $pdo->prepare("UPDATE personal_information SET 
                             first_name=?, last_name=?, date_of_birth=?, gender=?, marital_status=?, 
-                            marital_status_date=?, marital_status_document_url=?, nationality=?, tax_id=?, 
-                            social_security_number=?, pag_ibig_id=?, philhealth_id=?, phone_number=?, 
+                            marital_status_date=?, spouse_name=?, marital_status_document=?, marital_status_document_type=?, marital_status_document_number=?, marital_status_issuing_authority=?, 
+                            nationality=?, tax_id=?, social_security_number=?, pag_ibig_id=?, philhealth_id=?, phone_number=?, 
                             emergency_contact_name=?, emergency_contact_relationship=?, emergency_contact_phone=?,
-                            highest_educational_attainment=?, course_degree=?, school_university=?, year_graduated=?
+                            highest_education_level=?, field_of_study=?, institution_name=?, graduation_year=?
                             WHERE personal_info_id=?");
                         
                         $stmt->execute([
@@ -166,7 +171,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['gender'],
                             $_POST['marital_status'],
                             !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $_POST['spouse_name'] ?? null,
                             $maritalDocUrl,
+                            $_POST['supporting_document_type'] ?? null,
+                            $_POST['document_number'] ?? null,
+                            $_POST['issuing_authority'] ?? null,
                             $_POST['nationality'],
                             $_POST['tax_id'],
                             $_POST['social_security_number'],
@@ -258,11 +267,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     
                     // Update personal_information table
-                    $updatePersonalStmt = $pdo->prepare("UPDATE personal_information SET marital_status = ?, marital_status_date = ?, marital_status_document_url = ? WHERE personal_info_id = ?");
+                    $updatePersonalStmt = $pdo->prepare("UPDATE personal_information SET marital_status = ?, marital_status_date = ?, spouse_name = ?, marital_status_document = ?, marital_status_document_type = ?, marital_status_document_number = ?, marital_status_issuing_authority = ? WHERE personal_info_id = ?");
                     $updatePersonalStmt->execute([
                         $_POST['marital_status_new'],
                         $_POST['status_date'],
+                        $_POST['spouse_name'] ?? null,
                         $maritalDocUrl,
+                        $_POST['supporting_document_type'] ?? null,
+                        $_POST['document_number'] ?? null,
+                        $_POST['issuing_authority'] ?? null,
                         $_POST['personal_info_id']
                     ]);
                     
@@ -1172,6 +1185,10 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('phone_number').value = person.phone_number || '';
                 document.getElementById('marital_status').value = person.marital_status || '';
                 document.getElementById('marital_status_date').value = person.marital_status_date || '';
+                document.getElementById('spouse_name').value = person.spouse_name || '';
+                document.getElementById('supporting_document_type').value = person.marital_status_document_type || '';
+                document.getElementById('document_number').value = person.marital_status_document_number || '';
+                document.getElementById('issuing_authority').value = person.marital_status_issuing_authority || '';
                 document.getElementById('tax_id').value = person.tax_id || '';
                 document.getElementById('social_security_number').value = person.social_security_number || '';
                 document.getElementById('pag_ibig_id').value = person.pag_ibig_id || '';
@@ -1179,12 +1196,12 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('emergency_contact_name').value = person.emergency_contact_name || '';
                 document.getElementById('emergency_contact_relationship').value = person.emergency_contact_relationship || '';
                 document.getElementById('emergency_contact_phone').value = person.emergency_contact_phone || '';
-                document.getElementById('highest_educational_attainment').value = person.highest_educational_attainment || '';
-                document.getElementById('course_degree').value = person.course_degree || '';
-                document.getElementById('school_university').value = person.school_university || '';
-                document.getElementById('year_graduated').value = person.year_graduated || '';
-                if (person.marital_status_document_url) {
-                    document.getElementById('existing_marital_doc').value = person.marital_status_document_url;
+                document.getElementById('highest_educational_attainment').value = person.highest_education_level || '';
+                document.getElementById('course_degree').value = person.field_of_study || '';
+                document.getElementById('school_university').value = person.institution_name || '';
+                document.getElementById('year_graduated').value = person.graduation_year || '';
+                if (person.marital_status_document) {
+                    document.getElementById('existing_marital_doc').value = person.marital_status_document;
                 }
             }
         }
