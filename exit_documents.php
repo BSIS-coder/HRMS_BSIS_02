@@ -644,9 +644,6 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <button class="btn btn-warning btn-small" onclick="editDocument(<?= $doc['document_id'] ?>)">
                                             ✏️ Edit
                                         </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteDocument(<?= $doc['document_id'] ?>)">
-                                            🗑️ Delete
-                                        </button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -695,7 +692,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="document_type">Document Type</label>
+                                <label for="document_type">Document Name</label>
                                 <select id="document_type" name="document_type" class="form-control" required>
                                     <option value="">Select type...</option>
                                     <option value="Clearance">Clearance</option>
@@ -710,8 +707,14 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="document_name">Document Name</label>
-                                <input type="text" id="document_name" name="document_name" class="form-control" required placeholder="e.g., Final Clearance Form">
+                                <label for="document_name">File Extension Type
+                                <select id="document_name" name="document_name" class="form-control" required>
+                                    <option value="">Select document format...</option>
+                                    <option value="PDF">.PDF</option>
+                                    <option value="Docx">.Docx</option>
+                                    <option value="xlsx">.xlsx</option>
+                                    <option value="ppt">.ppt</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -727,10 +730,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div id="fileNameDisplay" class="file-name-display" style="display: none;"></div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" name="notes" class="form-control" rows="4" placeholder="Add any additional notes or comments about this document..."></textarea>
-                    </div>
+                    <input type="hidden" id="notes" name="notes" value="">
 
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal()">Cancel</button>

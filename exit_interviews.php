@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add':
                 // Add new exit interview
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, would_recommend, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
@@ -41,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['feedback'],
                         $_POST['improvement_suggestions'],
                         $_POST['reason_for_leaving'],
-                        isset($_POST['would_recommend']) ? 1 : 0,
                         $_POST['status']
                     ]);
                     $_SESSION['message'] = "Exit interview added successfully!";
@@ -57,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'update':
                 // Update exit interview
                 try {
-                    $stmt = $pdo->prepare("UPDATE exit_interviews SET exit_id=?, employee_id=?, interview_date=?, feedback=?, improvement_suggestions=?, reason_for_leaving=?, would_recommend=?, status=? WHERE interview_id=?");
+                    $stmt = $pdo->prepare("UPDATE exit_interviews SET exit_id=?, employee_id=?, interview_date=?, feedback=?, improvement_suggestions=?, reason_for_leaving=?, status=? WHERE interview_id=?");
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
@@ -65,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['feedback'],
                         $_POST['improvement_suggestions'],
                         $_POST['reason_for_leaving'],
-                        isset($_POST['would_recommend']) ? 1 : 0,
                         $_POST['status'],
                         $_POST['interview_id']
                     ]);
@@ -878,7 +876,6 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <th>Exit Date</th>
                                     <th>Exit Type</th>
                                     <th>Status</th>
-                                    <th>Recommend</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -903,16 +900,9 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?= htmlspecialchars($interview['status']) ?>
                                         </span>
                                     </td>
-                                    <td><?= $interview['would_recommend'] ? '✅ Yes' : '❌ No' ?></td>
                                     <td>
-                                        <button class="btn btn-info btn-small" onclick="printCertificate(<?= $interview['interview_id'] ?>)">
-                                            🖨️ Print
-                                        </button>
                                         <button class="btn btn-warning btn-small" onclick="editInterview(<?= $interview['interview_id'] ?>)">
                                             ✏️ Edit
-                                        </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteInterview(<?= $interview['interview_id'] ?>)">
-                                            🗑️ Delete
                                         </button>
                                     </td>
                                 </tr>
@@ -963,22 +953,17 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="form-group">
                         <label for="feedback">Feedback</label>
-                        <textarea id="feedback" name="feedback" class="form-control" placeholder="Enter feedback..."></textarea>
+                        <textarea id="feedback" name="feedback" class="form-control" placeholder=" Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="improvement_suggestions">Improvement Suggestions</label>
-                        <textarea id="improvement_suggestions" name="improvement_suggestions" class="form-control" placeholder="Enter improvement suggestions..."></textarea>
+                        <textarea id="improvement_suggestions" name="improvement_suggestions" class="form-control" placeholder="Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="reason_for_leaving">Reason for Leaving</label>
-                        <textarea id="reason_for_leaving" name="reason_for_leaving" class="form-control" placeholder="Enter reason for leaving..."></textarea>
-                    </div>
-
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="would_recommend" name="would_recommend" value="1">
-                        <label for="would_recommend">Would recommend the company to others</label>
+                        <textarea id="reason_for_leaving" name="reason_for_leaving" class="form-control" placeholder="Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -1091,43 +1076,6 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (event.target == modal) closeModal();
         }
 
-        // Delete confirmation
-        function deleteInterview(id) {
-            if (confirm("Are you sure you want to delete this interview?")) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = `<input type="hidden" name="action" value="delete">
-                                  <input type="hidden" name="interview_id" value="${id}">`;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        // Print certificate logic
-        function printCertificate(id) {
-            // Find row data by ID from PHP-rendered table
-            const row = [...document.querySelectorAll('#interviewTableBody tr')].find(r =>
-                r.querySelector('.btn-info').getAttribute('onclick').includes(id)
-            );
-
-            if (!row) return;
-
-            const cells = row.querySelectorAll('td');
-            document.getElementById('certEmployeeName').textContent = cells[0].innerText.trim();
-            document.getElementById('certName').textContent = cells[0].querySelector('strong').innerText;
-            document.getElementById('certNumber').textContent = cells[0].querySelector('small').innerText.replace('#', '');
-            document.getElementById('certJobTitle').textContent = cells[1].childNodes[0].nodeValue.trim();
-            document.getElementById('certDepartment').textContent = cells[1].querySelector('small').innerText;
-            document.getElementById('certInterviewDate').textContent = cells[2].innerText;
-            document.getElementById('certExitDate').textContent = cells[3].innerText;
-            document.getElementById('certExitType').textContent = cells[4].innerText;
-
-            const cert = document.getElementById('printCertificate');
-            cert.style.display = 'block';
-            window.print();
-            cert.style.display = 'none';
-        }
-
         // Search filter
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const value = this.value.toLowerCase();
@@ -1148,7 +1096,6 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     feedback: interview.feedback,
                     improvement_suggestions: interview.improvement_suggestions,
                     reason_for_leaving: interview.reason_for_leaving,
-                    would_recommend: interview.would_recommend,
                     status: interview.status
                 });
             }

@@ -467,7 +467,7 @@ try {
 
         .form-control {
             width: 100%;
-            padding: 12px 15px;
+            padding: 6px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
@@ -642,9 +642,9 @@ try {
                             <span class="search-icon">🔍</span>
                             <input type="text" id="searchInput" placeholder="Search feedback by employee, type, or content...">
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('add')">
-                            ➕ Add New Feedback
-                        </button>
+                        <div class="text-muted" style="align-self:center;">
+                            <i class="fas fa-info-circle"></i> Viewing employee feedback (read-only)
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -658,7 +658,7 @@ try {
                                     <th>Date</th>
                                     <th>Recommend</th>
                                     <th>Preview</th>
-                                    <th>Actions</th>
+                                    <!-- Actions column removed for view-only admin -->
                                 </tr>
                             </thead>
                             <tbody id="feedbackTableBody">
@@ -717,14 +717,7 @@ try {
                                             <small class="text-muted">No preview</small>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
-                                        <button class="btn btn-warning btn-small" onclick="editFeedback(<?php echo $fb['feedback_id']; ?>)">
-                                            ✏️ Edit
-                                        </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteFeedback(<?php echo $fb['feedback_id']; ?>)">
-                                            🗑️ Delete
-                                        </button>
-                                    </td>
+                                    <!-- Actions removed for view-only admin -->
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -743,443 +736,47 @@ try {
         </div>
     </div>
 
-    <!-- Add/Edit Feedback Modal -->
-    <div id="feedbackModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Add New Feedback</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="feedbackForm" method="POST">
-                    <input type="hidden" id="action" name="action" value="add_feedback">
-                    <input type="hidden" id="feedback_id" name="feedback_id">
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="employee_id">Employee *</label>
-                                <select id="employee_id" name="employee_id" class="form-control" required>
-                                    <option value="">Select Employee</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                    <option value="<?php echo $employee['employee_id']; ?>">
-                                        <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="feedback_type">Feedback Type *</label>
-                                <select id="feedback_type" name="feedback_type" class="form-control" required onchange="toggleFields()">
-                                    <option value="">Select Type</option>
-                                    <option value="Training Session">Training Session</option>
-                                    <option value="Trainer">Trainer</option>
-                                    <option value="Course">Course</option>
-                                    <option value="Learning Resource">Learning Resource</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="feedback_date">Feedback Date *</label>
-                                <input type="date" id="feedback_date" name="feedback_date" class="form-control" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-col" id="session_field" style="display: none;">
-                            <div class="form-group">
-                                <label for="session_id">Training Session</label>
-                                <select id="session_id" name="session_id" class="form-control">
-                                    <option value="">Select Session</option>
-                                    <?php foreach ($sessions as $session): ?>
-                                    <option value="<?php echo $session['session_id']; ?>">
-                                        <?php echo htmlspecialchars($session['session_name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col" id="trainer_field" style="display: none;">
-                            <div class="form-group">
-                                <label for="trainer_id">Trainer</label>
-                                <select id="trainer_id" name="trainer_id" class="form-control">
-                                    <option value="">Select Trainer</option>
-                                    <?php foreach ($trainers as $trainer): ?>
-                                    <option value="<?php echo $trainer['trainer_id']; ?>">
-                                        <?php echo htmlspecialchars($trainer['first_name'] . ' ' . $trainer['last_name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col" id="course_field" style="display: none;">
-                            <div class="form-group">
-                                <label for="course_id">Course</label>
-                                <select id="course_id" name="course_id" class="form-control">
-                                    <option value="">Select Course</option>
-                                    <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['course_id']; ?>">
-                                        <?php echo htmlspecialchars($course['course_name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-col-3">
-                            <div class="form-group">
-                                <label for="overall_rating">Overall Rating *</label>
-                                <div class="rating-group">
-                                    <select id="overall_rating" name="overall_rating" class="form-control" required>
-                                        <option value="">Rate</option>
-                                        <option value="1">1 ⭐</option>
-                                        <option value="2">2 ⭐⭐</option>
-                                        <option value="3">3 ⭐⭐⭐</option>
-                                        <option value="4">4 ⭐⭐⭐⭐</option>
-                                        <option value="5">5 ⭐⭐⭐⭐⭐</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-col-3" id="content_rating_field">
-                            <div class="form-group">
-                                <label for="content_rating">Content Rating</label>
-                                <select id="content_rating" name="content_rating" class="form-control">
-                                    <option value="">Rate</option>
-                                    <option value="1">1 ⭐</option>
-                                    <option value="2">2 ⭐⭐</option>
-                                    <option value="3">3 ⭐⭐⭐</option>
-                                    <option value="4">4 ⭐⭐⭐⭐</option>
-                                    <option value="5">5 ⭐⭐⭐⭐⭐</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-col-3" id="instructor_rating_field">
-                            <div class="form-group">
-                                <label for="instructor_rating">Instructor Rating</label>
-                                <select id="instructor_rating" name="instructor_rating" class="form-control">
-                                    <option value="">Rate</option>
-                                    <option value="1">1 ⭐</option>
-                                    <option value="2">2 ⭐⭐</option>
-                                    <option value="3">3 ⭐⭐⭐</option>
-                                    <option value="4">4 ⭐⭐⭐⭐</option>
-                                    <option value="5">5 ⭐⭐⭐⭐⭐</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="what_worked_well">What Worked Well *</label>
-                        <textarea id="what_worked_well" name="what_worked_well" class="form-control" rows="4" required placeholder="Describe what aspects of the training were effective and valuable..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="what_could_improve">Areas for Improvement *</label>
-                        <textarea id="what_could_improve" name="what_could_improve" class="form-control" rows="4" required placeholder="Suggest areas that could be enhanced or improved..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="additional_comments">Additional Comments</label>
-                        <textarea id="additional_comments" name="additional_comments" class="form-control" rows="3" placeholder="Any other feedback, suggestions, or comments..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Feedback Options</label>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="would_recommend" name="would_recommend" value="1">
-                                <label for="would_recommend">Would Recommend</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="met_expectations" name="met_expectations" value="1">
-                                <label for="met_expectations">Met Expectations</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="is_anonymous" name="is_anonymous" value="1">
-                                <label for="is_anonymous">Submit Anonymously</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success">💾 Save Feedback</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <!-- Add/Edit modal removed: feedback submission is handled in employee_feedback.php -->
 
     <script>
-        // Global variables
-        let feedbackData = <?= json_encode($feedback) ?>;
-
+        // Minimal JS for admin read-only feedback page
         // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const tableBody = document.getElementById('feedbackTableBody');
-            const rows = tableBody.getElementsByTagName('tr');
+        (function() {
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
 
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const text = row.textContent.toLowerCase();
-                
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const tableBody = document.getElementById('feedbackTableBody');
+                if (!tableBody) return;
+                const rows = tableBody.getElementsByTagName('tr');
+
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
                 }
-            }
-        });
-
-        // Toggle form fields based on feedback type
-        function toggleFields() {
-            const feedbackType = document.getElementById('feedback_type').value;
-            const sessionField = document.getElementById('session_field');
-            const trainerField = document.getElementById('trainer_field');
-            const courseField = document.getElementById('course_field');
-            const contentRatingField = document.getElementById('content_rating_field');
-            const instructorRatingField = document.getElementById('instructor_rating_field');
-
-            // Hide all fields first
-            sessionField.style.display = 'none';
-            trainerField.style.display = 'none';
-            courseField.style.display = 'none';
-
-            // Clear values
-            document.getElementById('session_id').value = '';
-            document.getElementById('trainer_id').value = '';
-            document.getElementById('course_id').value = '';
-
-            // Show relevant fields based on type
-            switch(feedbackType) {
-                case 'Training Session':
-                    sessionField.style.display = 'block';
-                    contentRatingField.style.display = 'block';
-                    instructorRatingField.style.display = 'block';
-                    break;
-                case 'Trainer':
-                    trainerField.style.display = 'block';
-                    contentRatingField.style.display = 'none';
-                    instructorRatingField.style.display = 'block';
-                    break;
-                case 'Course':
-                    courseField.style.display = 'block';
-                    contentRatingField.style.display = 'block';
-                    instructorRatingField.style.display = 'none';
-                    break;
-                case 'Learning Resource':
-                    contentRatingField.style.display = 'block';
-                    instructorRatingField.style.display = 'none';
-                    break;
-                default:
-                    contentRatingField.style.display = 'block';
-                    instructorRatingField.style.display = 'block';
-            }
-        }
-
-        // Modal functions
-        function openModal(mode, feedbackId = null) {
-            const modal = document.getElementById('feedbackModal');
-            const form = document.getElementById('feedbackForm');
-            const title = document.getElementById('modalTitle');
-            const action = document.getElementById('action');
-
-            if (mode === 'add') {
-                title.textContent = 'Add New Feedback';
-                action.value = 'add_feedback';
-                form.reset();
-                document.getElementById('feedback_id').value = '';
-                // Set default date to today
-                document.getElementById('feedback_date').value = new Date().toISOString().split('T')[0];
-                toggleFields(); // Reset field visibility
-            } else if (mode === 'edit' && feedbackId) {
-                title.textContent = 'Edit Feedback';
-                action.value = 'edit_feedback';
-                document.getElementById('feedback_id').value = feedbackId;
-                populateEditForm(feedbackId);
-            }
-
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('feedbackModal');
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        function populateEditForm(feedbackId) {
-            const feedback = feedbackData.find(f => f.feedback_id == feedbackId);
-            if (feedback) {
-                document.getElementById('employee_id').value = feedback.employee_id || '';
-                document.getElementById('feedback_type').value = feedback.feedback_type || '';
-                document.getElementById('session_id').value = feedback.session_id || '';
-                document.getElementById('trainer_id').value = feedback.trainer_id || '';
-                document.getElementById('course_id').value = feedback.course_id || '';
-                document.getElementById('overall_rating').value = feedback.overall_rating || '';
-                document.getElementById('content_rating').value = feedback.content_rating || '';
-                document.getElementById('instructor_rating').value = feedback.instructor_rating || '';
-                document.getElementById('what_worked_well').value = feedback.what_worked_well || '';
-                document.getElementById('what_could_improve').value = feedback.what_could_improve || '';
-                document.getElementById('additional_comments').value = feedback.additional_comments || '';
-                document.getElementById('would_recommend').checked = feedback.would_recommend == 1;
-                document.getElementById('met_expectations').checked = feedback.met_expectations == 1;
-                document.getElementById('is_anonymous').checked = feedback.is_anonymous == 1;
-                document.getElementById('feedback_date').value = feedback.feedback_date || '';
-                
-                // Toggle fields after setting feedback type
-                toggleFields();
-            }
-        }
-
-        function editFeedback(feedbackId) {
-            openModal('edit', feedbackId);
-        }
-
-        function deleteFeedback(feedbackId) {
-            if (confirm('Are you sure you want to delete this feedback? This action cannot be undone.')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete_feedback">
-                    <input type="hidden" name="feedback_id" value="${feedbackId}">
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('feedbackModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-
-        // Form validation
-        document.getElementById('feedbackForm').addEventListener('submit', function(e) {
-            const overallRating = document.getElementById('overall_rating').value;
-            const whatWorkedWell = document.getElementById('what_worked_well').value.trim();
-            const whatCouldImprove = document.getElementById('what_could_improve').value.trim();
-
-            if (!overallRating) {
-                e.preventDefault();
-                alert('Please provide an overall rating');
-                return;
-            }
-
-            if (!whatWorkedWell) {
-                e.preventDefault();
-                alert('Please describe what worked well');
-                return;
-            }
-
-            if (!whatCouldImprove) {
-                e.preventDefault();
-                alert('Please provide areas for improvement');
-                return;
-            }
-
-            // Validate that feedback type matches selected related fields
-            const feedbackType = document.getElementById('feedback_type').value;
-            switch(feedbackType) {
-                case 'Training Session':
-                    if (!document.getElementById('session_id').value) {
-                        e.preventDefault();
-                        alert('Please select a training session for this feedback type');
-                        return;
-                    }
-                    break;
-                case 'Trainer':
-                    if (!document.getElementById('trainer_id').value) {
-                        e.preventDefault();
-                        alert('Please select a trainer for this feedback type');
-                        return;
-                    }
-                    break;
-                case 'Course':
-                    if (!document.getElementById('course_id').value) {
-                        e.preventDefault();
-                        alert('Please select a course for this feedback type');
-                        return;
-                    }
-                    break;
-            }
-        });
-
-        // Auto-hide alerts
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.remove();
-                }, 500);
-            });
-        }, 5000);
-
-        // Initialize tooltips and animations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to table rows
-            const tableRows = document.querySelectorAll('#feedbackTable tbody tr');
-            tableRows.forEach(row => {
-                row.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.02)';
-                });
-                
-                row.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                });
             });
 
-            // Initialize field visibility
-            toggleFields();
-        });
+            // Auto-hide alerts
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(function() { alert.remove(); }, 500);
+                });
+            }, 5000);
 
-        // Add rating preview functionality
-        document.getElementById('overall_rating').addEventListener('change', function() {
-            const ratingValue = this.value;
-            if (ratingValue) {
-                const stars = '⭐'.repeat(parseInt(ratingValue));
-                console.log(`Overall Rating: ${stars} (${ratingValue}/5)`);
-            }
-        });
-
-        // Character counter for text areas
-        const textAreas = ['what_worked_well', 'what_could_improve', 'additional_comments'];
-        textAreas.forEach(fieldId => {
-            const textArea = document.getElementById(fieldId);
-            const maxLength = 1000;
-            
-            const counter = document.createElement('small');
-            counter.style.color = '#666';
-            counter.style.float = 'right';
-            counter.style.marginTop = '5px';
-            
-            textArea.parentNode.appendChild(counter);
-            
-            function updateCounter() {
-                const remaining = maxLength - textArea.value.length;
-                counter.textContent = `${textArea.value.length}/${maxLength} characters`;
-                counter.style.color = remaining < 50 ? '#dc3545' : '#666';
-            }
-            
-            textArea.addEventListener('input', updateCounter);
-            textArea.maxLength = maxLength;
-            updateCounter();
-        });
-
+            // Add small hover effect to table rows
+            document.addEventListener('DOMContentLoaded', function() {
+                const tableRows = document.querySelectorAll('#feedbackTable tbody tr');
+                tableRows.forEach(row => {
+                    row.addEventListener('mouseenter', function() { this.style.transform = 'scale(1.02)'; });
+                    row.addEventListener('mouseleave', function() { this.style.transform = 'scale(1)'; });
+                });
+            });
+        })();
     </script>
 
     <!-- Bootstrap JS + Dependencies -->

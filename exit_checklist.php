@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Add new checklist item
                 try {
                     // Check if new columns exist, if not use basic insert
-                    $stmt = $pdo->prepare("INSERT INTO exit_checklist (exit_id, item_name, description, responsible_department, status, completed_date, notes, item_type, serial_number, sticker_type, approval_status, approved_by, approved_date, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO exit_checklist (exit_id, item_name, description, responsible_department, status, completed_date, notes, item_type, serial_number, approval_status, approved_by, approved_date, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['item_name'],
@@ -48,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['notes'],
                         $_POST['item_type'] ?? 'Other',
                         $_POST['serial_number'] ?? '',
-                        $_POST['sticker_type'] ?? '',
                         $_POST['approval_status'] ?? 'Pending',
                         $_POST['approved_by'] ?? null,
                         null,
@@ -87,23 +86,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Update checklist item
     try {
         $approved_date = null;
-        $clearance_status = $_POST['clearance_status'] ?? 'Pending';
-        $clearance_date = null;
-        $cleared_by = null;
         
         // Auto-set approval date when approved
         if ($_POST['approval_status'] === 'Approved' && !empty($_POST['approved_by'])) {
             $approved_date = date('Y-m-d');
         }
         
-        // Auto-set clearance when both completed and approved
-        if ($_POST['status'] === 'Completed' && $_POST['approval_status'] === 'Approved') {
-            $clearance_status = 'Cleared';
-            $clearance_date = date('Y-m-d');
-            $cleared_by = $_POST['approved_by'] ?? $_SESSION['username'] ?? 'System';
-        }
-        
-        $stmt = $pdo->prepare("UPDATE exit_checklist SET exit_id=?, item_name=?, description=?, responsible_department=?, status=?, completed_date=?, notes=?, item_type=?, serial_number=?, sticker_type=?, approval_status=?, approved_by=?, approved_date=?, remarks=?, clearance_status=?, clearance_date=?, cleared_by=? WHERE checklist_id=?");
+        $stmt = $pdo->prepare("UPDATE exit_checklist SET exit_id=?, item_name=?, description=?, responsible_department=?, status=?, completed_date=?, notes=?, item_type=?, serial_number=?, approval_status=?, approved_by=?, approved_date=?, remarks=? WHERE checklist_id=?");
         $stmt->execute([
             $_POST['exit_id'],
             $_POST['item_name'],
@@ -114,14 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['notes'],
             $_POST['item_type'] ?? 'Other',
             $_POST['serial_number'] ?? '',
-            $_POST['sticker_type'] ?? '',
             $_POST['approval_status'] ?? 'Pending',
             $_POST['approved_by'] ?? null,
             $approved_date,
             $_POST['remarks'] ?? '',
-            $clearance_status,
-            $clearance_date,
-            $cleared_by,
             $_POST['checklist_id']
         ]);
         $message = "Exit checklist item updated successfully!";
@@ -735,20 +720,26 @@ $departments = [
             border-radius: 6px;
             font-size: 13px;
             margin-top: 8px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .detail-tag {
-            display: inline-block;
+            display: block;
             background: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-right: 8px;
-            margin-bottom: 5px;
+            padding: 8px 12px;
+            border-radius: 6px;
             border: 1px solid #e0e0e0;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .detail-tag strong {
             color: var(--azure-blue-dark);
+            font-size: 14px;
         }
 
         .approval-section {
@@ -859,14 +850,9 @@ $departments = [
                             <span class="search-icon">🔍</span>
                             <input type="text" id="searchInput" placeholder="Search by employee name, department, or item...">
                         </div>
-                        <div>
-                            <button class="btn btn-info" onclick="openBulkUpdateModal()">
-                                📋 Bulk Update
-                            </button>
-                            <button class="btn btn-primary" onclick="openModal('add')">
-                                ➕ Add Checklist Item
-                            </button>
-                        </div>
+                        <button class="btn btn-primary" onclick="openModal('add')">
+                            ➕ Add Checklist Item
+                        </button>
                     </div>
 
                     <!-- Statistics Section -->
@@ -875,7 +861,6 @@ $departments = [
                         $totalItems = count($checklistItems);
                         $completedItems = count(array_filter($checklistItems, function($item) { return $item['status'] === 'Completed'; }));
                         $pendingItems = count(array_filter($checklistItems, function($item) { return $item['status'] === 'Pending'; }));
-                        $naItems = count(array_filter($checklistItems, function($item) { return $item['status'] === 'Not Applicable'; }));
                         ?>
                         <div class="stat-card">
                             <i class="fas fa-tasks stat-icon" style="color: var(--azure-blue); background: var(--azure-blue-pale);"></i>
@@ -896,13 +881,6 @@ $departments = [
                             <div class="stat-info">
                                 <div class="stat-number" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= $pendingItems ?></div>
                                 <div class="stat-label">Pending</div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <i class="fas fa-ban stat-icon" style="color: #6c757d; background: #e9ecef;"></i>
-                            <div class="stat-info">
-                                <div class="stat-number" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= $naItems ?></div>
-                                <div class="stat-label">Not Applicable</div>
                             </div>
                         </div>
                     </div>
@@ -931,7 +909,6 @@ $departments = [
                                     <th>Department</th>
                                     <th>Status</th>
                                     <th>Approval</th>
-                                    <th>Clearance</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -954,14 +931,9 @@ $departments = [
                                             </span>
                                             <strong><?= htmlspecialchars($item['item_name']) ?></strong>
                                         </div>
-                                        <?php if ($item['item_type'] === 'Physical' && ($item['serial_number'] || $item['sticker_type'])): ?>
+                                        <?php if ($item['item_type'] === 'Physical' && $item['serial_number']): ?>
                                         <div class="physical-details">
-                                            <?php if ($item['serial_number']): ?>
                                             <div class="detail-tag">SN: <strong><?= htmlspecialchars($item['serial_number']) ?></strong></div>
-                                            <?php endif; ?>
-                                            <?php if ($item['sticker_type']): ?>
-                                            <div class="detail-tag">Sticker: <strong><?= htmlspecialchars($item['sticker_type']) ?></strong></div>
-                                            <?php endif; ?>
                                         </div>
                                         <?php endif; ?>
                                     </td>
@@ -981,11 +953,6 @@ $departments = [
                                             <?= date('M d, Y', strtotime($item['approved_date'])) ?>
                                         </div>
                                         <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <span class="clearance-status <?= $item['status'] === 'Completed' && $item['approval_status'] === 'Approved' ? 'cleared' : 'pending' ?>">
-                                            <?= $item['status'] === 'Completed' && $item['approval_status'] === 'Approved' ? '✓ CLEARED' : '⏳ PENDING' ?>
-                                        </span>
                                     </td>
                                     <td>
                                         <button class="btn btn-info btn-small" onclick="viewChecklistDetails(<?= $item['checklist_id'] ?>)">
@@ -1068,21 +1035,10 @@ $departments = [
                     <div id="physicalDetails" style="display: none;">
                         <div class="approval-section">
                             <h5 style="color: var(--azure-blue-dark); margin-top: 0;">📦 Physical Item Details</h5>
-                            <div class="form-row">
-                                <div class="form-col">
-                                    <div class="form-group">
-                                        <label for="serial_number">Serial Number</label>
-                                        <input type="text" id="serial_number" name="serial_number" class="form-control" 
-                                               placeholder="e.g., SN123456789">
-                                    </div>
-                                </div>
-                                <div class="form-col">
-                                    <div class="form-group">
-                                        <label for="sticker_type">Asset Sticker/Tag</label>
-                                        <input type="text" id="sticker_type" name="sticker_type" class="form-control" 
-                                               placeholder="e.g., AST-2024-001">
-                                    </div>
-                                </div>
+                            <div class="form-group">
+                                <label for="serial_number">Serial Number</label>
+                                <input type="text" id="serial_number" name="serial_number" class="form-control" 
+                                       placeholder="e.g., SN123456789">
                             </div>
                         </div>
                     </div>
@@ -1105,7 +1061,6 @@ $departments = [
                                 <select id="status" name="status" class="form-control" required>
                                     <option value="Pending">Pending</option>
                                     <option value="Completed">Completed</option>
-                                    <option value="Not Applicable">Not Applicable</option>
                                 </select>
                             </div>
                         </div>
@@ -1119,7 +1074,7 @@ $departments = [
 
                     <!-- Approval Section -->
                     <div class="approval-section">
-                        <h5 style="color: var(--azure-blue-dark); margin-top: 0;">✓ Approval & Clearance</h5>
+                        <h5 style="color: var(--azure-blue-dark); margin-top: 0;">✓ Approval</h5>
                         
                         <div class="form-row">
                             <div class="form-col">
@@ -1252,7 +1207,6 @@ $departments = [
             } else {
                 physicalDetails.style.display = 'none';
                 document.getElementById('serial_number').value = '';
-                document.getElementById('sticker_type').value = '';
             }
         }
 
@@ -1293,7 +1247,6 @@ $departments = [
                 document.getElementById('item_type').value = item.item_type || 'Physical';
                 document.getElementById('item_name').value = item.item_name || '';
                 document.getElementById('serial_number').value = item.serial_number || '';
-                document.getElementById('sticker_type').value = item.sticker_type || '';
                 document.getElementById('description').value = item.description || '';
                 document.getElementById('responsible_department').value = item.responsible_department || '';
                 document.getElementById('status').value = item.status || '';
@@ -1313,12 +1266,11 @@ $departments = [
         function viewChecklistDetails(checklistId) {
             const item = checklistData.find(item => item.checklist_id == checklistId);
             if (item) {
-                const physicalInfo = item.item_type === 'Physical' ? `
+                const physicalInfo = item.item_type === 'Physical' && item.serial_number ? `
                     <div style="margin: 15px 0;">
                         <strong style="color: var(--azure-blue-dark);">📦 Physical Item Details:</strong>
                         <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                            ${item.serial_number ? `<div><strong>Serial Number:</strong> ${item.serial_number}</div>` : ''}
-                            ${item.sticker_type ? `<div><strong>Asset Sticker:</strong> ${item.sticker_type}</div>` : ''}
+                            <div><strong>Serial Number:</strong> ${item.serial_number}</div>
                         </div>
                     </div>
                 ` : '';
@@ -1341,10 +1293,6 @@ $departments = [
                     </div>
                 ` : '';
 
-                const clearanceStatus = item.status === 'Completed' && item.approval_status === 'Approved' 
-                    ? '<span class="clearance-status cleared">✓ CLEARED</span>'
-                    : '<span class="clearance-status pending">⏳ PENDING</span>';
-
                 const detailsHTML = `
                     <div style="padding: 20px;">
                         <h4 style="color: var(--azure-blue); margin-bottom: 20px;">Item: ${item.item_name}</h4>
@@ -1365,11 +1313,6 @@ $departments = [
                         
                         <div style="margin: 15px 0;">
                             <strong>Status:</strong> <span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span>
-                        </div>
-                        
-                        <div style="margin: 15px 0;">
-                            <strong>Clearance:</strong><br>
-                            ${clearanceStatus}
                         </div>
                         
                         ${approvalInfo}
