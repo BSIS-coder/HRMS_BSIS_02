@@ -205,3 +205,5 @@
 2026-02-16 14:34:19 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'e.approved_by' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\exits.php on line 245
 2026-02-18 11:09:45 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'kt.supervisor_id' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php on line 75
 2026-02-18 11:09:54 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'kt.supervisor_id' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php on line 75
+2026-02-19 14:25:13 Exception: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'high_priority FROM training_needs_assessment WHERE priority_level = 'High'' at line 1 in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\training_needs_assessment.php on line 135
+2026-02-19 14:25:18 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ai_generated' in 'where clause' in C:\Program Files\xampp\htdocs\HRMS_BSIS_02\job_openings.php on line 57

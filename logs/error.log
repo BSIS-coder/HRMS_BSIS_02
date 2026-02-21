@@ -4133,3 +4133,23 @@
 2026-02-19 13:29:27 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\my_profile.php:578
 2026-02-19 13:29:27 Error: [2] Undefined array key "email" - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\my_profile.php:589
 2026-02-19 13:29:27 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\my_profile.php:589
+2026-02-19 14:25:02 Error: [2] Undefined variable $row - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-19 14:25:02 Error: [2] Trying to access array offset on value of type null - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-19 14:25:27 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\exit_interviews.php:980
+2026-02-19 14:25:27 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\exit_interviews.php:980
+2026-02-19 14:25:28 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php:640
+2026-02-19 14:25:28 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php:640
+2026-02-19 14:25:35 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\exit_documents.php:714
+2026-02-19 14:25:37 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\post_exit_surveys.php:1012
+2026-02-19 14:25:42 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\exits.php:775
+2026-02-19 14:25:48 Error: [2] Undefined property: PDOStatement::$num_rows - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\development_plans.php:362
+2026-02-19 22:32:00 Error: [2] Undefined variable $row - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-19 22:32:00 Error: [2] Trying to access array offset on value of type null - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-21 15:38:53 Error: [2] Undefined variable $row - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-21 15:38:53 Error: [2] Trying to access array offset on value of type null - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-21 15:55:16 Error: [2] Undefined variable $row - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-21 15:55:16 Error: [2] Trying to access array offset on value of type null - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-21 15:57:35 Error: [2] move_uploaded_file(uploads/leave_documents/6999d5ef9c3df_test_doc.pdf): Failed to open stream: No such file or directory - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php:56
+2026-02-21 15:57:35 Error: [2] move_uploaded_file(): Unable to move &quot;C:\Program Files\xampp\tmp\php75A0.tmp&quot; to &quot;uploads/leave_documents/6999d5ef9c3df_test_doc.pdf&quot; - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\employee_leave.php:56
+2026-02-21 15:57:53 Error: [2] Undefined variable $row - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-21 15:57:53 Error: [2] Trying to access array offset on value of type null - C:\Program Files\xampp\htdocs\HRMS_BSIS_02\login.php:126

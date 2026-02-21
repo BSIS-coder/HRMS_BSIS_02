@@ -51,12 +51,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitLeaveRequest'])
 
             $allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
             if (in_array($fileType, $allowedTypes) && $fileSize < 5000000) {
-                $newFileName = uniqid() . '_' . $fileName;
-                $uploadPath = 'uploads/leave_documents/' . $newFileName;
-                if (move_uploaded_file($fileTmpName, $uploadPath)) {
-                    $documentPath = $uploadPath;
+                // Use absolute path and ensure directory exists
+                $uploadDir = __DIR__ . '/uploads/leave_documents/';
+                if (!file_exists($uploadDir)) {
+                    if (!mkdir($uploadDir, 0755, true)) {
+                        error_log("Failed to create upload directory: $uploadDir");
+                        $error = "Failed to create upload directory. Please contact administrator.";
+                    }
                 }
+                
+                if (!isset($error)) {
+                    $newFileName = uniqid() . '_' . $fileName;
+                    $uploadPath = $uploadDir . $newFileName;
+                    if (move_uploaded_file($fileTmpName, $uploadPath)) {
+                        // Store relative path for database
+                        $documentPath = 'uploads/leave_documents/' . $newFileName;
+                    } else {
+                        error_log("Failed to move uploaded file: $fileName to $uploadPath");
+                        $error = "Failed to upload document. Please try again.";
+                    }
+                }
+            } elseif ($_FILES['document']['error'] != 0 && $_FILES['document']['error'] != UPLOAD_ERR_NO_FILE) {
+                error_log("File upload error code: " . $_FILES['document']['error']);
+                $error = "File upload failed. Please try again.";
+            } elseif (!in_array($fileType, $allowedTypes) || $fileSize >= 5000000) {
+                $error = "Invalid file type or file too large. Allowed types: PDF, JPEG, PNG. Max size: 5MB.";
             }
+        } elseif (isset($_FILES['document']) && $_FILES['document']['error'] != UPLOAD_ERR_NO_FILE && $_FILES['document']['error'] != 0) {
+            // Only show error if file was actually attempted to be uploaded
+            error_log("File upload error code: " . $_FILES['document']['error']);
+            $error = "File upload failed. Please try again.";
         }
 
         // Validate gender-based leave restrictions
