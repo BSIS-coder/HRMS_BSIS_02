@@ -128,11 +128,59 @@ function getPerformanceTrendData() {
 }
 
 function getTrainingCompletionRate() {
-    return 85; // Placeholder
+    global $conn;
+    try {
+        // Total training activities
+        $totalStmt = $conn->query("SELECT COUNT(*) FROM development_activities WHERE activity_type = 'Training'");
+        $total = (int)$totalStmt->fetchColumn();
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        // Completed training activities
+        $completedStmt = $conn->query("SELECT COUNT(*) FROM development_activities WHERE activity_type = 'Training' AND status = 'Completed'");
+        $completed = (int)$completedStmt->fetchColumn();
+
+        return (int) round(($completed * 100.0) / $total);
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        return 0;
+    }
 }
 
 function getEmployeeEngagementScore() {
-    return 78; // Placeholder
+    global $conn;
+    try {
+        // Pull all feedback responses (JSON stored in `responses` column)
+        $sql = "SELECT responses FROM feedback_responses WHERE responses IS NOT NULL";
+        $stmt = $conn->query($sql);
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $sum = 0.0;
+        $count = 0;
+
+        foreach ($rows as $json) {
+            $responses = json_decode($json, true);
+            if (!is_array($responses)) continue;
+
+            foreach ($responses as $value) {
+                if (is_numeric($value)) {
+                    $sum += (float)$value;
+                    $count++;
+                }
+            }
+        }
+
+        if ($count === 0) return 0;
+
+        // Average rating on a 1-5 scale -> convert to percentage
+        $avg = $sum / $count;
+        return (int) round(($avg / 5.0) * 100);
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        return 0;
+    }
 }
 ?>
 
