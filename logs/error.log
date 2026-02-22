@@ -4510,3 +4510,5 @@
 2026-02-22 03:24:22 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
 2026-02-22 03:25:30 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
 2026-02-22 03:25:30 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 05:37:36 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 05:37:36 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
