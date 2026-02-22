@@ -1,4 +1,5 @@
 -- Link training needs to performance (reviews/cycles).
+-- Part of Learning & Development (L&D) module.
 -- Run this in phpMyAdmin on database hr_system once.
 -- If you get "Duplicate column name", the columns already exist; skip this.
 
