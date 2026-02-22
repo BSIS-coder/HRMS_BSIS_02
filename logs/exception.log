@@ -205,3 +205,6 @@
 2026-02-16 14:34:19 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'e.approved_by' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\exits.php on line 245
 2026-02-18 11:09:45 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'kt.supervisor_id' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php on line 75
 2026-02-18 11:09:54 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'kt.supervisor_id' in 'on clause' in C:\xampp\htdocs\HRMS_BSIS_02\knowledge_transfers.php on line 75
+2026-02-21 16:17:33 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_career_paths.php on line 90
+2026-02-21 16:18:29 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\career_path_stages.php on line 72
+2026-02-21 16:21:04 Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cp.department' in 'field list' in C:\xampp\htdocs\HRMS_BSIS_02\employee_career_paths.php on line 90

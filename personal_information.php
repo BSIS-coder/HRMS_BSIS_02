@@ -19,6 +19,7 @@ $dbname = getenv('DB_NAME') ?? 'hr_system';
 $username = getenv('DB_USER') ?? 'root';
 $password = getenv('DB_PASS') ?? '';
 
+
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -70,11 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $stmt = $pdo->prepare("INSERT INTO personal_information (
                             first_name, last_name, date_of_birth, gender, marital_status, marital_status_date, 
-                            marital_status_document_url, nationality, tax_id, social_security_number, 
+                            spouse_name, marital_status_document, document_type, document_number, issuing_authority, nationality, tax_id, social_security_number, 
                             pag_ibig_id, philhealth_id, phone_number, 
                             emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
-                            highest_educational_attainment, course_degree, school_university, year_graduated
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            highest_education_level, field_of_study, institution_name, graduation_year
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                         
                         $stmt->execute([
                             $_POST['first_name'],
@@ -83,7 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['gender'],
                             $_POST['marital_status'],
                             !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $_POST['spouse_name'] ?? null,
                             $maritalDocUrl,
+                            $_POST['document_type'] ?? null,
+                            $_POST['document_number'] ?? null,
+                            $_POST['issuing_authority'] ?? null,
                             $_POST['nationality'],
                             $_POST['tax_id'],
                             $_POST['social_security_number'],
@@ -93,10 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['emergency_contact_name'],
                             $_POST['emergency_contact_relationship'],
                             $_POST['emergency_contact_phone'],
-                            !empty($_POST['highest_educational_attainment']) ? $_POST['highest_educational_attainment'] : null,
-                            $_POST['course_degree'] ?? null,
-                            $_POST['school_university'] ?? null,
-                            !empty($_POST['year_graduated']) ? $_POST['year_graduated'] : null
+                            !empty($_POST['highest_education_level']) ? $_POST['highest_education_level'] : null,
+                            $_POST['field_of_study'] ?? null,
+                            $_POST['institution_name'] ?? null,
+                            !empty($_POST['graduation_year']) ? $_POST['graduation_year'] : null
                         ]);
                         
                         $personalInfoId = $pdo->lastInsertId();
@@ -153,10 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $stmt = $pdo->prepare("UPDATE personal_information SET 
                             first_name=?, last_name=?, date_of_birth=?, gender=?, marital_status=?, 
-                            marital_status_date=?, marital_status_document_url=?, nationality=?, tax_id=?, 
+                            marital_status_date=?, spouse_name=?, marital_status_document=?, document_type=?, document_number=?, issuing_authority=?, nationality=?, tax_id=?, 
                             social_security_number=?, pag_ibig_id=?, philhealth_id=?, phone_number=?, 
                             emergency_contact_name=?, emergency_contact_relationship=?, emergency_contact_phone=?,
-                            highest_educational_attainment=?, course_degree=?, school_university=?, year_graduated=?
+                            highest_education_level=?, field_of_study=?, institution_name=?, graduation_year=?
                             WHERE personal_info_id=?");
                         
                         $stmt->execute([
@@ -166,7 +171,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['gender'],
                             $_POST['marital_status'],
                             !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $_POST['spouse_name'] ?? null,
                             $maritalDocUrl,
+                            $_POST['document_type'] ?? null,
+                            $_POST['document_number'] ?? null,
+                            $_POST['issuing_authority'] ?? null,
                             $_POST['nationality'],
                             $_POST['tax_id'],
                             $_POST['social_security_number'],
@@ -176,10 +185,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['emergency_contact_name'],
                             $_POST['emergency_contact_relationship'],
                             $_POST['emergency_contact_phone'],
-                            !empty($_POST['highest_educational_attainment']) ? $_POST['highest_educational_attainment'] : null,
-                            $_POST['course_degree'] ?? null,
-                            $_POST['school_university'] ?? null,
-                            !empty($_POST['year_graduated']) ? $_POST['year_graduated'] : null,
+                            !empty($_POST['highest_education_level']) ? $_POST['highest_education_level'] : null,
+                            $_POST['field_of_study'] ?? null,
+                            $_POST['institution_name'] ?? null,
+                            !empty($_POST['graduation_year']) ? $_POST['graduation_year'] : null,
                             $_POST['personal_info_id']
                         ]);
                         
@@ -258,11 +267,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     
                     // Update personal_information table
-                    $updatePersonalStmt = $pdo->prepare("UPDATE personal_information SET marital_status = ?, marital_status_date = ?, marital_status_document_url = ? WHERE personal_info_id = ?");
+                    $updatePersonalStmt = $pdo->prepare("UPDATE personal_information SET marital_status = ?, marital_status_date = ?, spouse_name = ?, marital_status_document = ?, document_type = ? WHERE personal_info_id = ?");
                     $updatePersonalStmt->execute([
                         $_POST['marital_status_new'],
                         $_POST['status_date'],
+                        $_POST['spouse_name'] ?? null,
                         $maritalDocUrl,
+                        $_POST['supporting_document_type'] ?? null,
                         $_POST['personal_info_id']
                     ]);
                     
@@ -787,10 +798,10 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($person['highest_educational_attainment']): ?>
-                                            <span class="education-badge">🎓 <?= htmlspecialchars($person['highest_educational_attainment']) ?></span>
-                                            <?php if ($person['school_university']): ?>
-                                                <br><small style="color: #666;"><?= htmlspecialchars($person['school_university']) ?></small>
+                                        <?php if ($person['highest_education_level']): ?>
+                                            <span class="education-badge">🎓 <?= htmlspecialchars($person['highest_education_level']) ?></span>
+                                            <?php if ($person['institution_name']): ?>
+                                                <br><small style="color: #666;"><?= htmlspecialchars($person['institution_name']) ?></small>
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <small style="color: #999;">No education recorded</small>
@@ -1028,8 +1039,8 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="highest_educational_attainment">Highest Educational Attainment</label>
-                                <select id="highest_educational_attainment" name="highest_educational_attainment" class="form-control">
+                                <label for="highest_education_level">Highest Educational Attainment</label>
+                                <select id="highest_education_level" name="highest_education_level" class="form-control">
                                     <option value="">Select Level</option>
                                     <option value="Elementary">Elementary</option>
                                     <option value="High School">High School</option>
@@ -1044,8 +1055,8 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="course_degree">Course/Degree</label>
-                                <input type="text" id="course_degree" name="course_degree" class="form-control">
+                                <label for="field_of_study">Course/Degree</label>
+                                <input type="text" id="field_of_study" name="field_of_study" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -1053,14 +1064,14 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="school_university">School/University</label>
-                                <input type="text" id="school_university" name="school_university" class="form-control">
+                                <label for="institution_name">School/University</label>
+                                <input type="text" id="institution_name" name="institution_name" class="form-control">
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="year_graduated">Year Graduated</label>
-                                <input type="number" id="year_graduated" name="year_graduated" class="form-control" min="1900" max="<?= date('Y') ?>">
+                                <label for="graduation_year">Year Graduated</label>
+                                <input type="number" id="graduation_year" name="graduation_year" class="form-control" min="1900" max="<?= date('Y') ?>">
                             </div>
                         </div>
                     </div>
@@ -1179,12 +1190,12 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('emergency_contact_name').value = person.emergency_contact_name || '';
                 document.getElementById('emergency_contact_relationship').value = person.emergency_contact_relationship || '';
                 document.getElementById('emergency_contact_phone').value = person.emergency_contact_phone || '';
-                document.getElementById('highest_educational_attainment').value = person.highest_educational_attainment || '';
-                document.getElementById('course_degree').value = person.course_degree || '';
-                document.getElementById('school_university').value = person.school_university || '';
-                document.getElementById('year_graduated').value = person.year_graduated || '';
-                if (person.marital_status_document_url) {
-                    document.getElementById('existing_marital_doc').value = person.marital_status_document_url;
+                document.getElementById('highest_education_level').value = person.highest_education_level || '';
+                document.getElementById('field_of_study').value = person.field_of_study || '';
+                document.getElementById('institution_name').value = person.institution_name || '';
+                document.getElementById('graduation_year').value = person.graduation_year || '';
+                if (person.marital_status_document) {
+                    document.getElementById('existing_marital_doc').value = person.marital_status_document;
                 }
             }
         }
@@ -1321,23 +1332,23 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="section-divider"></div>
                 <div class="section-header">🎓 Education</div>
-                ${person.highest_educational_attainment ? `
+                ${person.highest_education_level ? `
                     <div class="info-grid">
                         <div class="info-item">
                             <div class="info-label">Highest Attainment</div>
-                            <div class="info-value">${person.highest_educational_attainment}</div>
+                            <div class="info-value">${person.highest_education_level}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Course/Degree</div>
-                            <div class="info-value">${person.course_degree || 'N/A'}</div>
+                            <div class="info-value">${person.field_of_study || 'N/A'}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">School/University</div>
-                            <div class="info-value">${person.school_university || 'N/A'}</div>
+                            <div class="info-value">${person.institution_name || 'N/A'}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Year Graduated</div>
-                            <div class="info-value">${person.year_graduated || 'N/A'}</div>
+                            <div class="info-value">${person.graduation_year || 'N/A'}</div>
                         </div>
                     </div>
                 ` : '<p>No education information recorded.</p>'}
@@ -1735,15 +1746,15 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <td class="value">${e.year_graduated || 'N/A'}</td>
                     </tr>
                 `).join('') : ''}
-                ${person.highest_educational_attainment && !personEducation.some(e => e.education_level === person.highest_educational_attainment) ? `
+                ${person.highest_education_level && !personEducation.some(e => e.education_level === person.highest_education_level) ? `
                     <tr>
-                        <td class="value">${person.highest_educational_attainment}</td>
-                        <td class="value">${person.school_university || 'N/A'}</td>
-                        <td class="value">${person.course_degree || 'N/A'}</td>
-                        <td class="value">${person.year_graduated || 'N/A'}</td>
+                        <td class="value">${person.highest_education_level}</td>
+                        <td class="value">${person.institution_name || 'N/A'}</td>
+                        <td class="value">${person.field_of_study || 'N/A'}</td>
+                        <td class="value">${person.graduation_year || 'N/A'}</td>
                     </tr>
                 ` : ''}
-                ${personEducation.length === 0 && !person.highest_educational_attainment ? `
+                ${personEducation.length === 0 && !person.highest_education_level ? `
                     <tr>
                         <td class="value" colspan="4" style="text-align: center;">No educational background recorded</td>
                     </tr>
