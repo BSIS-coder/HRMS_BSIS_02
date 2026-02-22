@@ -2067,7 +2067,7 @@ CREATE TABLE `training_courses` (
   `course_name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `category` varchar(100) DEFAULT NULL,
-  `delivery_method` enum('Online','Classroom','Workshop','Self-paced','Hybrid') NOT NULL,
+  `delivery_method` enum('Classroom Training','Online Learning','Blended Learning','Workshop','Seminar','Webinar','Self-Paced','On-the-Job Training') NOT NULL,
   `duration` int(11) DEFAULT NULL COMMENT 'Duration in hours',
   `max_participants` int(11) DEFAULT NULL,
   `prerequisites` text DEFAULT NULL,
