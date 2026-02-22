@@ -19,6 +19,10 @@ $pdo = $conn;
 // Handle form submissions
 $message = '';
 $messageType = '';
+if (!empty($_GET['enrolled'])) {
+    $message = 'Enrollment created successfully. Training need set to In Progress.';
+    $messageType = 'success';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -59,12 +63,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             case 'add_assessment':
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO training_needs_assessment (employee_id, assessment_date, skills_gap, recommended_trainings, priority, status) VALUES (?, ?, ?, ?, ?, ?)");
+                    $review_id = !empty($_POST['review_id']) ? (int)$_POST['review_id'] : null;
+                    $cycle_id = null;
+                    if ($review_id) {
+                        $cr = $pdo->prepare("SELECT cycle_id FROM performance_reviews WHERE review_id = ?");
+                        $cr->execute([$review_id]);
+                        $row = $cr->fetch(PDO::FETCH_ASSOC);
+                        if ($row) $cycle_id = (int)$row['cycle_id'];
+                    }
+                    $stmt = $pdo->prepare("INSERT INTO training_needs_assessment (employee_id, review_id, cycle_id, assessment_date, skills_gap, recommended_trainings, priority, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['employee_id'],
+                        $review_id,
+                        $cycle_id,
                         $_POST['assessment_date'],
                         $_POST['skills_gap'],
-                        $_POST['recommended_trainings'],
+                        $_POST['recommended_trainings'] ?? '',
                         $_POST['priority'],
                         $_POST['status']
                     ]);
@@ -72,6 +86,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messageType = "success";
                 } catch (PDOException $e) {
                     $message = "Error adding assessment: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+            case 'edit_assessment':
+                try {
+                    $review_id = !empty($_POST['review_id']) ? (int)$_POST['review_id'] : null;
+                    $cycle_id = null;
+                    if ($review_id) {
+                        $cr = $pdo->prepare("SELECT cycle_id FROM performance_reviews WHERE review_id = ?");
+                        $cr->execute([$review_id]);
+                        $row = $cr->fetch(PDO::FETCH_ASSOC);
+                        if ($row) $cycle_id = (int)$row['cycle_id'];
+                    }
+                    $stmt = $pdo->prepare("UPDATE training_needs_assessment SET employee_id=?, review_id=?, cycle_id=?, assessment_date=?, skills_gap=?, recommended_trainings=?, priority=?, status=? WHERE assessment_id=?");
+                    $stmt->execute([
+                        $_POST['employee_id'],
+                        $review_id,
+                        $cycle_id,
+                        $_POST['assessment_date'],
+                        $_POST['skills_gap'],
+                        $_POST['recommended_trainings'] ?? '',
+                        $_POST['priority'],
+                        $_POST['status'],
+                        $_POST['assessment_id']
+                    ]);
+                    $message = "Training needs assessment updated successfully!";
+                    $messageType = "success";
+                } catch (PDOException $e) {
+                    $message = "Error updating assessment: " . $e->getMessage();
+                    $messageType = "error";
+                }
+                break;
+
+            case 'create_enrollment_from_need':
+                try {
+                    $assessment_id = (int)($_POST['assessment_id'] ?? 0);
+                    $session_id = (int)($_POST['session_id'] ?? 0);
+                    if (!$assessment_id || !$session_id) {
+                        $message = "Invalid assessment or session.";
+                        $messageType = "error";
+                        break;
+                    }
+                    $get = $pdo->prepare("SELECT employee_id FROM training_needs_assessment WHERE assessment_id = ?");
+                    $get->execute([$assessment_id]);
+                    $need = $get->fetch(PDO::FETCH_ASSOC);
+                    if (!$need) {
+                        $message = "Assessment not found.";
+                        $messageType = "error";
+                        break;
+                    }
+                    $employee_id = (int)$need['employee_id'];
+                    $check = $pdo->prepare("SELECT enrollment_id FROM training_enrollments WHERE session_id = ? AND employee_id = ?");
+                    $check->execute([$session_id, $employee_id]);
+                    if ($check->fetch()) {
+                        $message = "Employee is already enrolled in this session.";
+                        $messageType = "error";
+                        break;
+                    }
+                    $stmt = $pdo->prepare("INSERT INTO training_enrollments (session_id, employee_id, enrollment_date, status) VALUES (?, ?, NOW(), 'Enrolled')");
+                    $stmt->execute([$session_id, $employee_id]);
+                    $pdo->prepare("UPDATE training_needs_assessment SET status = 'In Progress' WHERE assessment_id = ?")->execute([$assessment_id]);
+                    header('Location: skill_matrix.php?tab=needs&enrolled=1');
+                    exit;
+                } catch (PDOException $e) {
+                    $message = "Error creating enrollment: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
@@ -140,13 +220,71 @@ try {
     $employeeSkills = [];
 }
 
-// Fetch training needs assessments
+// Auto-create training needs from performance (low ratings)
+$LOW_OVERALL_RATING_THRESHOLD = 3.0;  // below this = needs training
+$LOW_COMPETENCY_RATING_THRESHOLD = 2; // competency rating <= this = needs training
+try {
+    // 1) From performance_reviews: low overall rating
+    $stmt = $pdo->query("
+        SELECT pr.review_id, pr.employee_id, pr.cycle_id, pr.overall_rating
+        FROM performance_reviews pr
+        WHERE pr.overall_rating < " . (float)$LOW_OVERALL_RATING_THRESHOLD . "
+        AND NOT EXISTS (
+            SELECT 1 FROM training_needs_assessment tna
+            WHERE tna.employee_id = pr.employee_id AND tna.cycle_id = pr.cycle_id
+        )
+    ");
+    $lowReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $ins = $pdo->prepare("
+        INSERT INTO training_needs_assessment (employee_id, review_id, cycle_id, assessment_date, skills_gap, recommended_trainings, priority, status)
+        VALUES (?, ?, ?, CURDATE(), ?, '', 'High', 'Identified')
+    ");
+    foreach ($lowReviews as $r) {
+        $ins->execute([
+            $r['employee_id'],
+            $r['review_id'],
+            $r['cycle_id'],
+            "Auto-identified from performance: overall rating " . $r['overall_rating'] . " (below " . $LOW_OVERALL_RATING_THRESHOLD . "). Training recommended."
+        ]);
+    }
+    // 2) From employee_competencies: any rating <= threshold (and no need for that employee+cycle yet)
+    $stmt = $pdo->query("
+        SELECT ec.employee_id, ec.cycle_id, MIN(ec.rating) AS min_rating
+        FROM employee_competencies ec
+        WHERE ec.rating <= " . (int)$LOW_COMPETENCY_RATING_THRESHOLD . "
+        AND NOT EXISTS (
+            SELECT 1 FROM training_needs_assessment tna
+            WHERE tna.employee_id = ec.employee_id AND tna.cycle_id = ec.cycle_id
+        )
+        GROUP BY ec.employee_id, ec.cycle_id
+    ");
+    $lowComps = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $ins2 = $pdo->prepare("
+        INSERT INTO training_needs_assessment (employee_id, review_id, cycle_id, assessment_date, skills_gap, recommended_trainings, priority, status)
+        VALUES (?, NULL, ?, CURDATE(), ?, '', 'Medium', 'Identified')
+    ");
+    foreach ($lowComps as $c) {
+        $ins2->execute([
+            $c['employee_id'],
+            $c['cycle_id'],
+            "Auto-identified from performance: low competency rating(s) (lowest: " . $c['min_rating'] . "). Training recommended."
+        ]);
+    }
+} catch (PDOException $e) {
+    // Tables may not exist or columns missing; ignore
+}
+
+// Fetch training needs assessments (with optional performance link)
 try {
     $stmt = $pdo->query("
-        SELECT tna.*, e.first_name, e.last_name 
-        FROM training_needs_assessment tna 
-        JOIN employee_profiles ep ON tna.employee_id = ep.employee_id 
-        JOIN personal_information e ON ep.personal_info_id = e.personal_info_id 
+        SELECT tna.*, e.first_name, e.last_name,
+               c.cycle_name,
+               pr.review_date AS review_date
+        FROM training_needs_assessment tna
+        JOIN employee_profiles ep ON tna.employee_id = ep.employee_id
+        JOIN personal_information e ON ep.personal_info_id = e.personal_info_id
+        LEFT JOIN performance_review_cycles c ON tna.cycle_id = c.cycle_id
+        LEFT JOIN performance_reviews pr ON tna.review_id = pr.review_id
         ORDER BY tna.assessment_date DESC
     ");
     $assessments = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -157,14 +295,47 @@ try {
 // Fetch employees for dropdowns
 try {
     $stmt = $pdo->query("
-        SELECT ep.employee_id, pi.first_name, pi.last_name 
-        FROM employee_profiles ep 
-        JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id 
+        SELECT ep.employee_id, pi.first_name, pi.last_name
+        FROM employee_profiles ep
+        JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
         ORDER BY pi.last_name
     ");
     $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $employees = [];
+}
+
+// Fetch performance review cycles and reviews (for linking training needs to performance)
+$reviewCycles = [];
+$performanceReviews = [];
+try {
+    $stmt = $pdo->query("SELECT cycle_id, cycle_name FROM performance_review_cycles ORDER BY start_date DESC");
+    $reviewCycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->query("
+        SELECT pr.review_id, pr.employee_id, pr.cycle_id, pr.review_date, pr.overall_rating,
+               c.cycle_name
+        FROM performance_reviews pr
+        JOIN performance_review_cycles c ON pr.cycle_id = c.cycle_id
+        ORDER BY pr.review_date DESC
+    ");
+    $performanceReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Columns may not exist yet
+}
+
+// Fetch training sessions for "Create enrollment" from need
+$trainingSessions = [];
+try {
+    $stmt = $pdo->query("
+        SELECT ts.session_id, ts.session_name, ts.start_date, ts.end_date, ts.status,
+               tc.course_name
+        FROM training_sessions ts
+        JOIN training_courses tc ON ts.course_id = tc.course_id
+        ORDER BY ts.start_date DESC
+    ");
+    $trainingSessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $trainingSessions = [];
 }
 
 // Get statistics
@@ -807,6 +978,7 @@ try {
                                     <tr>
                                         <th>Employee</th>
                                         <th>Assessment Date</th>
+                                        <th>From performance</th>
                                         <th>Skills Gap</th>
                                         <th>Priority</th>
                                         <th>Status</th>
@@ -818,7 +990,17 @@ try {
                                     <tr>
                                         <td><strong><?php echo htmlspecialchars($assessment['first_name'] . ' ' . $assessment['last_name']); ?></strong></td>
                                         <td><?php echo date('M d, Y', strtotime($assessment['assessment_date'])); ?></td>
-                                        <td><?php echo htmlspecialchars(substr($assessment['skills_gap'], 0, 50)) . (strlen($assessment['skills_gap']) > 50 ? '...' : ''); ?></td>
+                                        <td>
+                                            <?php
+                                            if (!empty($assessment['cycle_name'])) {
+                                                echo htmlspecialchars($assessment['cycle_name']);
+                                                if (!empty($assessment['review_date'])) echo ' <small>(' . date('M d, Y', strtotime($assessment['review_date'])) . ')</small>';
+                                            } else {
+                                                echo '—';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars(substr($assessment['skills_gap'] ?? '', 0, 50)) . (strlen($assessment['skills_gap'] ?? '') > 50 ? '...' : ''); ?></td>
                                         <td>
                                             <span class="priority-badge priority-<?php echo strtolower($assessment['priority']); ?>">
                                                 <?php echo htmlspecialchars($assessment['priority']); ?>
@@ -826,6 +1008,9 @@ try {
                                         </td>
                                         <td><?php echo htmlspecialchars($assessment['status']); ?></td>
                                         <td>
+                                            <button class="btn btn-primary btn-small" onclick="openEnrollModal(<?php echo $assessment['assessment_id']; ?>, '<?php echo htmlspecialchars(addslashes($assessment['first_name'] . ' ' . $assessment['last_name'])); ?>')" title="Enroll in a training session">
+                                                📅 Enroll
+                                            </button>
                                             <button class="btn btn-warning btn-small" onclick="editAssessment(<?php echo $assessment['assessment_id']; ?>)">
                                                 ✏️ Edit
                                             </button>
@@ -1011,6 +1196,19 @@ try {
                     </div>
 
                     <div class="form-group">
+                        <label for="assessment_review_id">Link to performance (optional)</label>
+                        <select id="assessment_review_id" name="review_id" class="form-control">
+                            <option value="">— None (standalone) —</option>
+                            <?php foreach ($performanceReviews as $r): ?>
+                            <option value="<?php echo (int)$r['review_id']; ?>" data-employee-id="<?php echo (int)$r['employee_id']; ?>">
+                                <?php echo htmlspecialchars($r['cycle_name'] . ' – ' . date('M d, Y', strtotime($r['review_date'])) . (isset($r['overall_rating']) ? ' (Rating: ' . $r['overall_rating'] . ')' : '')); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted">Choose a performance review to link this training need to (reduces to this employee after you select one).</small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="skills_gap">Skills Gap *</label>
                         <textarea id="skills_gap" name="skills_gap" class="form-control" rows="3" placeholder="Describe the skills gap identified" required></textarea>
                     </div>
@@ -1047,6 +1245,37 @@ try {
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal('assessment')">Cancel</button>
                         <button type="submit" class="btn btn-success">💾 Save Assessment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create enrollment from need modal -->
+    <div id="enrollModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="enrollModalTitle">Enroll in session</h2>
+                <span class="close" onclick="closeModal('enroll')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="enrollForm" method="POST">
+                    <input type="hidden" name="action" value="create_enrollment_from_need">
+                    <input type="hidden" id="enroll_assessment_id" name="assessment_id" value="">
+                    <div class="form-group">
+                        <label for="enroll_session_id">Training session *</label>
+                        <select id="enroll_session_id" name="session_id" class="form-control" required>
+                            <option value="">Select a session</option>
+                            <?php foreach ($trainingSessions as $s): ?>
+                            <option value="<?php echo (int)$s['session_id']; ?>">
+                                <?php echo htmlspecialchars($s['course_name'] . ' – ' . $s['session_name'] . ' (' . date('M d, Y', strtotime($s['start_date'])) . ')'); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal('enroll')">Cancel</button>
+                        <button type="submit" class="btn btn-success">📅 Create enrollment</button>
                     </div>
                 </form>
             </div>
@@ -1191,6 +1420,8 @@ try {
                 form.reset();
                 document.getElementById('assessment_id').value = '';
                 document.getElementById('assessment_date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('assessment_review_id').value = '';
+                if (typeof filterReviewDropdownByEmployee === 'function') filterReviewDropdownByEmployee();
                 modal.style.display = 'block';
                 
             } else if (mode === 'edit_assessment' && id) {
@@ -1210,8 +1441,18 @@ try {
 
         function closeModal(modalType) {
             const modal = document.getElementById(modalType + 'Modal');
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function openEnrollModal(assessmentId, employeeName) {
+            document.getElementById('enrollModalTitle').textContent = 'Enroll ' + employeeName + ' in a session';
+            document.getElementById('enroll_assessment_id').value = assessmentId;
+            document.getElementById('enroll_session_id').value = '';
+            document.getElementById('enrollModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
         function populateSkillForm(skillId) {
@@ -1239,12 +1480,31 @@ try {
             if (assessment) {
                 document.getElementById('assessment_employee_id').value = assessment.employee_id || '';
                 document.getElementById('assessment_date').value = assessment.assessment_date || '';
+                document.getElementById('assessment_review_id').value = assessment.review_id || '';
                 document.getElementById('skills_gap').value = assessment.skills_gap || '';
                 document.getElementById('recommended_trainings').value = assessment.recommended_trainings || '';
                 document.getElementById('priority').value = assessment.priority || '';
                 document.getElementById('status').value = assessment.status || '';
+                filterReviewDropdownByEmployee();
             }
         }
+
+        // Show only performance reviews for the selected employee in the assessment form
+        function filterReviewDropdownByEmployee() {
+            const empId = document.getElementById('assessment_employee_id').value;
+            const sel = document.getElementById('assessment_review_id');
+            const options = sel.querySelectorAll('option');
+            options.forEach(opt => {
+                if (opt.value === '') {
+                    opt.style.display = '';
+                    return;
+                }
+                const optEmpId = opt.getAttribute('data-employee-id');
+                opt.style.display = (!empId || optEmpId === empId) ? '' : 'none';
+            });
+            if (!empId) sel.value = '';
+        }
+        document.getElementById('assessment_employee_id').addEventListener('change', filterReviewDropdownByEmployee);
 
         function editSkill(skillId) {
             openModal('edit_skill', skillId);
@@ -1302,6 +1562,7 @@ try {
             const skillModal = document.getElementById('skillModal');
             const employeeSkillModal = document.getElementById('employeeSkillModal');
             const assessmentModal = document.getElementById('assessmentModal');
+            const enrollModal = document.getElementById('enrollModal');
             
             if (event.target === skillModal) {
                 closeModal('skill');
@@ -1309,6 +1570,8 @@ try {
                 closeModal('employeeSkill');
             } else if (event.target === assessmentModal) {
                 closeModal('assessment');
+            } else if (event.target === enrollModal) {
+                closeModal('enroll');
             }
         }
 
@@ -1324,8 +1587,12 @@ try {
             });
         }, 5000);
 
-        // Initialize tooltips and animations
+        // Open Training Needs tab when arriving via ?tab=needs (e.g. from training_needs_assessment.php redirect)
         document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'needs') {
+                showTab('needs');
+            }
             // Add hover effects to table rows
             const tableRows = document.querySelectorAll('.table tbody tr');
             tableRows.forEach(row => {

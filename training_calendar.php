@@ -25,16 +25,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add_session':
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO training_sessions (course_id, trainer_id, session_name, start_date, end_date, location, max_participants, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $delivery_type = $_POST['delivery_type'] ?? 'In-house';
+                    $provider_name = $delivery_type === 'External' ? trim($_POST['provider_name'] ?? '') : null;
+                    $trainer_id = ($delivery_type === 'In-house' && !empty($_POST['trainer_id'])) ? $_POST['trainer_id'] : null;
+                    $max_part = $_POST['max_participants'] ?? null;
+                    $stmt = $pdo->prepare("INSERT INTO training_sessions (course_id, trainer_id, session_name, start_date, end_date, location, capacity, status, delivery_type, provider_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['course_id'],
-                        $_POST['trainer_id'],
+                        $trainer_id,
                         $_POST['session_name'],
                         $_POST['start_date'],
                         $_POST['end_date'],
                         $_POST['location'],
-                        $_POST['max_participants'],
-                        $_POST['status']
+                        $max_part ? (int)$max_part : 0,
+                        $_POST['status'],
+                        $delivery_type,
+                        $provider_name ?: null
                     ]);
                     $message = "Training session added successfully!";
                     $messageType = "success";
@@ -46,16 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             case 'update_session':
                 try {
-                    $stmt = $pdo->prepare("UPDATE training_sessions SET course_id = ?, trainer_id = ?, session_name = ?, start_date = ?, end_date = ?, location = ?, max_participants = ?, status = ? WHERE session_id = ?");
+                    $delivery_type = $_POST['delivery_type'] ?? 'In-house';
+                    $provider_name = $delivery_type === 'External' ? trim($_POST['provider_name'] ?? '') : null;
+                    $trainer_id = ($delivery_type === 'In-house' && !empty($_POST['trainer_id'])) ? $_POST['trainer_id'] : null;
+                    $max_part = $_POST['max_participants'] ?? 0;
+                    $stmt = $pdo->prepare("UPDATE training_sessions SET course_id = ?, trainer_id = ?, session_name = ?, start_date = ?, end_date = ?, location = ?, capacity = ?, status = ?, delivery_type = ?, provider_name = ? WHERE session_id = ?");
                     $stmt->execute([
                         $_POST['course_id'],
-                        $_POST['trainer_id'],
+                        $trainer_id,
                         $_POST['session_name'],
                         $_POST['start_date'],
                         $_POST['end_date'],
                         $_POST['location'],
-                        $_POST['max_participants'],
+                        (int)$max_part,
                         $_POST['status'],
+                        $delivery_type,
+                        $provider_name ?: null,
                         $_POST['session_id']
                     ]);
                     $message = "Training session updated successfully!";
@@ -91,9 +103,9 @@ try {
         SELECT ts.*, tc.course_name, t.first_name as trainer_first, t.last_name as trainer_last
         FROM training_sessions ts 
         JOIN training_courses tc ON ts.course_id = tc.course_id 
-        JOIN trainers t ON ts.trainer_id = t.trainer_id 
+        LEFT JOIN trainers t ON ts.trainer_id = t.trainer_id 
         WHERE MONTH(ts.start_date) = ? AND YEAR(ts.start_date) = ?
-        ORDER BY ts.start_date, ts.start_time
+        ORDER BY ts.start_date
     ");
     $stmt->execute([$currentMonth, $currentYear]);
     $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -505,7 +517,7 @@ foreach ($sessions as $session) {
                                     <tr>
                                         <td><strong><?php echo htmlspecialchars($session['session_name']); ?></strong></td>
                                         <td><?php echo htmlspecialchars($session['course_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($session['trainer_first'] . ' ' . $session['trainer_last']); ?></td>
+                                        <td><?php echo (isset($session['trainer_first']) || isset($session['trainer_last'])) ? htmlspecialchars(trim(($session['trainer_first'] ?? '') . ' ' . ($session['trainer_last'] ?? ''))) : '—'; ?></td>
                                         <td>
                                             <?php echo date('M d, Y', strtotime($session['start_date'])); ?>
                                             <?php if ($session['start_time']): ?>
@@ -562,8 +574,19 @@ foreach ($sessions as $session) {
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Trainer *</label>
-                            <select class="form-control" name="trainer_id" required>
+                            <label>Delivery type *</label>
+                            <select class="form-control" name="delivery_type" id="cal_delivery_type">
+                                <option value="In-house">In-house</option>
+                                <option value="External">External</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="cal_provider_name_col" style="display: none;">
+                            <label>External provider name</label>
+                            <input type="text" class="form-control" name="provider_name" placeholder="e.g. CloudSwift">
+                        </div>
+                        <div class="form-group">
+                            <label>Trainer <span id="cal_trainer_req">*</span></label>
+                            <select class="form-control" name="trainer_id" id="cal_trainer_id">
                                 <option value="">Select Trainer</option>
                                 <?php foreach ($trainers as $trainer): ?>
                                 <option value="<?php echo $trainer['trainer_id']; ?>">
@@ -705,6 +728,14 @@ foreach ($sessions as $session) {
                 form.submit();
             }
         }
+
+        // Delivery type toggle (Add Session modal)
+        $('#cal_delivery_type').on('change', function() {
+            var isExternal = $(this).val() === 'External';
+            $('#cal_provider_name_col').toggle(isExternal);
+            $('#cal_trainer_id').prop('required', !isExternal);
+            $('#cal_trainer_req').text(isExternal ? '' : '*');
+        });
     </script>
 </body>
 </html>

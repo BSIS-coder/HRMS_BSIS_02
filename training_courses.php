@@ -612,14 +612,11 @@ try {
                                 <label for="delivery_method">Delivery Method *</label>
                                 <select id="delivery_method" name="delivery_method" class="form-control" required>
                                     <option value="">Select Method</option>
-                                    <option value="Classroom Training">Classroom Training</option>
-                                    <option value="Online Learning">Online Learning</option>
-                                    <option value="Blended Learning">Blended Learning</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Classroom">Classroom</option>
                                     <option value="Workshop">Workshop</option>
-                                    <option value="Seminar">Seminar</option>
-                                    <option value="Webinar">Webinar</option>
-                                    <option value="Self-Paced">Self-Paced</option>
-                                    <option value="On-the-Job Training">On-the-Job Training</option>
+                                    <option value="Self-paced">Self-paced</option>
+                                    <option value="Hybrid">Hybrid</option>
                                 </select>
                             </div>
                         </div>

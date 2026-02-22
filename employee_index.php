@@ -113,6 +113,30 @@ if (function_exists('getLeaveTypesForEmployee') && $employee_id) {
     $leaveTypes = [];
 }
 
+// L&D widget: upcoming training and training needs count
+$upcomingTraining = [];
+$trainingNeedsCount = 0;
+if ($employee_id) {
+    try {
+        $stmt = $conn->prepare("
+            SELECT te.enrollment_id, te.status, ts.session_name, ts.start_date, tc.course_name
+            FROM training_enrollments te
+            JOIN training_sessions ts ON te.session_id = ts.session_id
+            JOIN training_courses tc ON ts.course_id = tc.course_id
+            WHERE te.employee_id = ? AND te.status != 'Completed'
+            ORDER BY ts.start_date ASC
+            LIMIT 5
+        ");
+        $stmt->execute([$employee_id]);
+        $upcomingTraining = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM training_needs_assessment WHERE employee_id = ? AND status IN ('Identified', 'In Progress')");
+        $stmt->execute([$employee_id]);
+        $trainingNeedsCount = (int) $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        // ignore
+    }
+}
+
 // Debug information
 $current_role = $_SESSION['role'] ?? 'none';
 $current_page = basename($_SERVER['PHP_SELF']);
@@ -637,25 +661,31 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </div>
                     </div>
 
-                    <!-- Upcoming Events -->
+                    <!-- Learning & Development -->
                     <div class="col-md-6">
                         <div class="info-card">
-                            <h5><i class="fas fa-bell mr-2"></i>Upcoming Events</h5>
-                            <div class="info-item">
-                                <span class="info-label">Team Meeting:</span>
-                                <span class="info-value">Tomorrow, 10:00 AM</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Training Session:</span>
-                                <span class="info-value">Friday, 2:00 PM</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Performance Review:</span>
-                                <span class="info-value">Sep 5, 2023</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Company Event:</span>
-                                <span class="info-value">Sep 15, 2023</span>
+                            <h5><i class="fas fa-graduation-cap mr-2"></i>Learning & Development</h5>
+                            <?php if (!empty($upcomingTraining)): ?>
+                                <?php foreach (array_slice($upcomingTraining, 0, 4) as $t): ?>
+                                    <div class="info-item">
+                                        <span class="info-label"><?php echo htmlspecialchars($t['course_name']); ?></span>
+                                        <span class="info-value"><?php echo $t['start_date'] ? date('M d, Y', strtotime($t['start_date'])) : '—'; ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="info-item">
+                                    <span class="info-label">Upcoming training</span>
+                                    <span class="info-value text-muted">None scheduled</span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($trainingNeedsCount > 0): ?>
+                                <div class="info-item">
+                                    <span class="info-label">Identified training needs</span>
+                                    <span class="info-value"><?php echo $trainingNeedsCount; ?></span>
+                                </div>
+                            <?php endif; ?>
+                            <div class="text-center mt-3">
+                                <a href="my_training.php" class="btn btn-sm btn-outline-primary">View all my training</a>
                             </div>
                         </div>
                     </div>

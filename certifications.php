@@ -500,9 +500,21 @@ function getStatusBadgeClass($expiryDate) {
                             <span class="search-icon">🔍</span>
                             <input type="text" id="searchInput" placeholder="Search by employee, certification, or category...">
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('add')">
-                            ➕ Add Certification
-                        </button>
+                        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <select id="filterStatus" class="form-control" style="width: auto; min-width: 160px;">
+                                <option value="">All statuses</option>
+                                <option value="Active">Active</option>
+                                <option value="Expiring Soon">Expiring Soon</option>
+                                <option value="Expired">Expired</option>
+                                <option value="No Expiry">No Expiry</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="openModal('add')" id="btnAddCert">
+                                ➕ Add Certification
+                            </button>
+                            <?php if (empty($skills)): ?>
+                            <span class="text-muted small">Add skills in <a href="skill_matrix.php">Skills & Assessment</a> first.</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -521,26 +533,22 @@ function getStatusBadgeClass($expiryDate) {
                             </thead>
                             <tbody id="certTableBody">
                                 <?php foreach ($certifications as $cert): ?>
-                                <tr>
+                                <?php
+                                $certStatus = !$cert['expiry_date'] ? 'No Expiry' : (new DateTime($cert['expiry_date']) < new DateTime() ? 'Expired' : ((new DateTime($cert['expiry_date']))->diff(new DateTime())->days <= 30 ? 'Expiring Soon' : 'Active'));
+                                ?>
+                                <tr data-status="<?php echo htmlspecialchars($certStatus); ?>">
                                     <td><strong><?php echo htmlspecialchars($cert['first_name'] . ' ' . $cert['last_name']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($cert['skill_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($cert['category'] ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars($cert['category'] ?? '—'); ?></td>
                                     <td><?php echo htmlspecialchars($cert['proficiency_level']); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($cert['assessed_date'])); ?></td>
                                     <td><?php echo $cert['expiry_date'] ? date('M d, Y', strtotime($cert['expiry_date'])) : '—'; ?></td>
                                     <td>
-                                        <span class="status-badge <?php echo getStatusBadgeClass($cert['expiry_date']); ?>">
-                                            <?php
-                                            if (!$cert['expiry_date']) echo 'No Expiry';
-                                            elseif (new DateTime($cert['expiry_date']) < new DateTime()) echo 'Expired';
-                                            elseif ((new DateTime($cert['expiry_date']))->diff(new DateTime())->days <= 30) echo 'Expiring Soon';
-                                            else echo 'Active';
-                                            ?>
-                                        </span>
+                                        <span class="status-badge <?php echo getStatusBadgeClass($cert['expiry_date']); ?>"><?php echo $certStatus; ?></span>
                                     </td>
                                     <td>
                                         <?php if (!empty($cert['certification_url'])): ?>
-                                        <a href="<?php echo htmlspecialchars($cert['certification_url']); ?>" target="_blank" class="btn btn-small btn-primary" title="View certificate"><i class="fas fa-external-link-alt"></i></a>
+                                        <a href="<?php echo htmlspecialchars($cert['certification_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-small btn-primary" title="View certificate"><i class="fas fa-external-link-alt"></i> View</a>
                                         <?php endif; ?>
                                         <button type="button" class="btn btn-warning btn-small" onclick="editCertification(<?php echo (int)$cert['employee_skill_id']; ?>)">✏️ Edit</button>
                                         <button type="button" class="btn btn-danger btn-small" onclick="deleteCertification(<?php echo (int)$cert['employee_skill_id']; ?>)">🗑️ Delete</button>
@@ -553,7 +561,10 @@ function getStatusBadgeClass($expiryDate) {
                         <div class="no-results">
                             <i class="fas fa-certificate"></i>
                             <h3>No certifications found</h3>
-                            <p>Add certifications linked to employee skills with a certificate URL.</p>
+                            <p>Add certifications linked to employee skills. Each entry must have a <strong>Certificate URL</strong> (verification or digital certificate link) to appear in this list.</p>
+                            <?php if (empty($skills)): ?>
+                            <p class="text-muted mt-2">Define skills first in <strong>Learn & Develop → Skills & Assessment</strong>, then add certifications here.</p>
+                            <?php endif; ?>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -618,15 +629,17 @@ function getStatusBadgeClass($expiryDate) {
                     </div>
                     <div class="form-group">
                         <label>Certificate URL</label>
-                        <input type="url" class="form-control" id="cert_certification_url" name="certification_url" placeholder="Link to digital certificate">
+                        <input type="url" class="form-control" id="cert_certification_url" name="certification_url" placeholder="https://... (verification link or digital certificate)">
+                        <small class="text-muted">Only entries with a certificate URL appear here. Add a link to verify or view the certificate.</small>
                     </div>
                     <div class="form-group">
                         <label>Expiry Date</label>
-                        <input type="date" class="form-control" id="cert_expiry_date" name="expiry_date">
+                        <input type="date" class="form-control" id="cert_expiry_date" name="expiry_date" placeholder="">
+                        <small class="text-muted">Leave blank if the certification does not expire.</small>
                     </div>
                     <div class="form-group">
                         <label>Notes</label>
-                        <textarea class="form-control" id="cert_notes" name="notes" rows="3" placeholder="Additional notes"></textarea>
+                        <textarea class="form-control" id="cert_notes" name="notes" rows="3" placeholder="e.g. Issuing body (e.g. Microsoft, CloudSwift), certificate number, or other details"></textarea>
                     </div>
                     <div style="text-align: center; margin-top: 20px;">
                         <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal()">Cancel</button>
@@ -643,13 +656,19 @@ function getStatusBadgeClass($expiryDate) {
     <script>
         var certsData = <?= json_encode($certifications) ?>;
 
-        document.getElementById('searchInput').addEventListener('input', function() {
-            var term = this.value.toLowerCase();
+        function applyFilters() {
+            var term = (document.getElementById('searchInput').value || '').toLowerCase();
+            var statusFilter = (document.getElementById('filterStatus').value || '').toLowerCase();
             var rows = document.querySelectorAll('#certTableBody tr');
             rows.forEach(function(row) {
-                row.style.display = row.textContent.toLowerCase().indexOf(term) > -1 ? '' : 'none';
+                var textMatch = term === '' || row.textContent.toLowerCase().indexOf(term) > -1;
+                var statusMatch = statusFilter === '' || (row.getAttribute('data-status') || '').toLowerCase() === statusFilter;
+                row.style.display = (textMatch && statusMatch) ? '' : 'none';
             });
-        });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
 
         function openModal(mode, id) {
             var modal = document.getElementById('certModal');
@@ -661,6 +680,8 @@ function getStatusBadgeClass($expiryDate) {
                 title.textContent = 'Add Certification';
                 action.value = 'add_certification';
                 form.reset();
+                var today = new Date().toISOString().slice(0, 10);
+                document.getElementById('cert_assessed_date').value = today;
                 document.getElementById('cert_employee_id').removeAttribute('readonly');
                 document.getElementById('cert_employee_id').disabled = false;
                 document.getElementById('cert_skill_id').disabled = false;
@@ -707,6 +728,27 @@ function getStatusBadgeClass($expiryDate) {
         window.onclick = function(e) {
             if (e.target.id === 'certModal') closeModal();
         };
+
+        document.getElementById('certForm').addEventListener('submit', function(e) {
+            var urlEl = document.getElementById('cert_certification_url');
+            var url = (urlEl.value || '').trim();
+            if (url) {
+                try {
+                    new URL(url);
+                } catch (err) {
+                    e.preventDefault();
+                    alert('Please enter a valid Certificate URL (e.g. https://...).');
+                    return;
+                }
+            }
+            var assessed = document.getElementById('cert_assessed_date').value;
+            var expiry = document.getElementById('cert_expiry_date').value;
+            if (assessed && expiry && expiry < assessed) {
+                e.preventDefault();
+                alert('Expiry date must be on or after the assessment date.');
+                return;
+            }
+        });
 
         setTimeout(function() {
             document.querySelectorAll('.alert').forEach(function(a) {

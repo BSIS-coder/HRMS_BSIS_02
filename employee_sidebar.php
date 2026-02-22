@@ -87,7 +87,7 @@ if (!$is_logged_in || $user_role !== 'employee') {
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('training_enrollments.php'); ?>" href="training_enrollments.php">
+            <a class="nav-link <?php echo isActiveMenu('my_training.php'); ?>" href="my_training.php">
                 <i class="fas fa-graduation-cap"></i> My Training
             </a>
         </li>
@@ -99,20 +99,20 @@ if (!$is_logged_in || $user_role !== 'employee') {
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('employee_skills.php'); ?>" href="employee_skills.php">
+            <a class="nav-link <?php echo isActiveMenu('my_skills.php'); ?>" href="my_skills.php">
                 <i class="fas fa-user-cog"></i> My Skills
             </a>
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('career_paths.php'); ?>" href="career_paths.php">
-                <i class="fas fa-road"></i> Career Path
+            <a class="nav-link <?php echo isActiveMenu('my_learning_resources.php'); ?>" href="my_learning_resources.php">
+                <i class="fas fa-book-open"></i> Learning Resources
             </a>
         </li>
         
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('employee_resources.php'); ?>" href="employee_resources.php">
-                <i class="fas fa-book-open"></i> Learning Resources
+            <a class="nav-link <?php echo isActiveMenu('feedback.php'); ?>" href="feedback.php">
+                <i class="fas fa-comment-alt"></i> Feedback
             </a>
         </li>
         

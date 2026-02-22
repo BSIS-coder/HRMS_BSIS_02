@@ -16,6 +16,17 @@ require_once 'config.php';
 // Use the global database connection
 $pdo = $conn;
 
+// One-time migration: add delivery_type, provider_name; allow NULL trainer_id (if not already done)
+try {
+    $check = $pdo->query("SHOW COLUMNS FROM training_sessions LIKE 'delivery_type'");
+    if ($check->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE training_sessions ADD COLUMN delivery_type ENUM('In-house','External') NOT NULL DEFAULT 'In-house' AFTER status, ADD COLUMN provider_name VARCHAR(255) NULL AFTER delivery_type");
+        $pdo->exec("ALTER TABLE training_sessions MODIFY COLUMN trainer_id INT(11) NULL");
+    }
+} catch (PDOException $e) {
+    // Ignore if already applied or DB error
+}
+
 // Handle form submissions
 $message = '';
 $messageType = '';
@@ -25,17 +36,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add_session':
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO training_sessions (course_id, trainer_id, session_name, start_date, end_date, location, capacity, cost_per_participant, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $delivery_type = $_POST['delivery_type'] ?? 'In-house';
+                    $provider_name = $delivery_type === 'External' ? trim($_POST['provider_name'] ?? '') : null;
+                    $trainer_id = ($delivery_type === 'In-house' && !empty($_POST['trainer_id'])) ? $_POST['trainer_id'] : null;
+                    $stmt = $pdo->prepare("INSERT INTO training_sessions (course_id, trainer_id, session_name, start_date, end_date, location, capacity, cost_per_participant, status, delivery_type, provider_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['course_id'],
-                        $_POST['trainer_id'],
+                        $trainer_id ?: null,
                         $_POST['session_name'],
                         $_POST['start_date'],
                         $_POST['end_date'],
                         $_POST['location'],
                         $_POST['capacity'],
                         $_POST['cost_per_participant'],
-                        $_POST['status']
+                        $_POST['status'],
+                        $delivery_type,
+                        $provider_name ?: null
                     ]);
                     $message = "Training session added successfully!";
                     $messageType = "success";
@@ -47,10 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             case 'edit_session':
                 try {
-                    $stmt = $pdo->prepare("UPDATE training_sessions SET course_id=?, trainer_id=?, session_name=?, start_date=?, end_date=?, location=?, capacity=?, cost_per_participant=?, status=? WHERE session_id=?");
+                    $delivery_type = $_POST['delivery_type'] ?? 'In-house';
+                    $provider_name = $delivery_type === 'External' ? trim($_POST['provider_name'] ?? '') : null;
+                    $trainer_id = ($delivery_type === 'In-house' && !empty($_POST['trainer_id'])) ? $_POST['trainer_id'] : null;
+                    $stmt = $pdo->prepare("UPDATE training_sessions SET course_id=?, trainer_id=?, session_name=?, start_date=?, end_date=?, location=?, capacity=?, cost_per_participant=?, status=?, delivery_type=?, provider_name=? WHERE session_id=?");
                     $stmt->execute([
                         $_POST['course_id'],
-                        $_POST['trainer_id'],
+                        $trainer_id ?: null,
                         $_POST['session_name'],
                         $_POST['start_date'],
                         $_POST['end_date'],
@@ -58,6 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['capacity'],
                         $_POST['cost_per_participant'],
                         $_POST['status'],
+                        $delivery_type,
+                        $provider_name ?: null,
                         $_POST['session_id']
                     ]);
                     $message = "Training session updated successfully!";
@@ -547,6 +568,8 @@ try {
                                 <tr>
                                     <th>Session Name</th>
                                     <th>Course</th>
+                                    <th>Delivery</th>
+                                    <th>Provider</th>
                                     <th>Trainer</th>
                                     <th>Start Date</th>
                                     <th>End Date</th>
@@ -561,7 +584,9 @@ try {
                                 <tr>
                                     <td><strong><?php echo htmlspecialchars($session['session_name']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($session['course_name'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars(($session['first_name'] ?? '') . ' ' . ($session['last_name'] ?? '')); ?></td>
+                                    <td><?php echo htmlspecialchars($session['delivery_type'] ?? 'In-house'); ?></td>
+                                    <td><?php echo ($session['delivery_type'] ?? '') === 'External' && !empty($session['provider_name']) ? htmlspecialchars($session['provider_name']) : '—'; ?></td>
+                                    <td><?php echo (!empty($session['first_name']) || !empty($session['last_name'])) ? htmlspecialchars(trim(($session['first_name'] ?? '') . ' ' . ($session['last_name'] ?? ''))) : '—'; ?></td>
                                     <td><?php echo date('M d, Y', strtotime($session['start_date'])); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($session['end_date'])); ?></td>
                                     <td><?php echo htmlspecialchars($session['location']); ?></td>
@@ -634,8 +659,26 @@ try {
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
+                                <label for="delivery_type">Delivery type *</label>
+                                <select id="delivery_type" name="delivery_type" class="form-control" required>
+                                    <option value="In-house">In-house</option>
+                                    <option value="External">External</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col" id="provider_name_col" style="display: none;">
+                            <div class="form-group">
+                                <label for="provider_name">External provider name</label>
+                                <input type="text" id="provider_name" name="provider_name" class="form-control" placeholder="e.g. CloudSwift">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col" id="trainer_col">
+                            <div class="form-group">
                                 <label for="trainer_id">Trainer *</label>
-                                <select id="trainer_id" name="trainer_id" class="form-control" required>
+                                <select id="trainer_id" name="trainer_id" class="form-control">
                                     <option value="">Select Trainer</option>
                                     <?php foreach ($trainers as $trainer): ?>
                                     <option value="<?php echo $trainer['trainer_id']; ?>">
@@ -736,6 +779,7 @@ try {
                 action.value = 'add_session';
                 form.reset();
                 document.getElementById('session_id').value = '';
+                toggleDeliveryFields();
             } else if (mode === 'edit' && sessionId) {
                 title.textContent = 'Edit Session';
                 action.value = 'edit_session';
@@ -753,18 +797,39 @@ try {
             document.body.style.overflow = 'auto';
         }
 
+        function toggleDeliveryFields() {
+            const deliveryType = document.getElementById('delivery_type').value;
+            const providerCol = document.getElementById('provider_name_col');
+            const trainerSelect = document.getElementById('trainer_id');
+            const trainerLabel = document.querySelector('label[for="trainer_id"]');
+            if (deliveryType === 'External') {
+                providerCol.style.display = 'block';
+                trainerSelect.removeAttribute('required');
+                if (trainerLabel) trainerLabel.textContent = 'Trainer (optional)';
+            } else {
+                providerCol.style.display = 'none';
+                trainerSelect.setAttribute('required', 'required');
+                if (trainerLabel) trainerLabel.textContent = 'Trainer *';
+            }
+        }
+
+        document.getElementById('delivery_type').addEventListener('change', toggleDeliveryFields);
+
         function populateEditForm(sessionId) {
             const session = sessionsData.find(s => s.session_id == sessionId);
             if (session) {
                 document.getElementById('session_name').value = session.session_name || '';
                 document.getElementById('course_id').value = session.course_id || '';
                 document.getElementById('trainer_id').value = session.trainer_id || '';
-                document.getElementById('start_date').value = session.start_date || '';
-                document.getElementById('end_date').value = session.end_date || '';
+                document.getElementById('delivery_type').value = session.delivery_type || 'In-house';
+                document.getElementById('provider_name').value = session.provider_name || '';
+                document.getElementById('start_date').value = (session.start_date || '').slice(0, 10);
+                document.getElementById('end_date').value = (session.end_date || '').slice(0, 10);
                 document.getElementById('location').value = session.location || '';
                 document.getElementById('capacity').value = session.capacity || '';
                 document.getElementById('cost_per_participant').value = session.cost_per_participant || '';
                 document.getElementById('status').value = session.status || '';
+                toggleDeliveryFields();
             }
         }
 
@@ -795,6 +860,13 @@ try {
 
         // Form validation
         document.getElementById('sessionForm').addEventListener('submit', function(e) {
+            const deliveryType = document.getElementById('delivery_type').value;
+            if (deliveryType === 'In-house' && !document.getElementById('trainer_id').value) {
+                e.preventDefault();
+                alert('Trainer is required for In-house sessions.');
+                return;
+            }
+
             const startDate = new Date(document.getElementById('start_date').value);
             const endDate = new Date(document.getElementById('end_date').value);
             

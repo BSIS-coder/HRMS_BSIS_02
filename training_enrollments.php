@@ -147,16 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch enrollments with details
+// Fetch enrollments with details (LEFT JOIN trainers so sessions without internal trainer still show)
 try {
     $stmt = $pdo->query("
-        SELECT te.*, e.first_name, e.last_name, ts.session_name, tc.course_name, t.first_name as trainer_first, t.last_name as trainer_last
+        SELECT te.*, e.first_name, e.last_name, ts.session_name, tc.course_name, ts.delivery_type, ts.provider_name,
+               t.first_name as trainer_first, t.last_name as trainer_last
         FROM training_enrollments te 
         JOIN employee_profiles ep ON te.employee_id = ep.employee_id 
         JOIN personal_information e ON ep.personal_info_id = e.personal_info_id 
         JOIN training_sessions ts ON te.session_id = ts.session_id 
         JOIN training_courses tc ON ts.course_id = tc.course_id 
-        JOIN trainers t ON ts.trainer_id = t.trainer_id 
+        LEFT JOIN trainers t ON ts.trainer_id = t.trainer_id 
         ORDER BY te.enrollment_date DESC
     ");
     $enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -174,15 +175,16 @@ try {
     $trainers = [];
 }
 
-// Fetch training sessions for dropdowns
+// Fetch training sessions for dropdowns (LEFT JOIN trainers so External sessions appear; include Completed so past sessions show)
 try {
     $stmt = $pdo->query("
-        SELECT ts.*, tc.course_name, t.first_name as trainer_first, t.last_name as trainer_last
+        SELECT ts.*, tc.course_name, ts.delivery_type, ts.provider_name,
+               t.first_name as trainer_first, t.last_name as trainer_last
         FROM training_sessions ts 
         JOIN training_courses tc ON ts.course_id = tc.course_id 
-        JOIN trainers t ON ts.trainer_id = t.trainer_id 
-        WHERE ts.status = 'Scheduled' OR ts.status = 'In Progress'
-        ORDER BY ts.start_date
+        LEFT JOIN trainers t ON ts.trainer_id = t.trainer_id 
+        WHERE ts.status IN ('Scheduled', 'In Progress', 'Completed')
+        ORDER BY ts.start_date DESC
     ");
     $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -731,7 +733,15 @@ try {
                                         <td><?php echo htmlspecialchars($enrollment['session_name']); ?></td>
                                         <td>
                                             <span class="trainer-badge">
-                                                <?php echo htmlspecialchars($enrollment['trainer_first'] . ' ' . $enrollment['trainer_last']); ?>
+                                                <?php
+                                                if (!empty($enrollment['trainer_first']) || !empty($enrollment['trainer_last'])) {
+                                                    echo htmlspecialchars(trim(($enrollment['trainer_first'] ?? '') . ' ' . ($enrollment['trainer_last'] ?? '')));
+                                                } elseif (!empty($enrollment['provider_name'])) {
+                                                    echo htmlspecialchars($enrollment['provider_name']);
+                                                } else {
+                                                    echo 'External';
+                                                }
+                                                ?>
                                             </span>
                                         </td>
                                         <td><?php echo date('M d, Y', strtotime($enrollment['enrollment_date'])); ?></td>

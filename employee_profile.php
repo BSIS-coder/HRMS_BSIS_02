@@ -177,6 +177,49 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Fetch job roles for dropdown
 $stmt = $pdo->query("SELECT job_role_id, title, department FROM job_roles ORDER BY title");
 $jobRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// L&D view: when view_ld=employee_id, load that employee's L&D data
+$viewLdId = isset($_GET['view_ld']) && is_numeric($_GET['view_ld']) ? (int)$_GET['view_ld'] : null;
+$ldEmployeeName = null;
+$ldEnrollments = [];
+$ldNeeds = [];
+$ldSkills = [];
+$ldCerts = [];
+if ($viewLdId) {
+    try {
+        $stmt = $pdo->prepare("SELECT CONCAT(pi.first_name, ' ', pi.last_name) as full_name FROM employee_profiles ep JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id WHERE ep.employee_id = ?");
+        $stmt->execute([$viewLdId]);
+        $ldEmployeeName = $stmt->fetchColumn();
+        if ($ldEmployeeName) {
+            $stmt = $pdo->prepare("
+                SELECT te.status, te.completion_date, te.score, ts.session_name, ts.start_date, ts.end_date, tc.course_name
+                FROM training_enrollments te
+                JOIN training_sessions ts ON te.session_id = ts.session_id
+                JOIN training_courses tc ON ts.course_id = tc.course_id
+                WHERE te.employee_id = ? ORDER BY ts.start_date DESC
+            ");
+            $stmt->execute([$viewLdId]);
+            $ldEnrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("SELECT assessment_date, skills_gap, priority, status FROM training_needs_assessment WHERE employee_id = ? ORDER BY assessment_date DESC");
+            $stmt->execute([$viewLdId]);
+            $ldNeeds = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("SELECT es.proficiency_level, es.assessed_date, s.skill_name, s.category FROM employee_skills es JOIN skill_matrix s ON es.skill_id = s.skill_id WHERE es.employee_id = ? ORDER BY s.skill_name");
+            $stmt->execute([$viewLdId]);
+            $ldSkills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("
+                SELECT es.assessed_date, es.expiry_date, es.certification_url, s.skill_name
+                FROM employee_skills es
+                LEFT JOIN skill_matrix s ON es.skill_id = s.skill_id
+                WHERE es.employee_id = ? AND es.certification_url IS NOT NULL AND es.certification_url != ''
+                ORDER BY es.expiry_date ASC
+            ");
+            $stmt->execute([$viewLdId]);
+            $ldCerts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } catch (PDOException $e) {
+        $viewLdId = null;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -562,6 +605,62 @@ $jobRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                         </div>
 
+                        <?php if ($viewLdId && $ldEmployeeName): ?>
+                        <div class="table-container" style="margin-bottom: 25px; border: 2px solid var(--azure-blue);">
+                            <div style="padding: 20px; background: var(--azure-blue-lighter); border-bottom: 1px solid #dee2e6;">
+                                <strong>Learning &amp; Development — <?= htmlspecialchars($ldEmployeeName) ?></strong>
+                                <a href="employee_profile.php" class="btn btn-small btn-secondary" style="float: right;">Close</a>
+                                <a href="training_enrollments.php" class="btn btn-small btn-primary" style="float: right; margin-right: 8px;">Enroll in session</a>
+                            </div>
+                            <div style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                                <div>
+                                    <h6 style="color: var(--azure-blue); margin-bottom: 10px;">Training Enrollments</h6>
+                                    <?php if (empty($ldEnrollments)): ?><p class="small text-muted">None</p>
+                                    <?php else: ?>
+                                        <ul class="list-unstyled small">
+                                        <?php foreach (array_slice($ldEnrollments, 0, 10) as $e): ?>
+                                            <li><?= htmlspecialchars($e['course_name']) ?> — <?= htmlspecialchars($e['session_name']) ?> (<?= htmlspecialchars($e['status']) ?>)</li>
+                                        <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <h6 style="color: var(--azure-blue); margin-bottom: 10px;">Training Needs</h6>
+                                    <?php if (empty($ldNeeds)): ?><p class="small text-muted">None</p>
+                                    <?php else: ?>
+                                        <ul class="list-unstyled small">
+                                        <?php foreach (array_slice($ldNeeds, 0, 10) as $n): ?>
+                                            <li><?= htmlspecialchars($n['priority']) ?> — <?= htmlspecialchars(strlen($n['skills_gap'] ?? '') > 50 ? substr($n['skills_gap'], 0, 50) . '...' : ($n['skills_gap'] ?? '')) ?> (<?= htmlspecialchars($n['status']) ?>)</li>
+                                        <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <h6 style="color: var(--azure-blue); margin-bottom: 10px;">Skills</h6>
+                                    <?php if (empty($ldSkills)): ?><p class="small text-muted">None</p>
+                                    <?php else: ?>
+                                        <ul class="list-unstyled small">
+                                        <?php foreach (array_slice($ldSkills, 0, 10) as $s): ?>
+                                            <li><?= htmlspecialchars($s['skill_name']) ?> — <?= htmlspecialchars($s['proficiency_level'] ?? '') ?></li>
+                                        <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <h6 style="color: var(--azure-blue); margin-bottom: 10px;">Certifications</h6>
+                                    <?php if (empty($ldCerts)): ?><p class="small text-muted">None</p>
+                                    <?php else: ?>
+                                        <ul class="list-unstyled small">
+                                        <?php foreach (array_slice($ldCerts, 0, 10) as $c): ?>
+                                            <li><?= htmlspecialchars($c['skill_name'] ?? 'Certification') ?> <?= $c['expiry_date'] ? '— Exp: ' . date('M d, Y', strtotime($c['expiry_date'])) : '' ?></li>
+                                        <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <div class="table-container">
                             <table class="table" id="employeeTable">
                                 <thead>
@@ -596,6 +695,7 @@ $jobRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         </td>
                                         <td><?= date('M d, Y', strtotime($employee['hire_date'])) ?></td>
                                         <td>
+                                            <a href="employee_profile.php?view_ld=<?= $employee['employee_id'] ?>" class="btn btn-small" style="background: #E91E63; color: white; margin-bottom: 4px;">📚 L&D</a>
                                             <button class="btn btn-warning btn-small" onclick="editEmployee(<?= $employee['employee_id'] ?>)">
                                                 ✏️ Edit
                                             </button>

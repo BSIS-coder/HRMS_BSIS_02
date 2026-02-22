@@ -16,6 +16,24 @@ require_once 'config.php';
 // Use the global database connection
 $pdo = $conn;
 
+// Current user role and employee id (only employees can submit feedback)
+$current_role = $_SESSION['role'] ?? null;
+$current_user_id = $_SESSION['user_id'] ?? null;
+$current_employee_id = $_SESSION['employee_id'] ?? null;
+if ($current_role === 'employee' && $current_user_id && $current_employee_id === null) {
+    try {
+        $stmt = $pdo->prepare("SELECT employee_id FROM users WHERE user_id = ? AND role = 'employee'");
+        $stmt->execute([$current_user_id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row && $row['employee_id'] !== null) {
+            $current_employee_id = (int) $row['employee_id'];
+            $_SESSION['employee_id'] = $current_employee_id;
+        }
+    } catch (PDOException $e) {
+        // ignore
+    }
+}
+
 // Handle form submissions
 $message = '';
 $messageType = '';
@@ -24,10 +42,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add_feedback':
+                if ($current_role !== 'employee') {
+                    $message = "Only employees can submit feedback.";
+                    $messageType = "error";
+                    break;
+                }
+                if ($current_employee_id === null) {
+                    $message = "Your account is not linked to an employee profile. Contact HR.";
+                    $messageType = "error";
+                    break;
+                }
                 try {
                     $stmt = $pdo->prepare("INSERT INTO training_feedback (employee_id, feedback_type, session_id, trainer_id, course_id, overall_rating, content_rating, instructor_rating, what_worked_well, what_could_improve, additional_comments, would_recommend, met_expectations, feedback_date, is_anonymous) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
-                        $_POST['employee_id'],
+                        $current_employee_id,
                         $_POST['feedback_type'],
                         $_POST['session_id'] ?: NULL,
                         $_POST['trainer_id'] ?: NULL,
@@ -43,15 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['feedback_date'],
                         isset($_POST['is_anonymous']) ? 1 : 0
                     ]);
-                    $message = "Training feedback added successfully!";
+                    $message = "Training feedback submitted successfully!";
                     $messageType = "success";
                 } catch (PDOException $e) {
                     $message = "Error adding feedback: " . $e->getMessage();
                     $messageType = "error";
                 }
                 break;
-            
+
             case 'edit_feedback':
+                if ($current_role === 'employee') {
+                    $message = "You are not allowed to edit feedback.";
+                    $messageType = "error";
+                    break;
+                }
                 try {
                     $stmt = $pdo->prepare("UPDATE training_feedback SET employee_id=?, feedback_type=?, session_id=?, trainer_id=?, course_id=?, overall_rating=?, content_rating=?, instructor_rating=?, what_worked_well=?, what_could_improve=?, additional_comments=?, would_recommend=?, met_expectations=?, feedback_date=?, is_anonymous=? WHERE feedback_id=?");
                     $stmt->execute([
@@ -79,8 +112,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messageType = "error";
                 }
                 break;
-            
+
             case 'delete_feedback':
+                if ($current_role === 'employee') {
+                    $message = "You are not allowed to delete feedback.";
+                    $messageType = "error";
+                    break;
+                }
                 try {
                     $stmt = $pdo->prepare("DELETE FROM training_feedback WHERE feedback_id=?");
                     $stmt->execute([$_POST['feedback_id']]);
@@ -95,37 +133,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch feedback with related data (without employees table)
+// Fetch feedback with related data (employees see only their own)
+$feedback_sql = "
+    SELECT tf.*,
+           CASE WHEN tf.is_anonymous = 1 THEN 'Anonymous'
+                ELSE CONCAT('Employee ID: ', tf.employee_id) END as employee_name,
+           ts.session_name,
+           tc.course_name,
+           CONCAT(t.first_name, ' ', t.last_name) as trainer_name
+    FROM training_feedback tf
+    LEFT JOIN training_sessions ts ON tf.session_id = ts.session_id
+    LEFT JOIN training_courses tc ON tf.course_id = tc.course_id
+    LEFT JOIN trainers t ON tf.trainer_id = t.trainer_id
+";
+if ($current_role === 'employee') {
+    if ($current_employee_id !== null) {
+        $feedback_sql .= " WHERE tf.employee_id = ? ";
+    } else {
+        $feedback_sql .= " WHERE 1 = 0 "; // no linked profile: show nothing
+    }
+}
+$feedback_sql .= " ORDER BY tf.feedback_date DESC";
+
 try {
-    $stmt = $pdo->query("
-        SELECT tf.*, 
-               CASE WHEN tf.is_anonymous = 1 THEN 'Anonymous' 
-                    ELSE CONCAT('Employee ID: ', tf.employee_id) END as employee_name,
-               ts.session_name,
-               tc.course_name,
-               CONCAT(t.first_name, ' ', t.last_name) as trainer_name
-        FROM training_feedback tf
-        LEFT JOIN training_sessions ts ON tf.session_id = ts.session_id
-        LEFT JOIN training_courses tc ON tf.course_id = tc.course_id
-        LEFT JOIN trainers t ON tf.trainer_id = t.trainer_id
-        ORDER BY tf.feedback_date DESC
-    ");
+    $stmt = $pdo->prepare($feedback_sql);
+    if ($current_role === 'employee' && $current_employee_id !== null) {
+        $stmt->execute([$current_employee_id]);
+    } else {
+        $stmt->execute();
+    }
     $feedback = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $feedback = [];
     $message = "Error fetching feedback: " . $e->getMessage();
     $messageType = "error";
-}
-
-// Create a simple employee list (since we don't have an employees table)
-// You can replace this with actual employee data when you have the employees table
-$employees = [];
-for ($i = 1; $i <= 20; $i++) {
-    $employees[] = [
-        'employee_id' => $i,
-        'first_name' => 'Employee',
-        'last_name' => $i
-    ];
 }
 
 // Fetch training sessions for dropdown
@@ -152,19 +193,36 @@ try {
     $courses = [];
 }
 
-// Get statistics
+// Get statistics (employees see only their own stats)
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM training_feedback");
-    $totalFeedback = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-    
-    $stmt = $pdo->query("SELECT AVG(overall_rating) as avg_rating FROM training_feedback WHERE overall_rating IS NOT NULL");
-    $avgRating = round($stmt->fetch(PDO::FETCH_ASSOC)['avg_rating'], 1);
-    
-    $stmt = $pdo->query("SELECT COUNT(*) as positive FROM training_feedback WHERE would_recommend = 1");
-    $positiveRecommendations = $stmt->fetch(PDO::FETCH_ASSOC)['positive'];
-    
-    $stmt = $pdo->query("SELECT COUNT(*) as anonymous FROM training_feedback WHERE is_anonymous = 1");
-    $anonymousFeedback = $stmt->fetch(PDO::FETCH_ASSOC)['anonymous'];
+    if ($current_role === 'employee' && $current_employee_id !== null) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM training_feedback WHERE employee_id = ?");
+        $stmt->execute([$current_employee_id]);
+        $totalFeedback = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        $stmt = $pdo->prepare("SELECT AVG(overall_rating) as avg_rating FROM training_feedback WHERE employee_id = ? AND overall_rating IS NOT NULL");
+        $stmt->execute([$current_employee_id]);
+        $avgRating = round($stmt->fetch(PDO::FETCH_ASSOC)['avg_rating'] ?: 0, 1);
+        $stmt = $pdo->prepare("SELECT COUNT(*) as positive FROM training_feedback WHERE employee_id = ? AND would_recommend = 1");
+        $stmt->execute([$current_employee_id]);
+        $positiveRecommendations = $stmt->fetch(PDO::FETCH_ASSOC)['positive'];
+        $stmt = $pdo->prepare("SELECT COUNT(*) as anonymous FROM training_feedback WHERE employee_id = ? AND is_anonymous = 1");
+        $stmt->execute([$current_employee_id]);
+        $anonymousFeedback = $stmt->fetch(PDO::FETCH_ASSOC)['anonymous'];
+    } elseif ($current_role === 'employee') {
+        $totalFeedback = 0;
+        $avgRating = 0;
+        $positiveRecommendations = 0;
+        $anonymousFeedback = 0;
+    } else {
+        $stmt = $pdo->query("SELECT COUNT(*) as total FROM training_feedback");
+        $totalFeedback = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        $stmt = $pdo->query("SELECT AVG(overall_rating) as avg_rating FROM training_feedback WHERE overall_rating IS NOT NULL");
+        $avgRating = round($stmt->fetch(PDO::FETCH_ASSOC)['avg_rating'] ?: 0, 1);
+        $stmt = $pdo->query("SELECT COUNT(*) as positive FROM training_feedback WHERE would_recommend = 1");
+        $positiveRecommendations = $stmt->fetch(PDO::FETCH_ASSOC)['positive'];
+        $stmt = $pdo->query("SELECT COUNT(*) as anonymous FROM training_feedback WHERE is_anonymous = 1");
+        $anonymousFeedback = $stmt->fetch(PDO::FETCH_ASSOC)['anonymous'];
+    }
 } catch (PDOException $e) {
     $totalFeedback = 0;
     $avgRating = 0;
@@ -397,15 +455,16 @@ try {
         }
 
         .modal {
-            display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 1060;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
+        }
+
+        .modal-backdrop {
+            z-index: 1050;
         }
 
         .modal-content {
@@ -591,13 +650,13 @@ try {
         }
     </style>
 </head>
-<body>
+<body class="<?php echo (isset($_SESSION['role']) && $_SESSION['role'] === 'employee') ? 'employee-page' : ''; ?>">
     <div class="container-fluid">
         <?php include 'navigation.php'; ?>
         <div class="row">
-            <?php include 'sidebar.php'; ?>
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'employee') { include 'employee_sidebar.php'; } else { include 'sidebar.php'; } ?>
             <div class="main-content">
-                <h2 class="section-title">Training Feedback Management</h2>
+                <h2 class="section-title"><?php echo ($current_role === 'employee') ? 'Training Feedback' : 'Training Feedback Management'; ?></h2>
                 <div class="content">
                     <?php if ($message): ?>
                         <div class="alert alert-<?= $messageType ?>">
@@ -642,9 +701,15 @@ try {
                             <span class="search-icon">🔍</span>
                             <input type="text" id="searchInput" placeholder="Search feedback by employee, type, or content...">
                         </div>
-                        <div class="text-muted" style="align-self:center;">
-                            <i class="fas fa-info-circle"></i> Viewing employee feedback (read-only)
-                        </div>
+                        <?php if ($current_role === 'employee' && $current_employee_id !== null): ?>
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addFeedbackModal">
+                                <i class="fas fa-plus"></i> Submit feedback
+                            </button>
+                        <?php else: ?>
+                            <div class="text-muted" style="align-self:center;">
+                                <i class="fas fa-info-circle"></i> Viewing all feedback (read-only)
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="table-container">
@@ -736,7 +801,119 @@ try {
         </div>
     </div>
 
-    <!-- Add/Edit modal removed: feedback submission is handled in employee_feedback.php -->
+    <?php if ($current_role === 'employee' && $current_employee_id !== null): ?>
+    <!-- Submit feedback modal (employees only) -->
+    <div class="modal fade" id="addFeedbackModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%); color: white;">
+                    <h5 class="modal-title">Submit training feedback</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <form method="post" action="feedback.php">
+                    <input type="hidden" name="action" value="add_feedback">
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Feedback type <span class="text-danger">*</span></label>
+                                <select name="feedback_type" class="form-control" required>
+                                    <option value="Training Session">Training Session</option>
+                                    <option value="Learning Resource">Learning Resource</option>
+                                    <option value="Trainer">Trainer</option>
+                                    <option value="Course">Course</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Feedback date <span class="text-danger">*</span></label>
+                                <input type="date" name="feedback_date" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Session</label>
+                                <select name="session_id" class="form-control">
+                                    <option value="">— Select —</option>
+                                    <?php foreach ($sessions as $s): ?>
+                                        <option value="<?php echo (int)$s['session_id']; ?>"><?php echo htmlspecialchars($s['session_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Course</label>
+                                <select name="course_id" class="form-control">
+                                    <option value="">— Select —</option>
+                                    <?php foreach ($courses as $c): ?>
+                                        <option value="<?php echo (int)$c['course_id']; ?>"><?php echo htmlspecialchars($c['course_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Trainer</label>
+                                <select name="trainer_id" class="form-control">
+                                    <option value="">— Select —</option>
+                                    <?php foreach ($trainers as $t): ?>
+                                        <option value="<?php echo (int)$t['trainer_id']; ?>"><?php echo htmlspecialchars($t['first_name'] . ' ' . $t['last_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Overall rating (1–5) <span class="text-danger">*</span></label>
+                                <select name="overall_rating" class="form-control" required>
+                                    <?php for ($i = 1; $i <= 5; $i++) echo "<option value=\"$i\">$i</option>"; ?>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Content rating (1–5)</label>
+                                <select name="content_rating" class="form-control">
+                                    <option value="">—</option>
+                                    <?php for ($i = 1; $i <= 5; $i++) echo "<option value=\"$i\">$i</option>"; ?>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Instructor rating (1–5)</label>
+                                <select name="instructor_rating" class="form-control">
+                                    <option value="">—</option>
+                                    <?php for ($i = 1; $i <= 5; $i++) echo "<option value=\"$i\">$i</option>"; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>What worked well</label>
+                            <textarea name="what_worked_well" class="form-control" rows="2" placeholder="Optional"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>What could improve</label>
+                            <textarea name="what_could_improve" class="form-control" rows="2" placeholder="Optional"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Additional comments</label>
+                            <textarea name="additional_comments" class="form-control" rows="2" placeholder="Optional"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="would_recommend" value="1"> Would recommend
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="met_expectations" value="1"> Met expectations
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="is_anonymous" value="1"> Submit anonymously
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit feedback</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <script>
         // Minimal JS for admin read-only feedback page

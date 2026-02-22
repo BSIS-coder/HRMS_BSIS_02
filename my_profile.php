@@ -102,6 +102,38 @@ if (!$currentEmployee) {
 // Fetch job roles for dropdown (in case user wants to request role change)
 $stmt = $pdo->query("SELECT job_role_id, title, department FROM job_roles ORDER BY title");
 $jobRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// L&D summary for current employee
+$ldNextTraining = null;
+$ldCompletedCount = 0;
+$ldSkillsCount = 0;
+$ldCertsCount = 0;
+$empId = (int)($currentEmployee['employee_id'] ?? 0);
+if ($empId) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT tc.course_name, ts.session_name, ts.start_date
+            FROM training_enrollments te
+            JOIN training_sessions ts ON te.session_id = ts.session_id
+            JOIN training_courses tc ON ts.course_id = tc.course_id
+            WHERE te.employee_id = ? AND te.status != 'Completed' AND ts.start_date >= CURDATE()
+            ORDER BY ts.start_date ASC LIMIT 1
+        ");
+        $stmt->execute([$empId]);
+        $ldNextTraining = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM training_enrollments WHERE employee_id = ? AND status = 'Completed' AND YEAR(COALESCE(completion_date, enrollment_date)) = YEAR(CURDATE())");
+        $stmt->execute([$empId]);
+        $ldCompletedCount = (int) $stmt->fetchColumn();
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM employee_skills WHERE employee_id = ?");
+        $stmt->execute([$empId]);
+        $ldSkillsCount = (int) $stmt->fetchColumn();
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM employee_skills WHERE employee_id = ? AND certification_url IS NOT NULL AND certification_url != ''");
+        $stmt->execute([$empId]);
+        $ldCertsCount = (int) $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        // ignore
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -511,6 +543,31 @@ $jobRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="detail-row">
                                 <div class="detail-label">Address:</div>
                                 <div class="detail-value"><?= htmlspecialchars($currentEmployee['address'] ?: 'Not provided') ?></div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h3>📚 Learning &amp; Development</h3>
+                            <div class="detail-row">
+                                <div class="detail-label">Next upcoming training:</div>
+                                <div class="detail-value"><?= $ldNextTraining ? htmlspecialchars($ldNextTraining['course_name'] . ' — ' . $ldNextTraining['session_name']) . ($ldNextTraining['start_date'] ? ' (' . date('M d, Y', strtotime($ldNextTraining['start_date'])) . ')' : '') : 'None scheduled' ?></div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Completed this year:</div>
+                                <div class="detail-value"><?= $ldCompletedCount ?> training(s)</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Skills on record:</div>
+                                <div class="detail-value"><?= $ldSkillsCount ?></div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Certifications:</div>
+                                <div class="detail-value"><?= $ldCertsCount ?></div>
+                            </div>
+                            <div class="detail-row" style="margin-top: 15px;">
+                                <a href="my_training.php" class="btn btn-primary" style="margin-right: 10px;">My Training</a>
+                                <a href="my_skills.php" class="btn btn-primary" style="margin-right: 10px;">My Skills</a>
+                                <a href="my_learning_resources.php" class="btn btn-primary">Learning Resources</a>
                             </div>
                         </div>
                     </div>
