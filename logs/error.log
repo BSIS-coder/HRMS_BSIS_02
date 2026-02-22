@@ -4378,3 +4378,135 @@
 2026-02-21 18:02:45 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
 2026-02-21 18:16:58 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
 2026-02-21 18:21:11 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-21 19:10:55 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:29
+2026-02-21 19:10:55 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:10:55 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:10:55 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:10:55 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:10:55 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:10:58 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:327
+2026-02-21 19:11:33 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:327
+2026-02-21 19:11:35 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:327
+2026-02-21 19:11:35 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:327
+2026-02-21 19:17:26 Error: [2] Undefined property: PDOStatement::$num_rows - C:\xampp\htdocs\HRMS_BSIS_02\development_plans.php:327
+2026-02-21 19:17:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:29
+2026-02-21 19:17:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:17:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:17:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:17:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:17:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:42:49 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:42:49 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:42:49 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:42:49 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 19:42:49 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 20:07:38 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 20:07:38 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 20:07:38 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 20:07:38 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 20:07:38 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\performance_metrics.php:44
+2026-02-21 20:36:01 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-21 21:30:33 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-21 21:34:27 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:38:37 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:38:37 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 22:44:00 Error: [2] Undefined array key "marital_status_date" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:785
+2026-02-21 22:44:00 Error: [2] Undefined array key "highest_educational_attainment" - C:\xampp\htdocs\HRMS_BSIS_02\personal_information.php:790
+2026-02-21 23:53:38 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:01:03 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:04:20 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:04:20 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:04:35 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:04:35 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:11:33 Error: [2] Undefined array key "email" - C:\xampp\htdocs\HRMS_BSIS_02\my_profile.php:493
+2026-02-22 00:11:33 Error: [2] Undefined array key "address" - C:\xampp\htdocs\HRMS_BSIS_02\my_profile.php:513
+2026-02-22 00:11:33 Error: [2] Undefined array key "address" - C:\xampp\htdocs\HRMS_BSIS_02\my_profile.php:578
+2026-02-22 00:11:33 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\my_profile.php:578
+2026-02-22 00:11:33 Error: [2] Undefined array key "email" - C:\xampp\htdocs\HRMS_BSIS_02\my_profile.php:589
+2026-02-22 00:11:33 Error: [8192] htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\my_profile.php:589
+2026-02-22 00:24:26 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:24:26 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:27:56 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:28:07 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:28:36 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:30:08 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:31:47 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:31:49 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:31:50 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:31:51 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:32:01 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:32:01 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:32:04 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 00:32:20 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:32:20 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 00:32:29 Error: [8192] round(): Passing null to parameter #1 ($num) of type int|float is deprecated - C:\xampp\htdocs\HRMS_BSIS_02\feedback.php:161
+2026-02-22 01:05:58 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 01:05:58 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 01:10:01 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 01:10:01 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 01:15:35 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 01:15:35 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 02:05:18 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 02:05:18 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 02:08:20 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 02:08:20 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 03:24:22 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 03:24:22 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 03:25:30 Error: [2] Undefined variable $row - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
+2026-02-22 03:25:30 Error: [2] Trying to access array offset on value of type null - C:\xampp\htdocs\HRMS_BSIS_02\login.php:126
