@@ -799,6 +799,380 @@ $departments = [
             border-radius: 4px;
         }
 
+        /* NEW FEATURES STYLES */
+        .feature-section {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .feature-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;              /* Space between title and button */
+    flex-wrap: wrap;        /* Better responsive handling */
+}
+
+        .feature-header h3 {
+    flex: 1;                /* Takes available space */
+    min-width: 200px;       /* Minimum space for title */
+    white-space: nowrap;    /* Prevents text wrapping */
+}
+
+       .feature-header .btn {
+    flex-shrink: 0;         /* Button stays compact */
+    white-space: nowrap;
+}
+
+        .feature-content {
+            padding: 20px;
+        }
+
+        .clearance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .clearance-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .clearance-card:hover {
+            border-color: var(--azure-blue);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .clearance-card.pending {
+            border-left: 4px solid #ffc107;
+        }
+
+        .clearance-card.approved {
+            border-left: 4px solid #28a745;
+            background: #f0fff4;
+        }
+
+        .clearance-card.returned {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+
+        .department-label {
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .clearance-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 8px 0;
+        }
+
+        .clearance-status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .clearance-status-badge.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .clearance-status-badge.returned {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .asset-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .asset-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--azure-blue);
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+        }
+
+        .asset-table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .asset-table tbody tr:hover {
+            background: var(--azure-blue-pale);
+        }
+
+        .status-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #28a745;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            left: 28px;
+        }
+
+        .condition-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .condition-good {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .condition-damaged {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .condition-lost {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .progress-step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .progress-step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -25px;
+            width: 50px;
+            height: 2px;
+            background: #e0e0e0;
+        }
+
+        .progress-step:last-child::after {
+            display: none;
+        }
+
+        .progress-circle {
+            width: 40px;
+            height: 40px;
+            background: #e0e0e0;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .progress-circle.completed {
+            background: #28a745;
+        }
+
+        .progress-circle.current {
+            background: var(--azure-blue);
+            box-shadow: 0 0 15px rgba(233, 30, 99, 0.4);
+        }
+
+        .progress-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .system-account-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .system-account-item.deactivated {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .system-account-item.active {
+            border-left-color: var(--azure-blue);
+        }
+
+        .account-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .account-name {
+            font-weight: 600;
+            color: var(--azure-blue-dark);
+            font-size: 1rem;
+        }
+
+        .deactivation-timestamp {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .proof-upload {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #e0e0e0;
+            text-align: center;
+        }
+
+        .proof-upload:hover {
+            border-color: var(--azure-blue);
+            background: var(--azure-blue-pale);
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .file-name {
+            font-size: 0.9rem;
+            color: #333;
+            margin-top: 8px;
+        }
+
+        .clearance-progress {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .progress-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .progress-dot.completed {
+            background: #28a745;
+        }
+
+        .progress-dot.approved {
+            background: var(--azure-blue);
+        }
+
+        .progress-dot.returned {
+            background: #dc3545;
+        }
+        
+        @media (max-width: 768px) {
+            .clearance-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .feature-header h3 {
+                margin: 0;
+                white-space: normal;
+                text-align: center;
+            }
+
+            .feature-header .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .asset-table {
+                font-size: 0.85rem;
+            }
+
+            .progress-indicator {
+                flex-direction: column;
+            }
+
+            .progress-step::after {
+                display: none;
+            }
+        }
+
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;

@@ -11,20 +11,13 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'dp.php';
+require_once 'config.php';
 
-// Database connection
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+// For backward compatibility with existing code
+$pdo = $conn;
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
+// Get passed personal_info_id for linking from personal information
+$linkedPersonalInfoId = isset($_GET['personal_info_id']) ? intval($_GET['personal_info_id']) : null;
 
 // Handle form submissions
 $message = '';
@@ -37,20 +30,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Add new employment history
                 try {
                     $stmt = $pdo->prepare("INSERT INTO employment_history 
-                        (employee_id, job_title, department_id, employment_type, start_date, end_date, 
+                        (employee_id, job_title, salary_grade, department_id, employment_type, start_date, end_date, 
                          employment_status, reporting_manager_id, location, base_salary, allowances, 
-                         bonuses, salary_adjustments, reason_for_change, promotions_transfers, 
+                         bonuses, salary_adjustments, salary_effective_date, salary_increase_amount, 
+                         salary_increase_percentage, previous_salary, position_sequence, is_current_position, 
+                         promotion_type, reason_for_change, promotions_transfers, 
                          duties_responsibilities, performance_evaluations, training_certifications, 
                          contract_details, remarks) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     
                     $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
                     $manager_id = !empty($_POST['reporting_manager_id']) ? $_POST['reporting_manager_id'] : null;
                     $dept_id = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
+                    $salary_effective_date = !empty($_POST['salary_effective_date']) ? $_POST['salary_effective_date'] : $_POST['start_date'];
+                    $previous_salary = !empty($_POST['previous_salary']) ? $_POST['previous_salary'] : null;
+                    $base_salary = floatval($_POST['base_salary'] ?? 0);
+                    $salary_increase_amount = 0;
+                    $salary_increase_percentage = 0;
+                    
+                    if ($previous_salary) {
+                        $salary_increase_amount = $base_salary - floatval($previous_salary);
+                        $salary_increase_percentage = $previous_salary > 0 ? ($salary_increase_amount / floatval($previous_salary)) * 100 : 0;
+                    }
+                    
+                    $is_current = (!$end_date) ? 1 : 0;
                     
                     $stmt->execute([
                         $_POST['employee_id'],
                         $_POST['job_title'],
+                        $_POST['salary_grade'] ?? null,
                         $dept_id,
                         $_POST['employment_type'],
                         $_POST['start_date'],
@@ -58,10 +66,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['employment_status'],
                         $manager_id,
                         $_POST['location'],
-                        $_POST['base_salary'],
+                        $base_salary,
                         $_POST['allowances'] ?: 0,
                         $_POST['bonuses'] ?: 0,
                         $_POST['salary_adjustments'] ?: 0,
+                        $salary_effective_date,
+                        $salary_increase_amount,
+                        $salary_increase_percentage,
+                        $previous_salary,
+                        $_POST['position_sequence'] ?? 1,
+                        $is_current,
+                        $_POST['promotion_type'] ?? 'Initial Hire',
                         $_POST['reason_for_change'],
                         $_POST['promotions_transfers'],
                         $_POST['duties_responsibilities'],
@@ -82,9 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update employment history
                 try {
                     $stmt = $pdo->prepare("UPDATE employment_history SET 
-                        employee_id=?, job_title=?, department_id=?, employment_type=?, start_date=?, 
+                        employee_id=?, job_title=?, salary_grade=?, department_id=?, employment_type=?, start_date=?, 
                         end_date=?, employment_status=?, reporting_manager_id=?, location=?, 
-                        base_salary=?, allowances=?, bonuses=?, salary_adjustments=?, reason_for_change=?, 
+                        base_salary=?, allowances=?, bonuses=?, salary_adjustments=?, salary_effective_date=?, 
+                        salary_increase_amount=?, salary_increase_percentage=?, previous_salary=?, position_sequence=?, 
+                        is_current_position=?, promotion_type=?, reason_for_change=?, 
                         promotions_transfers=?, duties_responsibilities=?, performance_evaluations=?, 
                         training_certifications=?, contract_details=?, remarks=? 
                         WHERE history_id=?");
@@ -92,10 +109,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
                     $manager_id = !empty($_POST['reporting_manager_id']) ? $_POST['reporting_manager_id'] : null;
                     $dept_id = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
+                    $salary_effective_date = !empty($_POST['salary_effective_date']) ? $_POST['salary_effective_date'] : $_POST['start_date'];
+                    $previous_salary = !empty($_POST['previous_salary']) ? $_POST['previous_salary'] : null;
+                    $base_salary = floatval($_POST['base_salary'] ?? 0);
+                    $salary_increase_amount = 0;
+                    $salary_increase_percentage = 0;
+                    
+                    if ($previous_salary) {
+                        $salary_increase_amount = $base_salary - floatval($previous_salary);
+                        $salary_increase_percentage = $previous_salary > 0 ? ($salary_increase_amount / floatval($previous_salary)) * 100 : 0;
+                    }
+                    
+                    $is_current = (!$end_date) ? 1 : 0;
                     
                     $stmt->execute([
                         $_POST['employee_id'],
                         $_POST['job_title'],
+                        $_POST['salary_grade'] ?? null,
                         $dept_id,
                         $_POST['employment_type'],
                         $_POST['start_date'],
@@ -103,10 +133,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['employment_status'],
                         $manager_id,
                         $_POST['location'],
-                        $_POST['base_salary'],
+                        $base_salary,
                         $_POST['allowances'] ?: 0,
                         $_POST['bonuses'] ?: 0,
                         $_POST['salary_adjustments'] ?: 0,
+                        $salary_effective_date,
+                        $salary_increase_amount,
+                        $salary_increase_percentage,
+                        $previous_salary,
+                        $_POST['position_sequence'] ?? 1,
+                        $is_current,
+                        $_POST['promotion_type'] ?? 'Initial Hire',
                         $_POST['reason_for_change'],
                         $_POST['promotions_transfers'],
                         $_POST['duties_responsibilities'],
@@ -207,6 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $pdo->query("
     SELECT 
         eh.*,
+        ep.personal_info_id,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
         ep.employee_number,
         d.department_name,
@@ -577,6 +615,131 @@ $managers = $employees; // Same as employees for simplicity
             border-left-color: #28a745;
         }
 
+        .nav-buttons-section {
+            background: linear-gradient(135deg, var(--azure-blue-pale) 0%, #f0f0f0 100%);
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid var(--azure-blue);
+        }
+
+        .nav-buttons-section h4 {
+            color: var(--azure-blue-dark);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .nav-button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .nav-button-group .btn {
+            flex: 1;
+            min-width: 140px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Employment History Details Styling */
+        .history-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid var(--azure-blue);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+
+        .history-section {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border-top: 3px solid var(--azure-blue-lighter);
+        }
+
+        .history-section h4 {
+            color: var(--azure-blue);
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--azure-blue-lighter);
+        }
+
+        .history-item {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .history-item strong {
+            color: var(--azure-blue-dark);
+            display: block;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .history-item p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .history-full-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--azure-blue);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-full-section h4 {
+            color: var(--azure-blue-dark);
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+            padding: 0;
+            border: none;
+        }
+
+        .history-full-section p {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.7;
+            color: #555;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        @media (max-width: 1024px) {
+            .history-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -625,6 +788,11 @@ $managers = $employees; // Same as employees for simplicity
                             <span class="search-icon">🔍</span>
                             <input type="text" id="searchInput" placeholder="Search by employee name, job title, or department...">
                         </div>
+                        <?php if ($linkedPersonalInfoId): ?>
+                        <button class="btn btn-info" onclick="window.location='personal_information.php?personal_info_id=<?= $linkedPersonalInfoId ?>'">
+                            ⬅️ Back to Personal Info
+                        </button>
+                        <?php endif; ?>
                         <button class="btn btn-primary" onclick="openModal('add')">
                             ➕ Add Employment History
                         </button>
@@ -687,8 +855,8 @@ $managers = $employees; // Same as employees for simplicity
                                         <button class="btn btn-primary btn-small" onclick="viewDetails(<?= $history['history_id'] ?>)" title="View Details">
                                             👁️
                                         </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteHistory(<?= $history['history_id'] ?>)" title="Delete History">
-                                            🗑️
+                                        <button class="btn btn-info btn-small" onclick="deleteHistory(<?= $history['history_id'] ?>)" title="Archive History">
+                                            📦 Archive
                                         </button>
                                     </td>
                                 </tr>
@@ -790,11 +958,43 @@ $managers = $employees; // Same as employees for simplicity
                                 <select id="employment_status" name="employment_status" class="form-control" required>
                                     <option value="">Select status...</option>
                                     <option value="Active">Active</option>
+                                    <option value="Promoted">Promoted</option>
+                                    <option value="Demoted">Demoted</option>
+                                    <option value="Lateral Move">Lateral Move</option>
                                     <option value="Resigned">Resigned</option>
                                     <option value="Transferred">Transferred</option>
                                     <option value="Terminated">Terminated</option>
                                     <option value="Retired">Retired</option>
+                                    <option value="End of Contract">End of Contract</option>
                                 </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Salary Grade & Position Sequence -->
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="salary_grade">Salary Grade</label>
+                                <input type="text" id="salary_grade" name="salary_grade" class="form-control" placeholder="e.g., Grade 10, Grade A1">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="promotion_type">Promotion/Movement Type</label>
+                                <select id="promotion_type" name="promotion_type" class="form-control">
+                                    <option value="Initial Hire">Initial Hire</option>
+                                    <option value="Promotion">Promotion</option>
+                                    <option value="Demotion">Demotion</option>
+                                    <option value="Lateral Move">Lateral Move</option>
+                                    <option value="Rehire">Rehire</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="position_sequence">Position Sequence #</label>
+                                <input type="number" id="position_sequence" name="position_sequence" class="form-control" value="1" min="1">
                             </div>
                         </div>
                     </div>
@@ -828,6 +1028,21 @@ $managers = $employees; // Same as employees for simplicity
                                 <input type="number" id="salary_adjustments" name="salary_adjustments" class="form-control" step="0.01" value="0">
                             </div>
                         </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="previous_salary">Previous Salary (₱)</label>
+                                <input type="number" id="previous_salary" name="previous_salary" class="form-control" step="0.01" placeholder="For tracking salary progression">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="salary_effective_date">Salary Effective Date</label>
+                                <input type="date" id="salary_effective_date" name="salary_effective_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="reporting_manager_id">Reporting Manager</label>
@@ -986,6 +1201,7 @@ $managers = $employees; // Same as employees for simplicity
             if (history) {
                 document.getElementById('employee_id').value = history.employee_id || '';
                 document.getElementById('job_title').value = history.job_title || '';
+                document.getElementById('salary_grade').value = history.salary_grade || '';
                 document.getElementById('department_id').value = history.department_id || '';
                 document.getElementById('employment_type').value = history.employment_type || '';
                 document.getElementById('start_date').value = history.start_date || '';
@@ -997,6 +1213,10 @@ $managers = $employees; // Same as employees for simplicity
                 document.getElementById('allowances').value = history.allowances || '0';
                 document.getElementById('bonuses').value = history.bonuses || '0';
                 document.getElementById('salary_adjustments').value = history.salary_adjustments || '0';
+                document.getElementById('previous_salary').value = history.previous_salary || '';
+                document.getElementById('salary_effective_date').value = history.salary_effective_date || '';
+                document.getElementById('position_sequence').value = history.position_sequence || '1';
+                document.getElementById('promotion_type').value = history.promotion_type || 'Initial Hire';
                 document.getElementById('reason_for_change').value = history.reason_for_change || '';
                 document.getElementById('promotions_transfers').value = history.promotions_transfers || '';
                 document.getElementById('duties_responsibilities').value = history.duties_responsibilities || '';
@@ -1027,71 +1247,94 @@ $managers = $employees; // Same as employees for simplicity
                 }) : 'Present';
 
             content.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
-                    <div>
-                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Basic Information</h4>
-                        <p><strong>Employee:</strong> ${history.employee_name || 'N/A'}</p>
-                        <p><strong>Employee Number:</strong> #${history.employee_number || 'N/A'}</p>
-                        <p><strong>Job Title:</strong> ${history.job_title || 'N/A'}</p>
-                        <p><strong>Department:</strong> ${history.department_name || 'N/A'}</p>
-                        <p><strong>Employment Type:</strong> ${history.employment_type || 'N/A'}</p>
-                        <p><strong>Employment Period:</strong> ${startDate} - ${endDate}</p>
-                        <p><strong>Status:</strong> <span class="status-badge status-${(history.employment_status || '').toLowerCase()}">${history.employment_status || 'N/A'}</span></p>
-                        <p><strong>Location:</strong> ${history.location || 'N/A'}</p>
-                        <p><strong>Reporting Manager:</strong> ${history.manager_name || 'N/A'}</p>
-                    </div>
-                    <div>
-                        <h4 style="color: var(--azure-blue); margin-bottom: 15px;">Compensation Details</h4>
-                        <p><strong>Base Salary:</strong> ₱${parseFloat(history.base_salary || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-                        <p><strong>Allowances:</strong> ₱${parseFloat(history.allowances || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-                        <p><strong>Bonuses:</strong> ₱${parseFloat(history.bonuses || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-                        <p><strong>Salary Adjustments:</strong> ₱${parseFloat(history.salary_adjustments || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-                        <p><strong>Total Compensation:</strong> ₱${(parseFloat(history.base_salary || 0) + parseFloat(history.allowances || 0) + parseFloat(history.bonuses || 0) + parseFloat(history.salary_adjustments || 0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-                        <p><strong>Reason for Change:</strong> ${history.reason_for_change || 'N/A'}</p>
-                        <p><strong>Promotions/Transfers:</strong> ${history.promotions_transfers || 'N/A'}</p>
-                    </div>
-                </div>
-                
-                ${history.duties_responsibilities ? `
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="color: var(--azure-blue); margin-bottom: 10px;">Duties & Responsibilities</h4>
-                        <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; line-height: 1.6;">${history.duties_responsibilities}</p>
-                    </div>
-                ` : ''}
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    ${history.performance_evaluations ? `
-                        <div>
-                            <h4 style="color: var(--azure-blue); margin-bottom: 10px;">Performance Evaluations</h4>
-                            <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; line-height: 1.6;">${history.performance_evaluations}</p>
+                <div class="history-container">
+                    <div class="history-grid">
+                        <div class="history-section">
+                            <h4>📋 Basic Information</h4>
+                            <div class="history-item"><strong>Employee</strong><p>${history.employee_name || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Employee Number</strong><p>#${history.employee_number || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Job Title</strong><p>${history.job_title || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Salary Grade</strong><p>${history.salary_grade || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Department</strong><p>${history.department_name || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Employment Type</strong><p>${history.employment_type || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Employment Period</strong><p>${startDate} - ${endDate}</p></div>
+                            <div class="history-item"><strong>Status</strong><p><span class="status-badge status-${(history.employment_status || '').toLowerCase()}">${history.employment_status || 'N/A'}</span></p></div>
+                            <div class="history-item"><strong>Promotion Type</strong><p>${history.promotion_type || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Position Sequence</strong><p>#${history.position_sequence || '1'}</p></div>
+                            <div class="history-item"><strong>Current Position</strong><p>${history.is_current_position ? '✓ Yes' : 'No'}</p></div>
+                            <div class="history-item"><strong>Location</strong><p>${history.location || 'N/A'}</p></div>
+                            <div class="history-item"><strong>Reporting Manager</strong><p>${history.manager_name || 'N/A'}</p></div>
                         </div>
-                    ` : ''}
+                        <div class="history-section">
+                            <h4>💰 Compensation & Salary History</h4>
+                            <div class="history-item"><strong>Base Salary</strong><p>₱${parseFloat(history.base_salary || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
+                            <div class="history-item"><strong>Previous Salary</strong><p>${history.previous_salary ? '₱' + parseFloat(history.previous_salary).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'N/A'}</p></div>
+                            ${history.salary_increase_amount ? `<div class="history-item"><strong>Salary Increase</strong><p>₱${parseFloat(history.salary_increase_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})} (${parseFloat(history.salary_increase_percentage || 0).toFixed(2)}%)</p></div>` : ''}
+                            <div class="history-item"><strong>Allowances</strong><p>₱${parseFloat(history.allowances || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
+                            <div class="history-item"><strong>Bonuses</strong><p>₱${parseFloat(history.bonuses || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
+                            <div class="history-item"><strong>Salary Adjustments</strong><p>₱${parseFloat(history.salary_adjustments || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
+                            <div class="history-item"><strong>Total Compensation</strong><p style="color: var(--azure-blue); font-weight: 700;">₱${(parseFloat(history.base_salary || 0) + parseFloat(history.allowances || 0) + parseFloat(history.bonuses || 0) + parseFloat(history.salary_adjustments || 0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
+                            <div class="history-item"><strong>Salary Effective Date</strong><p>${history.salary_effective_date ? new Date(history.salary_effective_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</p></div>
+                            <div class="history-item"><strong>Reason for Change</strong><p>${history.reason_for_change || 'N/A'}</p></div>
+                        </div>
+                    </div>
                     
-                    ${history.training_certifications ? `
-                        <div>
-                            <h4 style="color: var(--azure-blue); margin-bottom: 10px;">Training & Certifications</h4>
-                            <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; line-height: 1.6;">${history.training_certifications}</p>
+                    ${history.duties_responsibilities ? `
+                        <div class="history-full-section">
+                            <h4>📝 Duties & Responsibilities</h4>
+                            <p>${history.duties_responsibilities}</p>
+                        </div>
+                    ` : ''}
+
+                    ${history.performance_evaluations || history.training_certifications ? `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            ${history.performance_evaluations ? `
+                                <div class="history-full-section">
+                                    <h4>⭐ Performance Evaluations</h4>
+                                    <p>${history.performance_evaluations}</p>
+                                </div>
+                            ` : ''}
+                            
+                            ${history.training_certifications ? `
+                                <div class="history-full-section">
+                                    <h4>🎓 Training & Certifications</h4>
+                                    <p>${history.training_certifications}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
+                    ${history.contract_details || history.remarks ? `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            ${history.contract_details ? `
+                                <div class="history-full-section">
+                                    <h4>📋 Contract Details</h4>
+                                    <p>${history.contract_details}</p>
+                                </div>
+                            ` : ''}
+                            
+                            ${history.remarks ? `
+                                <div class="history-full-section">
+                                    <h4>📌 Remarks</h4>
+                                    <p>${history.remarks}</p>
+                                </div>
+                            ` : ''}
                         </div>
                     ` : ''}
                 </div>
 
-                ${history.contract_details || history.remarks ? `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-                        ${history.contract_details ? `
-                            <div>
-                                <h4 style="color: var(--azure-blue); margin-bottom: 10px;">Contract Details</h4>
-                                <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; line-height: 1.6;">${history.contract_details}</p>
-                            </div>
-                        ` : ''}
-                        
-                        ${history.remarks ? `
-                            <div>
-                                <h4 style="color: var(--azure-blue); margin-bottom: 10px;">Remarks</h4>
-                                <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; line-height: 1.6;">${history.remarks}</p>
-                            </div>
-                        ` : ''}
+                <div class="nav-buttons-section">
+                    <h4>📋 Related Information</h4>
+                    <p style="color: #666; margin-bottom: 15px; font-size: 14px;">Access related records:</p>
+                    <div class="nav-button-group">
+                        <a href="personal_information.php?personal_info_id=${history.personal_info_id}" class="btn btn-info" title="View personal information">
+                            👤 Personal Information
+                        </a>
+                        <a href="employee_profile.php" class="btn btn-primary" title="View employee profile">
+                            👨‍💼 Employee Profile
+                        </a>
                     </div>
-                ` : ''}
+                </div>
             `;
 
             modal.style.display = 'block';

@@ -32,6 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add':
                 try {
+<<<<<<< HEAD
+                    $stmt = $pdo->prepare("INSERT INTO knowledge_transfers (exit_id, employee_id, status) VALUES (?, ?, ?)");
+                    $stmt->execute([
+                        $_POST['exit_id'],
+                        $_POST['employee_id'],
+                        $_POST['status']
+=======
                     $stmt = $pdo->prepare("INSERT INTO knowledge_transfers (exit_id, employee_id, handover_details, start_date, completion_date, status, notes, progress_percentage, successor_acknowledgment, meeting_date, meeting_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['exit_id'],
@@ -45,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['successor_acknowledgment'] ?? 0,
                         $_POST['meeting_date'] ?: null,
                         $_POST['meeting_notes'] ?? ''
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                     ]);
                     $_SESSION['message'] = "Knowledge transfer added successfully!";
                     $_SESSION['messageType'] = "success";
@@ -57,22 +65,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
                 break;
+                break;
             
             case 'update':
                 try {
+<<<<<<< HEAD
+                    $stmt = $pdo->prepare("UPDATE knowledge_transfers SET exit_id=?, employee_id=?, status=? WHERE transfer_id=?");
+=======
                     $stmt = $pdo->prepare("UPDATE knowledge_transfers SET exit_id=?, employee_id=?, handover_details=?, start_date=?, completion_date=?, status=?, notes=?, progress_percentage=?, successor_acknowledgment=?, meeting_date=?, meeting_notes=? WHERE transfer_id=?");
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                     $stmt->execute([
                         $_POST['exit_id'],
                         $_POST['employee_id'],
-                        $_POST['handover_details'],
-                        $_POST['start_date'] ?: null,
-                        $_POST['completion_date'] ?: null,
                         $_POST['status'],
+<<<<<<< HEAD
+=======
                         $_POST['notes'],
                         $_POST['progress_percentage'] ?? 0,
                         $_POST['successor_acknowledgment'] ?? 0,
                         $_POST['meeting_date'] ?: null,
                         $_POST['meeting_notes'] ?? '',
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                         $_POST['transfer_id']
                     ]);
                     $_SESSION['message'] = "Knowledge transfer updated successfully!";

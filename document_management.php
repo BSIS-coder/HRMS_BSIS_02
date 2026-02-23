@@ -943,8 +943,8 @@ $documentStatuses = ['Active', 'Inactive', 'Expired', 'Pending'];
                                         <button class="btn btn-warning btn-small" onclick="editDocument(<?= $document['document_id'] ?>)" title="Edit">
                                             ✏️ Edit
                                         </button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteDocument(<?= $document['document_id'] ?>)" title="Delete">
-                                            🗑️ Delete
+                                        <button class="btn btn-secondary btn-small" onclick="archiveDocument(<?= $document['document_id'] ?>)" title="Archive">
+                                            📦 Archive
                                         </button>
                                     </td>
                                 </tr>
@@ -1386,7 +1386,7 @@ $documentStatuses = ['Active', 'Inactive', 'Expired', 'Pending'];
             openModal('edit', documentId);
         }
 
-        function deleteDocument(documentId) {
+        function archiveDocument(documentId) {
             const selectedDocument = documentsData.find(doc => doc.document_id == documentId);
             const fileName = selectedDocument && selectedDocument.file_path ? selectedDocument.file_path.split('/').pop() : 'this document';
             

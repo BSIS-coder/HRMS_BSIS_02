@@ -96,10 +96,13 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                 
                 // Restore personal_information record (try to use original ID first)
                 $restoreStmt = $pdo->prepare("INSERT INTO personal_information 
-                    (personal_info_id, first_name, last_name, date_of_birth, gender, marital_status, nationality, 
-                     tax_id, social_security_number, phone_number, emergency_contact_name, 
-                     emergency_contact_relationship, emergency_contact_phone) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    (personal_info_id, first_name, last_name, date_of_birth, gender, marital_status, 
+                     marital_status_date, spouse_name, marital_status_document, document_type, document_number, 
+                     issuing_authority, nationality, tax_id, social_security_number, gsis_id, pag_ibig_id, 
+                     philhealth_id, phone_number, emergency_contact_name, emergency_contact_relationship, 
+                     emergency_contact_phone, highest_education_level, field_of_study, institution_name, 
+                     graduation_year, previous_job_experiences, certifications, additional_training) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
                 $restoreStmt->execute([
                     $recordData['personal_info_id'],
@@ -108,13 +111,29 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                     $recordData['date_of_birth'],
                     $recordData['gender'],
                     $recordData['marital_status'],
+                    $recordData['marital_status_date'] ?? null,
+                    $recordData['spouse_name'] ?? null,
+                    $recordData['marital_status_document'] ?? null,
+                    $recordData['document_type'] ?? null,
+                    $recordData['document_number'] ?? null,
+                    $recordData['issuing_authority'] ?? null,
                     $recordData['nationality'],
                     $recordData['tax_id'] ?? null,
                     $recordData['social_security_number'] ?? null,
+                    $recordData['gsis_id'] ?? null,
+                    $recordData['pag_ibig_id'] ?? null,
+                    $recordData['philhealth_id'] ?? null,
                     $recordData['phone_number'],
                     $recordData['emergency_contact_name'] ?? null,
                     $recordData['emergency_contact_relationship'] ?? null,
-                    $recordData['emergency_contact_phone'] ?? null
+                    $recordData['emergency_contact_phone'] ?? null,
+                    $recordData['highest_education_level'] ?? null,
+                    $recordData['field_of_study'] ?? null,
+                    $recordData['institution_name'] ?? null,
+                    $recordData['graduation_year'] ?? null,
+                    $recordData['previous_job_experiences'] ?? null,
+                    $recordData['certifications'] ?? null,
+                    $recordData['additional_training'] ?? null
                 ]);
                 
                 $restored = true;
@@ -209,16 +228,27 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                     }
                 }
                 
+                // Check if salary_grade_id still exists
+                if (!empty($recordData['salary_grade_id'])) {
+                    $gradeCheck = $pdo->prepare("SELECT COUNT(*) FROM salary_grades WHERE grade_id = ?");
+                    $gradeCheck->execute([$recordData['salary_grade_id']]);
+                    if ($gradeCheck->fetchColumn() == 0) {
+                        // Allow restore but set salary_grade_id to null if grade doesn't exist
+                        $recordData['salary_grade_id'] = null;
+                    }
+                }
+                
                 // Restore employee_profiles record
                 $restoreStmt = $pdo->prepare("INSERT INTO employee_profiles 
-                    (employee_id, personal_info_id, job_role_id, employee_number, hire_date, 
+                    (employee_id, personal_info_id, job_role_id, salary_grade_id, employee_number, hire_date, 
                      employment_status, current_salary, work_email, work_phone, location, remote_work) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
                 $restoreStmt->execute([
                     $recordData['employee_id'],
                     $recordData['personal_info_id'] ?? null,
                     $recordData['job_role_id'] ?? null,
+                    $recordData['salary_grade_id'] ?? null,
                     $recordData['employee_number'],
                     $recordData['hire_date'],
                     $recordData['employment_status'],
@@ -273,16 +303,19 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                 
                 // Restore employment_history record
                 $restoreStmt = $pdo->prepare("INSERT INTO employment_history 
-                    (history_id, employee_id, job_title, department_id, employment_type, start_date, end_date, 
+                    (history_id, employee_id, job_title, salary_grade, department_id, employment_type, start_date, end_date, 
                      employment_status, reporting_manager_id, location, base_salary, allowances, bonuses, 
-                     salary_adjustments, reason_for_change, promotions_transfers, duties_responsibilities, 
-                     performance_evaluations, training_certifications, contract_details, remarks) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                     salary_adjustments, salary_effective_date, salary_increase_amount, salary_increase_percentage, 
+                     previous_salary, position_sequence, is_current_position, promotion_type, reason_for_change, 
+                     promotions_transfers, duties_responsibilities, performance_evaluations, training_certifications, 
+                     contract_details, remarks) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
                 $restoreStmt->execute([
                     $recordData['history_id'],
                     $recordData['employee_id'],
                     $recordData['job_title'],
+                    $recordData['salary_grade'] ?? null,
                     $recordData['department_id'] ?? null,
                     $recordData['employment_type'],
                     $recordData['start_date'],
@@ -294,6 +327,13 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                     $recordData['allowances'] ?? 0.00,
                     $recordData['bonuses'] ?? 0.00,
                     $recordData['salary_adjustments'] ?? 0.00,
+                    $recordData['salary_effective_date'] ?? null,
+                    $recordData['salary_increase_amount'] ?? 0.00,
+                    $recordData['salary_increase_percentage'] ?? 0.00,
+                    $recordData['previous_salary'] ?? null,
+                    $recordData['position_sequence'] ?? 1,
+                    $recordData['is_current_position'] ?? 0,
+                    $recordData['promotion_type'] ?? null,
                     $recordData['reason_for_change'] ?? null,
                     $recordData['promotions_transfers'] ?? null,
                     $recordData['duties_responsibilities'] ?? null,

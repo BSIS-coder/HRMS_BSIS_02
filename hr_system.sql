@@ -8,6 +8,7 @@
 -- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET FOREIGN_KEY_CHECKS = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -17,12 +18,15 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+<<<<<<< HEAD
 --
 -- Database: `hr_system`
 --
+=======
 
 -- --------------------------------------------------------
 
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
 --
 -- Table structure for table `archive_storage`
 --
@@ -60,7 +64,6 @@ INSERT INTO `archive_storage` (`archive_id`, `source_table`, `record_id`, `emplo
 (8, 'employment_history', 18, 18, '{\r\n  \"history_id\": 18,\r\n  \"employee_id\": 18,\r\n  \"job_title\": \"Budget Analyst\",\r\n  \"department_id\": 4,\r\n  \"employment_type\": \"Full-time\",\r\n  \"start_date\": \"2019-09-01\",\r\n  \"end_date\": \"2025-09-30\",\r\n  \"employment_status\": \"Resigned\",\r\n  \"reporting_manager_id\": null,\r\n  \"location\": \"Municipal Budget Office\",\r\n  \"base_salary\": 42000.00,\r\n  \"allowances\": 3000.00,\r\n  \"bonuses\": 5000.00,\r\n  \"salary_adjustments\": 2000.00,\r\n  \"reason_for_change\": \"Resigned for career advancement opportunity abroad\",\r\n  \"promotions_transfers\": \"Promoted from Administrative Aide in 2021\",\r\n  \"duties_responsibilities\": \"Analyzed budget data and prepared financial reports for municipal operations.\",\r\n  \"performance_evaluations\": \"Consistently rated Outstanding. Received Best Employee Award 2023.\",\r\n  \"training_certifications\": \"Financial Planning Certification, Advanced Excel Training\",\r\n  \"contract_details\": \"Regular plantilla position\",\r\n  \"remarks\": \"Excellent employee. Provided comprehensive turnover documentation. Eligible for rehire.\",\r\n  \"created_at\": \"2019-09-01 02:00:00\",\r\n  \"updated_at\": \"2025-09-30 10:15:00\"\r\n}', 'Resignation', 'Employee resigned in good standing for overseas employment', 1, '2025-09-30 14:00:00', 1, NULL, NULL, 'Exit clearance completed. Certificate of Employment issued.', '2026-01-20 02:55:57', '2026-01-20 02:55:57');
 
 -- --------------------------------------------------------
-
 --
 -- Table structure for table `attendance`
 --
@@ -770,6 +773,27 @@ CREATE TABLE `employee_onboarding_tasks` (
 -- --------------------------------------------------------
 
 --
+<<<<<<< HEAD
+-- Table structure for table employee_profiles
+--
+
+CREATE TABLE employee_profiles (
+  employee_id int(11) NOT NULL,
+  personal_info_id int(11) DEFAULT NULL,
+  job_role_id int(11) DEFAULT NULL,
+  employee_number varchar(20) NOT NULL,
+  hire_date date NOT NULL,
+  employment_status enum('Full-time','Part-time','Contract','Intern','Terminated') NOT NULL,
+  work_email varchar(100) DEFAULT NULL,
+  work_phone varchar(20) DEFAULT NULL,
+  location varchar(100) DEFAULT NULL,
+  remote_work tinyint(1) DEFAULT 0,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+=======
+-- Table structure for table `employee_profiles`
+
+--
 -- Table structure for table `employee_profiles`
 --
 
@@ -777,6 +801,7 @@ CREATE TABLE `employee_profiles` (
   `employee_id` int(11) NOT NULL,
   `personal_info_id` int(11) DEFAULT NULL,
   `job_role_id` int(11) DEFAULT NULL,
+  `salary_grade_id` int(11) DEFAULT NULL COMMENT 'Foreign key to salary_grades table',
   `employee_number` varchar(20) NOT NULL,
   `hire_date` date NOT NULL,
   `employment_status` enum('Full-time','Part-time','Contract','Intern','Terminated') NOT NULL,
@@ -786,32 +811,34 @@ CREATE TABLE `employee_profiles` (
   `location` varchar(100) DEFAULT NULL,
   `remote_work` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  KEY `fk_salary_grade_id` (`salary_grade_id`),
+  CONSTRAINT `fk_employee_salary_grade` FOREIGN KEY (`salary_grade_id`) REFERENCES `salary_grades` (`grade_id`) ON DELETE SET NULL ON UPDATE CASCADE
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `employee_profiles`
+-- Dumping data for table employee_profiles
 --
 
-INSERT INTO `employee_profiles` (`employee_id`, `personal_info_id`, `job_role_id`, `employee_number`, `hire_date`, `employment_status`, `current_salary`, `work_email`, `work_phone`, `location`, `remote_work`, `created_at`, `updated_at`) VALUES
-(1, 1, 4, 'MUN001', '2019-07-01', 'Full-time', 65000.00, 'maria.santos@municipality.gov.ph', '034-123-0001', 'City Hall - 1st Floor', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(2, 2, 8, 'MUN002', '2018-06-15', 'Full-time', 75000.00, 'roberto.cruz@municipality.gov.ph', '034-123-0002', 'Engineering Building', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(3, 3, 17, 'MUN003', '2020-01-20', 'Full-time', 42000.00, 'jennifer.reyes@municipality.gov.ph', '034-123-0003', 'Municipal Health Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(4, 4, 21, 'MUN004', '2019-03-10', 'Full-time', 38000.00, 'antonio.garcia@municipality.gov.ph', '034-123-0004', 'Municipal Engineer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(5, 5, 20, 'MUN005', '2021-09-05', 'Full-time', 45000.00, 'lisa.mendoza@municipality.gov.ph', '034-123-0005', 'Municipal Social Welfare & Development Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(6, 6, 25, 'MUN006', '2020-11-12', 'Full-time', 28000.00, 'michael.torres@municipality.gov.ph', '034-123-0006', 'Municipal Accountant\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(7, 7, 27, 'MUN007', '2022-02-28', 'Full-time', 30000.00, 'carmen.delacruz@municipality.gov.ph', '034-123-0007', 'Municipal Civil Registrar\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(8, 8, 32, 'MUN008', '2021-05-18', 'Full-time', 22000.00, 'ricardo.villanueva@municipality.gov.ph', '034-123-0008', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(9, 9, 28, 'MUN009', '2020-09-10', 'Full-time', 32000.00, 'sandra.pascual@municipality.gov.ph', '034-123-0009', 'Municipal Treasurer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(10, 10, 29, 'MUN010', '2019-12-01', 'Full-time', 35000.00, 'jose.ramos@municipality.gov.ph', '034-123-0010', 'Municipal Treasurer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(11, 11, 26, 'MUN011', '2022-04-15', 'Full-time', 28000.00, 'ana.morales@municipality.gov.ph', '034-123-0011', 'Municipal Human Resource & Administrative Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(12, 12, 19, 'MUN012', '2021-08-20', 'Full-time', 40000.00, 'pablo.fernandez@municipality.gov.ph', '034-123-0012', 'Municipal Agriculture Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(13, 13, 18, 'MUN013', '2020-06-30', 'Full-time', 42000.00, 'grace.lopez@municipality.gov.ph', '034-123-0013', 'Municipal Health Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(14, 14, 31, 'MUN014', '2022-01-10', 'Full-time', 25000.00, 'eduardo.hernandez@municipality.gov.ph', '034-123-0014', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(15, 15, 33, 'MUN015', '2021-11-05', 'Full-time', 24000.00, 'rosario.gonzales@municipality.gov.ph', '034-123-0015', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+INSERT INTO employee_profiles (employee_id, personal_info_id, job_role_id, employee_number, hire_date, employment_status, work_email, work_phone, location, remote_work, created_at, updated_at) VALUES
+(1, 1, 4, 'MUN001', '2019-07-01', 'Full-time', 'maria.santos@municipality.gov.ph', '034-123-0001', 'City Hall - 1st Floor', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(2, 2, 8, 'MUN002', '2018-06-15', 'Full-time', 'roberto.cruz@municipality.gov.ph', '034-123-0002', 'Engineering Building', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(3, 3, 17, 'MUN003', '2020-01-20', 'Full-time', 'jennifer.reyes@municipality.gov.ph', '034-123-0003', 'Municipal Health Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(4, 4, 21, 'MUN004', '2019-03-10', 'Full-time', 'antonio.garcia@municipality.gov.ph', '034-123-0004', 'Municipal Engineer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(5, 5, 20, 'MUN005', '2021-09-05', 'Full-time', 'lisa.mendoza@municipality.gov.ph', '034-123-0005', 'Municipal Social Welfare & Development Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(6, 6, 25, 'MUN006', '2020-11-12', 'Full-time', 'michael.torres@municipality.gov.ph', '034-123-0006', 'Municipal Accountant\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 7, 27, 'MUN007', '2022-02-28', 'Full-time', 'carmen.delacruz@municipality.gov.ph', '034-123-0007', 'Municipal Civil Registrar\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(8, 8, 32, 'MUN008', '2021-05-18', 'Full-time', 'ricardo.villanueva@municipality.gov.ph', '034-123-0008', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(9, 9, 28, 'MUN009', '2020-09-10', 'Full-time', 'sandra.pascual@municipality.gov.ph', '034-123-0009', 'Municipal Treasurer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(10, 10, 29, 'MUN010', '2019-12-01', 'Full-time', 'jose.ramos@municipality.gov.ph', '034-123-0010', 'Municipal Treasurer\'s Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(11, 11, 26, 'MUN011', '2022-04-15', 'Full-time', 'ana.morales@municipality.gov.ph', '034-123-0011', 'Municipal Human Resource & Administrative Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(12, 12, 19, 'MUN012', '2021-08-20', 'Full-time', 'pablo.fernandez@municipality.gov.ph', '034-123-0012', 'Municipal Agriculture Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(13, 13, 18, 'MUN013', '2020-06-30', 'Full-time', 'grace.lopez@municipality.gov.ph', '034-123-0013', 'Municipal Health Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(14, 14, 31, 'MUN014', '2022-01-10', 'Full-time', 'eduardo.hernandez@municipality.gov.ph', '034-123-0014', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(15, 15, 33, 'MUN015', '2021-11-05', 'Full-time', 'rosario.gonzales@municipality.gov.ph', '034-123-0015', 'General Services Office', 0, '2025-09-09 02:00:16', '2025-09-09 02:00:16');
 
 -- --------------------------------------------------------
-
 --
 -- Table structure for table `employee_resources`
 --
@@ -889,17 +916,25 @@ CREATE TABLE `employment_history` (
   `history_id` int(11) NOT NULL,
   `employee_id` int(11) NOT NULL,
   `job_title` varchar(150) NOT NULL,
+  `salary_grade` varchar(50) DEFAULT NULL,
   `department_id` int(11) DEFAULT NULL,
   `employment_type` enum('Full-time','Part-time','Contractual','Project-based','Casual','Intern') NOT NULL,
   `start_date` date NOT NULL,
   `end_date` date DEFAULT NULL,
-  `employment_status` enum('Active','Resigned','Terminated','Retired','End of Contract','Transferred') NOT NULL,
+  `employment_status` enum('Active','Resigned','Terminated','Retired','End of Contract','Transferred','Promoted','Demoted','Lateral Move') NOT NULL,
   `reporting_manager_id` int(11) DEFAULT NULL,
   `location` varchar(150) DEFAULT NULL,
   `base_salary` decimal(10,2) NOT NULL,
   `allowances` decimal(10,2) DEFAULT 0.00,
   `bonuses` decimal(10,2) DEFAULT 0.00,
   `salary_adjustments` decimal(10,2) DEFAULT 0.00,
+  `salary_effective_date` date DEFAULT NULL,
+  `salary_increase_amount` decimal(10,2) DEFAULT 0.00,
+  `salary_increase_percentage` decimal(5,2) DEFAULT 0.00,
+  `previous_salary` decimal(10,2) DEFAULT NULL,
+  `position_sequence` int(11) DEFAULT 1,
+  `is_current_position` tinyint(1) DEFAULT 0,
+  `promotion_type` enum('Initial Hire','Promotion','Demotion','Lateral Move','Rehire') DEFAULT NULL,
   `reason_for_change` varchar(255) DEFAULT NULL,
   `promotions_transfers` text DEFAULT NULL,
   `duties_responsibilities` text DEFAULT NULL,
@@ -915,25 +950,24 @@ CREATE TABLE `employment_history` (
 -- Dumping data for table `employment_history`
 --
 
-INSERT INTO `employment_history` (`history_id`, `employee_id`, `job_title`, `department_id`, `employment_type`, `start_date`, `end_date`, `employment_status`, `reporting_manager_id`, `location`, `base_salary`, `allowances`, `bonuses`, `salary_adjustments`, `reason_for_change`, `promotions_transfers`, `duties_responsibilities`, `performance_evaluations`, `training_certifications`, `contract_details`, `remarks`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Municipal Treasurer', 3, 'Full-time', '2019-07-01', NULL, 'Active', NULL, 'City Hall - 1st Floor', 65000.00, 5000.00, 0.00, 0.00, 'Appointed as Municipal Treasurer', 'Promoted from Administrative Aide', 'Oversees treasury operations, municipal revenue collection, and financial management.', 'Consistently rated \"Excellent\" in financial audits', 'CPA Certification, Treasury Management Training', 'Appointed by Mayor, renewable 6-year term', 'Key finance official', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(2, 2, 'Municipal Engineer', 7, 'Full-time', '2018-06-15', NULL, 'Active', NULL, 'Engineering Building', 75000.00, 6000.00, 0.00, 0.00, 'Appointed as Municipal Engineer', 'Promoted from CAD Operator', 'Supervises infrastructure projects, designs municipal roads and buildings.', 'Rated \"Very Satisfactory\" in infrastructure project completion', 'PRC Civil Engineer License, Project Management Certification', 'Appointed by Mayor, renewable 6-year term', 'Head of engineering department', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(3, 3, 'Nurse', 9, 'Full-time', '2020-01-20', NULL, 'Active', 10, 'Municipal Health Office', 42000.00, 3000.00, 0.00, 0.00, 'Hired as Nurse', NULL, 'Provides nursing care, assists doctors, administers vaccinations.', 'Highly commended during pandemic response', 'PRC Nursing License, Basic Life Support Training', 'Contract renewable every 3 years', 'Dedicated health staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(4, 4, 'CAD Operator', 7, 'Full-time', '2019-03-10', NULL, 'Active', 2, 'Municipal Engineer\'s Office', 38000.00, 2000.00, 0.00, 0.00, 'Hired as CAD Operator', NULL, 'Prepares AutoCAD drawings and engineering plans.', 'Satisfactory performance in multiple LGU projects', 'AutoCAD Certification', 'Fixed-term renewable contract', 'Key engineering support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(5, 5, 'Social Worker', 10, 'Full-time', '2021-09-05', NULL, 'Active', NULL, 'Municipal Social Welfare & Development Office', 45000.00, 3000.00, 0.00, 0.00, 'Hired as Social Worker', 'Promoted from Administrative Aide', 'Handles casework, provides assistance to indigent families.', 'Rated \"Very Good\" in community outreach', 'Social Work License, Community Development Training', 'Regular plantilla position', 'Handles social services cases', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(6, 6, 'Accounting Staff', 5, 'Full-time', '2020-11-12', NULL, 'Active', NULL, 'Municipal Accountant\'s Office', 28000.00, 1500.00, 0.00, 0.00, 'Hired as Accounting Staff', NULL, 'Processes vouchers, prepares reports, assists in bookkeeping.', 'Satisfactory audit reviews', 'Bookkeeping Certification', 'Regular plantilla position', 'Junior accounting role', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(7, 7, 'Clerk', 8, 'Full-time', '2022-02-28', NULL, 'Active', NULL, 'Municipal Civil Registrar\'s Office', 30000.00, 1000.00, 0.00, 0.00, 'Hired as Clerk', NULL, 'Maintains registry records, assists clients with civil documents.', 'Rated \"Good\" by supervisor', 'Civil Registration Training', 'Contract renewable every 2 years', 'Support staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(8, 8, 'Maintenance Worker', 15, 'Full-time', '2021-05-18', NULL, 'Active', NULL, 'General Services Office', 22000.00, 1000.00, 0.00, 0.00, 'Hired as Maintenance Worker', NULL, 'Performs facility maintenance and minor repairs.', 'Satisfactory in safety inspections', 'Electrical Safety Training', 'Casual employment converted to regular', 'Assigned to city hall facilities', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(9, 9, 'Cashier', 3, 'Full-time', '2020-09-10', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 32000.00, 2000.00, 0.00, 0.00, 'Hired as Cashier', 'Promoted from Clerk', 'Handles cash collection, prepares daily receipts.', 'Commended for accurate handling of cash', 'Financial Management Training', 'Regular plantilla position', 'Treasury office staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(10, 10, 'Collection Officer', 3, 'Full-time', '2019-12-01', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 35000.00, 2000.00, 0.00, 0.00, 'Hired as Collection Officer', 'Promoted from Clerk', 'Collects taxes and fees, manages accounts receivables.', 'Rated \"Very Good\" in collection efficiency', 'Revenue Collection Procedures Training', 'Regular plantilla position', 'Handles revenue collection', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(11, 1, 'Administrative Aide', 13, 'Full-time', '2017-03-01', '2019-06-30', 'Resigned', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, 'Started as Administrative Aide', 'Later promoted to Treasurer', 'Clerical and administrative support tasks.', 'Rated \"Good\"', NULL, 'Fixed-term appointment', 'Entry-level HR support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(12, 2, 'CAD Operator', 7, 'Full-time', '2015-08-01', '2018-06-14', 'Transferred', NULL, 'Engineering Building', 32000.00, 1500.00, 0.00, 0.00, 'Started as CAD Operator', 'Later promoted to Municipal Engineer', 'Drafting technical drawings.', 'Rated \"Good\"', 'AutoCAD Certification', 'Contract ended due to promotion', 'Junior engineering support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(13, 5, 'Administrative Aide', 13, 'Full-time', '2019-01-15', '2021-09-04', 'Transferred', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, 'Started as Administrative Aide', 'Later promoted to Social Worker', 'Handled clerical support for social welfare programs.', 'Rated \"Good\"', NULL, 'Casual contract converted to plantilla', 'Support role before promotion', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(14, 9, 'Clerk', 8, 'Full-time', '2018-05-01', '2020-09-09', 'Transferred', NULL, 'Municipal Civil Registrar\'s Office', 22000.00, 500.00, 0.00, 0.00, 'Started as Clerk', 'Later promoted to Cashier', 'Maintained registry documents, clerical tasks.', 'Rated \"Good\"', NULL, 'Contract ended due to transfer', 'Civil registrar support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(15, 10, 'Clerk', 8, 'Full-time', '2017-10-01', '2019-11-30', 'Transferred', NULL, 'Municipal Civil Registrar\'s Office', 20000.00, 500.00, 0.00, 0.00, 'Started as Clerk', 'Later promoted to Collection Officer', 'Clerical tasks, processing records.', 'Rated \"Satisfactory\"', NULL, 'Contract ended due to promotion', 'Civil registrar support role', '2025-09-09 02:00:16', '2025-09-09 02:00:16');
+INSERT INTO `employment_history` (`history_id`, `employee_id`, `job_title`, `salary_grade`, `department_id`, `employment_type`, `start_date`, `end_date`, `employment_status`, `reporting_manager_id`, `location`, `base_salary`, `allowances`, `bonuses`, `salary_adjustments`, `salary_effective_date`, `salary_increase_amount`, `salary_increase_percentage`, `previous_salary`, `position_sequence`, `is_current_position`, `promotion_type`, `reason_for_change`, `promotions_transfers`, `duties_responsibilities`, `performance_evaluations`, `training_certifications`, `contract_details`, `remarks`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Municipal Treasurer', 'Grade 32', 3, 'Full-time', '2019-07-01', NULL, 'Active', NULL, 'City Hall - 1st Floor', 65000.00, 5000.00, 0.00, 0.00, '2019-07-01', 15000.00, 30.00, 50000.00, 2, 1, 'Promotion', 'Appointed as Municipal Treasurer', 'Promoted from Administrative Aide', 'Oversees treasury operations, municipal revenue collection, and financial management.', 'Consistently rated \"Excellent\" in financial audits', 'CPA Certification, Treasury Management Training', 'Appointed by Mayor, renewable 6-year term', 'Key finance official', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(2, 2, 'Municipal Engineer', 'Grade 33', 7, 'Full-time', '2018-06-15', NULL, 'Active', NULL, 'Engineering Building', 75000.00, 6000.00, 0.00, 0.00, '2018-06-15', 20000.00, 36.36, 55000.00, 2, 1, 'Promotion', 'Appointed as Municipal Engineer', 'Promoted from CAD Operator', 'Supervises infrastructure projects, designs municipal roads and buildings.', 'Rated \"Very Satisfactory\" in infrastructure project completion', 'PRC Civil Engineer License, Project Management Certification', 'Appointed by Mayor, renewable 6-year term', 'Head of engineering department', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(3, 3, 'Nurse', 'Grade 16', 9, 'Full-time', '2020-01-20', NULL, 'Active', 10, 'Municipal Health Office', 42000.00, 3000.00, 0.00, 0.00, '2020-01-20', 0.00, 0.00, 42000.00, 1, 1, 'Initial Hire', 'Hired as Nurse', NULL, 'Provides nursing care, assists doctors, administers vaccinations.', 'Highly commended during pandemic response', 'PRC Nursing License, Basic Life Support Training', 'Contract renewable every 3 years', 'Dedicated health staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(4, 4, 'CAD Operator', 'Grade 14', 7, 'Full-time', '2019-03-10', NULL, 'Active', 2, 'Municipal Engineer\'s Office', 38000.00, 2000.00, 0.00, 0.00, '2019-03-10', 0.00, 0.00, 38000.00, 1, 1, 'Initial Hire', 'Hired as CAD Operator', NULL, 'Prepares AutoCAD drawings and engineering plans.', 'Satisfactory performance in multiple LGU projects', 'AutoCAD Certification', 'Fixed-term renewable contract', 'Key engineering support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(5, 5, 'Social Worker', 'Grade 17', 10, 'Full-time', '2021-09-05', NULL, 'Active', NULL, 'Municipal Social Welfare & Development Office', 45000.00, 3000.00, 0.00, 0.00, '2021-09-05', 10000.00, 28.57, 35000.00, 2, 1, 'Promotion', 'Hired as Social Worker', 'Promoted from Administrative Aide', 'Handles casework, provides assistance to indigent families.', 'Rated \"Very Good\" in community outreach', 'Social Work License, Community Development Training', 'Regular plantilla position', 'Handles social services cases', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(6, 6, 'Accounting Staff', 'Grade 12', 5, 'Full-time', '2020-11-12', NULL, 'Active', NULL, 'Municipal Accountant\'s Office', 28000.00, 1500.00, 0.00, 0.00, '2020-11-12', 0.00, 0.00, 28000.00, 1, 1, 'Initial Hire', 'Hired as Accounting Staff', NULL, 'Processes vouchers, prepares reports, assists in bookkeeping.', 'Satisfactory audit reviews', 'Bookkeeping Certification', 'Regular plantilla position', 'Junior accounting role', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 7, 'Clerk', 'Grade 10', 8, 'Full-time', '2022-02-28', NULL, 'Active', NULL, 'Municipal Civil Registrar\'s Office', 30000.00, 1000.00, 0.00, 0.00, '2022-02-28', 0.00, 0.00, 30000.00, 1, 1, 'Initial Hire', 'Hired as Clerk', NULL, 'Maintains registry records, assists clients with civil documents.', 'Rated \"Good\" by supervisor', 'Civil Registration Training', 'Contract renewable every 2 years', 'Support staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(8, 8, 'Maintenance Worker', 'Grade 11', 15, 'Full-time', '2021-05-18', NULL, 'Active', NULL, 'General Services Office', 22000.00, 1000.00, 0.00, 0.00, '2021-05-18', 0.00, 0.00, 22000.00, 1, 1, 'Initial Hire', 'Hired as Maintenance Worker', NULL, 'Performs facility maintenance and minor repairs.', 'Satisfactory in safety inspections', 'Electrical Safety Training', 'Casual employment converted to regular', 'Assigned to city hall facilities', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(9, 9, 'Cashier', 'Grade 13', 3, 'Full-time', '2020-09-10', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 32000.00, 2000.00, 0.00, 0.00, '2020-09-10', 8000.00, 33.33, 24000.00, 2, 1, 'Promotion', 'Hired as Cashier', 'Promoted from Clerk', 'Handles cash collection, prepares daily receipts.', 'Commended for accurate handling of cash', 'Financial Management Training', 'Regular plantilla position', 'Treasury office staff', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(10, 10, 'Collection Officer', 'Grade 15', 3, 'Full-time', '2019-12-01', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 35000.00, 2000.00, 0.00, 0.00, '2019-12-01', 10000.00, 40.00, 25000.00, 2, 1, 'Promotion', 'Hired as Collection Officer', 'Promoted from Clerk', 'Collects taxes and fees, manages accounts receivables.', 'Rated \"Very Good\" in collection efficiency', 'Revenue Collection Procedures Training', 'Regular plantilla position', 'Handles revenue collection', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(11, 1, 'Administrative Aide', 'Grade 8', 13, 'Full-time', '2017-03-01', '2019-06-30', 'Promoted', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, '2017-03-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Administrative Aide', 'Later promoted to Treasurer', 'Clerical and administrative support tasks.', 'Rated \"Good\"', NULL, 'Fixed-term appointment', 'Entry-level HR support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(12, 2, 'CAD Operator', 'Grade 14', 7, 'Full-time', '2015-08-01', '2018-06-14', 'Promoted', NULL, 'Engineering Building', 32000.00, 1500.00, 0.00, 0.00, '2015-08-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as CAD Operator', 'Later promoted to Municipal Engineer', 'Drafting technical drawings.', 'Rated \"Good\"', 'AutoCAD Certification', 'Contract ended due to promotion', 'Junior engineering support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(13, 5, 'Administrative Aide', 'Grade 8', 13, 'Full-time', '2019-01-15', '2021-09-04', 'Promoted', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, '2019-01-15', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Administrative Aide', 'Later promoted to Social Worker', 'Handled clerical support for social welfare programs.', 'Rated \"Good\"', NULL, 'Casual contract converted to plantilla', 'Support role before promotion', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(14, 9, 'Clerk', 'Grade 9', 8, 'Full-time', '2018-05-01', '2020-09-09', 'Promoted', NULL, 'Municipal Civil Registrar\'s Office', 22000.00, 500.00, 0.00, 0.00, '2018-05-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Clerk', 'Later promoted to Cashier', 'Maintained registry documents, clerical tasks.', 'Rated \"Good\"', NULL, 'Contract ended due to transfer', 'Civil registrar support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(15, 10, 'Clerk', 'Grade 9', 8, 'Full-time', '2017-10-01', '2019-11-30', 'Promoted', NULL, 'Municipal Civil Registrar\'s Office', 20000.00, 500.00, 0.00, 0.00, '2017-10-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Clerk', 'Later promoted to Collection Officer', 'Clerical tasks, processing records.', 'Rated \"Satisfactory\"', NULL, 'Contract ended due to promotion', 'Civil registrar support role', '2025-09-09 02:00:16', '2026-02-23 05:30:00');
 
 -- --------------------------------------------------------
-
 --
 -- Table structure for table `exits`
 --
@@ -979,8 +1013,11 @@ CREATE TABLE `exit_checklist` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+<<<<<<< HEAD
+=======
 
 -- --------------------------------------------------------
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
 
 --
 -- Table structure for table `exit_checklist_approvals`
@@ -1727,9 +1764,10 @@ INSERT INTO `performance_review_cycles` (`cycle_id`, `cycle_name`, `start_date`,
 -- --------------------------------------------------------
 
 --
+
 --
--- Table structure for table `personal_information`
 --
+-- Modified personal_information table with marital status details
 
 CREATE TABLE `personal_information` (
   `personal_info_id` int(11) NOT NULL,
@@ -1738,53 +1776,83 @@ CREATE TABLE `personal_information` (
   `date_of_birth` date NOT NULL,
   `gender` enum('Male','Female','Non-binary','Prefer not to say') NOT NULL,
   `marital_status` enum('Single','Married','Divorced','Widowed') NOT NULL,
+<<<<<<< HEAD
   `marital_status_date` date DEFAULT NULL,
   `spouse_name` varchar(100) DEFAULT NULL,
   `marital_status_document` varchar(255) DEFAULT NULL,
-  `marital_status_document_type` enum('Marriage Certificate','Divorce Decree','Death Certificate','Annulment Decree','Legal Separation','Other') DEFAULT NULL,
-  `marital_status_document_number` varchar(50) DEFAULT NULL,
-  `marital_status_issuing_authority` varchar(150) DEFAULT NULL,
+  `document_type` varchar(50) DEFAULT NULL,
+  `document_number` varchar(50) DEFAULT NULL,
+  `issuing_authority` varchar(150) DEFAULT NULL,
+=======
+  -- Marital Status Details
+  `marital_status_date` date DEFAULT NULL,
+  `spouse_name` varchar(100) DEFAULT NULL,
+  `marital_status_document` varchar(100) DEFAULT NULL,
+  `document_type` enum('Marriage Certificate','Divorce Decree','Death Certificate','Annulment Certificate','None') DEFAULT NULL,
+  `document_number` varchar(50) DEFAULT NULL,
+  `issuing_authority` varchar(150) DEFAULT NULL,
+  -- End of Marital Status Details
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
   `nationality` varchar(50) NOT NULL,
   `tax_id` varchar(20) DEFAULT NULL,
-  `social_security_number` varchar(20) DEFAULT NULL,
+  `gsis_id` varchar(20) DEFAULT NULL COMMENT 'Government Service Insurance System ID',
   `pag_ibig_id` varchar(20) DEFAULT NULL,
   `philhealth_id` varchar(20) DEFAULT NULL,
   `phone_number` varchar(20) NOT NULL,
   `emergency_contact_name` varchar(100) DEFAULT NULL,
   `emergency_contact_relationship` varchar(50) DEFAULT NULL,
   `emergency_contact_phone` varchar(20) DEFAULT NULL,
-  -- Educational Background Fields
   `highest_education_level` enum('Elementary','High School','Vocational/Technical','Associate Degree','Bachelor''s Degree','Master''s Degree','Doctorate','Other') DEFAULT NULL,
   `field_of_study` varchar(100) DEFAULT NULL,
   `institution_name` varchar(150) DEFAULT NULL,
   `graduation_year` year DEFAULT NULL,
+  `previous_job_experiences` longtext DEFAULT NULL COMMENT 'JSON array containing previous employment history before joining this organization',
   `certifications` text DEFAULT NULL,
   `additional_training` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `marital_status_date`, `spouse_name`, `marital_status_document`, `document_type`, `document_number`, `issuing_authority`, `nationality`, `tax_id`, `gsis_id`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `previous_job_experiences`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
+(1, 'Maria', 'Santos', '1985-03-12', 'Female', 'Married', '2010-06-15', 'Carlos Santos', 'Marriage Certificate of Maria Reyes and Carlos Santos', 'Marriage Certificate', 'MC-2010-04321', 'Philippine Statistics Authority (PSA)', 'Filipino', '123-45-6789', '123456789', NULL, NULL, '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901', 'Bachelor''s Degree', 'Business Administration', 'University of the Philippines', 2007, NULL, 'Certified Public Accountant (CPA)', 'Advanced Excel Training, Leadership Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(2, 'Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', '2005-11-20', 'Elena Cruz', 'Marriage Certificate of Roberto Cruz and Elena Reyes', 'Marriage Certificate', 'MC-2005-08876', 'Philippine Statistics Authority (PSA)', 'Filipino', '234-56-7890', '234567890', NULL, NULL, '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012', 'Master''s Degree', 'Information Technology', 'Ateneo de Manila University', 2002, NULL, 'Project Management Professional (PMP), ITIL Foundation', 'Agile Scrum Master Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(3, 'Jennifer', 'Reyes', '1988-11-08', 'Female', 'Single', NULL, NULL, NULL, 'None', NULL, NULL, 'Filipino', '345-67-8901', '345678901', NULL, NULL, '0917-345-6789', 'Mark Reyes', 'Brother', '0917-789-0123', 'Bachelor''s Degree', 'Marketing', 'De La Salle University', 2010, NULL, 'Google Analytics Certification, Digital Marketing Certificate', 'Social Media Marketing Bootcamp', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(4, 'Antonio', 'Garcia', '1975-01-25', 'Male', 'Divorced', '2015-03-10', 'Rosa Garcia', 'Decree of Legal Separation of Antonio and Rosa Garcia', 'Divorce Decree', 'DD-2015-00234', 'Regional Trial Court – Branch 45, Quezon City', 'Filipino', '456-78-9012', '456789012', NULL, NULL, '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234', 'Vocational/Technical', 'Automotive Technology', 'Technical Education and Skills Development Authority (TESDA)', 1995, NULL, 'NC II Automotive Servicing, Welding NC II', 'Heavy Equipment Operation Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(5, 'Lisa', 'Mendoza', '1982-09-14', 'Female', 'Widowed', '2019-07-22', 'John Mendoza', 'Death Certificate of John Mendoza', 'Death Certificate', 'DC-2019-06789', 'Philippine Statistics Authority (PSA)', 'Filipino', '567-89-0123', '567890123', NULL, NULL, '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345', 'Bachelor''s Degree', 'Nursing', 'University of Santo Tomas', 2004, NULL, 'Registered Nurse (RN), Basic Life Support (BLS)', 'Intensive Care Unit (ICU) Specialized Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(6, 'Michael', 'Torres', '1980-06-03', 'Male', 'Married', '2007-04-14', 'Anna Torres', 'Marriage Certificate of Michael Torres and Anna Reyes', 'Marriage Certificate', 'MC-2007-03345', 'Philippine Statistics Authority (PSA)', 'Filipino', '678-90-1234', '678901234', NULL, NULL, '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456', 'Bachelor''s Degree', 'Civil Engineering', 'Mapua University', 2002, NULL, 'Licensed Civil Engineer, LEED Green Associate', 'Construction Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(7, 'Carmen', 'Dela Cruz', '1987-12-18', 'Female', 'Single', NULL, NULL, NULL, 'None', NULL, NULL, 'Filipino', '789-01-2345', '789012345', NULL, NULL, '0917-789-0123', 'Pedro Dela Cruz', 'Father', '0917-123-4567', 'Bachelor''s Degree', 'Education', 'Philippine Normal University', 2009, NULL, 'Licensed Professional Teacher (LPT)', 'Child Psychology Training, Montessori Method Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(8, 'Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', '1995-08-20', 'Diana Villanueva', 'Marriage Certificate of Ricardo Villanueva and Diana Santos', 'Marriage Certificate', 'MC-1995-01123', 'Philippine Statistics Authority (PSA)', 'Filipino', '890-12-3456', '890123456', NULL, NULL, '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678', 'High School', NULL, 'San Juan National High School', 1988, NULL, 'Sales Excellence Certificate', 'Customer Service Training, Product Knowledge Seminars', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(9, 'Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', '2009-02-14', 'Luis Pascual', 'Marriage Certificate of Sandra Reyes and Luis Pascual', 'Marriage Certificate', 'MC-2009-05567', 'Philippine Statistics Authority (PSA)', 'Filipino', '901-23-4567', '901234567', NULL, NULL, '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789', 'Master''s Degree', 'Human Resource Management', 'Asian Institute of Management', 2008, NULL, 'SHRM-CP, Certified Compensation Professional', 'Organizational Development Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(10, 'Jose', 'Ramos', '1972-05-15', 'Male', 'Married', '1998-12-01', 'Teresa Ramos', 'Marriage Certificate of Jose Ramos and Teresa Cruz', 'Marriage Certificate', 'MC-1998-02234', 'Philippine Statistics Authority (PSA)', 'Filipino', '012-34-5678', '012345678', NULL, NULL, '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890', 'Bachelor''s Degree', 'Electrical Engineering', 'Polytechnic University of the Philippines', 1994, NULL, 'Licensed Electrical Engineer', 'Power Systems Analysis Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(11, 'Ana', 'Morales', '1986-10-30', 'Female', 'Single', NULL, NULL, NULL, 'None', NULL, NULL, 'Filipino', '123-56-7890', '123567890', NULL, NULL, '0917-135-7890', 'Maria Morales', 'Mother', '0917-579-0123', 'Bachelor''s Degree', 'Psychology', 'University of the Philippines', 2008, NULL, 'Licensed Psychologist, Certified Career Coach', 'Cognitive Behavioral Therapy Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(12, 'Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', '2003-05-17', 'Carmen Fernandez', 'Marriage Certificate of Pablo Fernandez and Carmen Dela Cruz', 'Marriage Certificate', 'MC-2003-06678', 'Philippine Statistics Authority (PSA)', 'Filipino', '234-67-8901', '234678901', NULL, NULL, '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234', 'Vocational/Technical', 'Computer Technology', 'TESDA', 1998, NULL, 'Computer Systems Servicing NC II', 'Web Development Bootcamp, Network Administration', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(13, 'Grace', 'Lopez', '1983-09-07', 'Female', 'Married', '2008-01-19', 'David Lopez', 'Marriage Certificate of Grace Santos and David Lopez', 'Marriage Certificate', 'MC-2008-04456', 'Philippine Statistics Authority (PSA)', 'Filipino', '345-78-9012', '345789012', NULL, NULL, '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345', 'Bachelor''s Degree', 'Accountancy', 'Far Eastern University', 2005, NULL, 'Certified Public Accountant (CPA), Certified Internal Auditor', 'Tax Planning and Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', '2004-09-25', 'Sofia Hernandez', 'Marriage Certificate of Eduardo Hernandez and Sofia Reyes', 'Marriage Certificate', 'MC-2004-07789', 'Philippine Statistics Authority (PSA)', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, NULL, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(15, 'Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', NULL, NULL, NULL, 'None', NULL, NULL, 'Filipino', '567-90-1234', '567901234', NULL, NULL, '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567', 'Bachelor''s Degree', 'Communication Arts', 'University of the Philippines', 2011, NULL, 'Certified Digital Content Creator', 'Video Production Workshop, Social Media Strategy Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
 --
+<<<<<<< HEAD
 -- Dumping data for table `personal_information`
 --
 
-INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `marital_status_date`, `spouse_name`, `marital_status_document`, `marital_status_document_type`, `marital_status_document_number`, `marital_status_issuing_authority`, `nationality`, `tax_id`, `social_security_number`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
-(1, 'Maria', 'Santos', '1985-03-12', 'Female', 'Married', '2010-06-15', 'Carlos Santos', 'docs/marital/maria_santos_marriage_cert.pdf', 'Marriage Certificate', 'MC-2010-06-789456', 'Philippine Statistics Authority - NCR', 'Filipino', '123-45-6789', '123456789', NULL, NULL, '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901', 'Bachelor''s Degree', 'Business Administration', 'University of the Philippines', 2007, 'Certified Public Accountant (CPA)', 'Advanced Excel Training, Leadership Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(2, 'Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', '2005-03-22', 'Elena Cruz', 'docs/marital/roberto_cruz_marriage_cert.pdf', 'Marriage Certificate', 'MC-2005-03-334512', 'Philippine Statistics Authority - NCR', 'Filipino', '234-56-7890', '234567890', NULL, NULL, '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012', 'Master''s Degree', 'Information Technology', 'Ateneo de Manila University', 2002, 'Project Management Professional (PMP), ITIL Foundation', 'Agile Scrum Master Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `marital_status_date`, `spouse_name`, `marital_status_document`, `document_type`, `document_number`, `issuing_authority`, `nationality`, `tax_id`, `social_security_number`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
+(1, 'Maria', 'Santos', '1985-03-12', 'Female', 'Married', '2008-06-15', 'Carlos Santos', 'Marriage Certificate', 'Marriage Certificate', 'MC-2008-567890', 'National Statistics Office', 'Filipino', '123-45-6789', '123456789', NULL, NULL, '0917-123-4567', 'Carlos Santos', 'Spouse', '0917-567-8901', 'Bachelor''s Degree', 'Business Administration', 'University of the Philippines', 2007, 'Certified Public Accountant (CPA)', 'Advanced Excel Training, Leadership Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(2, 'Roberto', 'Cruz', '1978-07-20', 'Male', 'Married', '2003-11-22', 'Elena Cruz', 'Marriage Certificate', 'Marriage Certificate', 'MC-2003-123456', 'National Statistics Office', 'Filipino', '234-56-7890', '234567890', NULL, NULL, '0917-234-5678', 'Elena Cruz', 'Spouse', '0917-678-9012', 'Master''s Degree', 'Information Technology', 'Ateneo de Manila University', 2002, 'Project Management Professional (PMP), ITIL Foundation', 'Agile Scrum Master Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
 (3, 'Jennifer', 'Reyes', '1988-11-08', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '345-67-8901', '345678901', NULL, NULL, '0917-345-6789', 'Mark Reyes', 'Brother', '0917-789-0123', 'Bachelor''s Degree', 'Marketing', 'De La Salle University', 2010, 'Google Analytics Certification, Digital Marketing Certificate', 'Social Media Marketing Bootcamp', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(4, 'Antonio', 'Garcia', '1975-01-25', 'Male', 'Married', '2003-12-10', 'Rosa Garcia', 'docs/marital/antonio_garcia_marriage_cert.pdf', 'Marriage Certificate', 'MC-2003-12-556789', 'Philippine Statistics Authority - Cebu', 'Filipino', '456-78-9012', '456789012', NULL, NULL, '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234', 'Vocational/Technical', 'Automotive Technology', 'Technical Education and Skills Development Authority (TESDA)', 1995, 'NC II Automotive Servicing, Welding NC II', 'Heavy Equipment Operation Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(5, 'Lisa', 'Mendoza', '1982-09-14', 'Female', 'Divorced', '2015-08-20', NULL, 'docs/marital/lisa_mendoza_divorce_decree.pdf', 'Divorce Decree', 'DD-2015-08-112233', 'Regional Trial Court - Manila', 'Filipino', '567-89-0123', '567890123', NULL, NULL, '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345', 'Bachelor''s Degree', 'Nursing', 'University of Santo Tomas', 2004, 'Registered Nurse (RN), Basic Life Support (BLS)', 'Intensive Care Unit (ICU) Specialized Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(6, 'Michael', 'Torres', '1980-06-03', 'Male', 'Married', '2008-11-14', 'Anna Torres', 'docs/marital/michael_torres_marriage_cert.pdf', 'Marriage Certificate', 'MC-2008-11-778901', 'Philippine Statistics Authority - Davao', 'Filipino', '678-90-1234', '678901234', NULL, NULL, '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456', 'Bachelor''s Degree', 'Civil Engineering', 'Mapua University', 2002, 'Licensed Civil Engineer, LEED Green Associate', 'Construction Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(4, 'Antonio', 'Garcia', '1975-01-25', 'Male', 'Married', '1998-03-20', 'Rosa Garcia', 'Marriage Certificate', 'Marriage Certificate', 'MC-1998-654321', 'National Statistics Office', 'Filipino', '456-78-9012', '456789012', NULL, NULL, '0917-456-7890', 'Rosa Garcia', 'Spouse', '0917-890-1234', 'Vocational/Technical', 'Automotive Technology', 'Technical Education and Skills Development Authority (TESDA)', 1995, 'NC II Automotive Servicing, Welding NC II', 'Heavy Equipment Operation Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(5, 'Lisa', 'Mendoza', '1982-09-14', 'Female', 'Divorced', '2007-08-14', 'Robert Mendoza', 'Decree of Annulment', 'Decree of Annulment', 'DA-2015-789123', 'Regional Trial Court', 'Filipino', '567-89-0123', '567890123', NULL, NULL, '0917-567-8901', 'John Mendoza', 'Father', '0917-901-2345', 'Bachelor''s Degree', 'Nursing', 'University of Santo Tomas', 2004, 'Registered Nurse (RN), Basic Life Support (BLS)', 'Intensive Care Unit (ICU) Specialized Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(6, 'Michael', 'Torres', '1980-06-03', 'Male', 'Married', '2004-05-10', 'Anna Torres', 'Marriage Certificate', 'Marriage Certificate', 'MC-2004-456789', 'National Statistics Office', 'Filipino', '678-90-1234', '678901234', NULL, NULL, '0917-678-9012', 'Anna Torres', 'Spouse', '0917-012-3456', 'Bachelor''s Degree', 'Civil Engineering', 'Mapua University', 2002, 'Licensed Civil Engineer, LEED Green Associate', 'Construction Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
 (7, 'Carmen', 'Dela Cruz', '1987-12-18', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '789-01-2345', '789012345', NULL, NULL, '0917-789-0123', 'Pedro Dela Cruz', 'Father', '0917-123-4567', 'Bachelor''s Degree', 'Education', 'Philippine Normal University', 2009, 'Licensed Professional Teacher (LPT)', 'Child Psychology Training, Montessori Method Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(8, 'Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', '1995-05-20', 'Diana Villanueva', 'docs/marital/ricardo_villanueva_marriage_cert.pdf', 'Marriage Certificate', 'MC-1995-05-223344', 'Philippine Statistics Authority - Laguna', 'Filipino', '890-12-3456', '890123456', NULL, NULL, '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678', 'High School', NULL, 'San Juan National High School', 1988, 'Sales Excellence Certificate', 'Customer Service Training, Product Knowledge Seminars', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(9, 'Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', '2012-02-28', 'Luis Pascual', 'docs/marital/sandra_pascual_marriage_cert.pdf', 'Marriage Certificate', 'MC-2012-02-445566', 'Philippine Statistics Authority - Quezon City', 'Filipino', '901-23-4567', '901234567', NULL, NULL, '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789', 'Master''s Degree', 'Human Resource Management', 'Asian Institute of Management', 2008, 'SHRM-CP, Certified Compensation Professional', 'Organizational Development Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(10, 'Jose', 'Ramos', '1972-05-15', 'Male', 'Married', '2001-09-08', 'Teresa Ramos', 'docs/marital/jose_ramos_marriage_cert.pdf', 'Marriage Certificate', 'MC-2001-09-667788', 'Philippine Statistics Authority - Makati', 'Filipino', '012-34-5678', '012345678', NULL, NULL, '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890', 'Bachelor''s Degree', 'Electrical Engineering', 'Polytechnic University of the Philippines', 1994, 'Licensed Electrical Engineer', 'Power Systems Analysis Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(8, 'Ricardo', 'Villanueva', '1970-04-07', 'Male', 'Married', '1995-12-03', 'Diana Villanueva', 'Marriage Certificate', 'Marriage Certificate', 'MC-1995-321654', 'National Statistics Office', 'Filipino', '890-12-3456', '890123456', NULL, NULL, '0917-890-1234', 'Diana Villanueva', 'Spouse', '0917-234-5678', 'High School', NULL, 'San Juan National High School', 1988, 'Sales Excellence Certificate', 'Customer Service Training, Product Knowledge Seminars', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(9, 'Sandra', 'Pascual', '1984-08-29', 'Female', 'Married', '2009-07-18', 'Luis Pascual', 'Marriage Certificate', 'Marriage Certificate', 'MC-2009-987654', 'National Statistics Office', 'Filipino', '901-23-4567', '901234567', NULL, NULL, '0917-901-2345', 'Luis Pascual', 'Spouse', '0917-345-6789', 'Master''s Degree', 'Human Resource Management', 'Asian Institute of Management', 2008, 'SHRM-CP, Certified Compensation Professional', 'Organizational Development Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(10, 'Jose', 'Ramos', '1972-05-15', 'Male', 'Married', '1996-09-21', 'Teresa Ramos', 'Marriage Certificate', 'Marriage Certificate', 'MC-1996-654987', 'National Statistics Office', 'Filipino', '012-34-5678', '012345678', NULL, NULL, '0917-012-3456', 'Teresa Ramos', 'Spouse', '0917-456-7890', 'Bachelor''s Degree', 'Electrical Engineering', 'Polytechnic University of the Philippines', 1994, 'Licensed Electrical Engineer', 'Power Systems Analysis Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
 (11, 'Ana', 'Morales', '1986-10-30', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '123-56-7890', '123567890', NULL, NULL, '0917-135-7890', 'Maria Morales', 'Mother', '0917-579-0123', 'Bachelor''s Degree', 'Psychology', 'University of the Philippines', 2008, 'Licensed Psychologist, Certified Career Coach', 'Cognitive Behavioral Therapy Workshop', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(12, 'Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', '2007-07-15', 'Carmen Fernandez', 'docs/marital/pablo_fernandez_marriage_cert.pdf', 'Marriage Certificate', 'MC-2007-07-889900', 'Philippine Statistics Authority - Bulacan', 'Filipino', '234-67-8901', '234678901', NULL, NULL, '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234', 'Vocational/Technical', 'Computer Technology', 'TESDA', 1998, 'Computer Systems Servicing NC II', 'Web Development Bootcamp, Network Administration', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(13, 'Grace', 'Lopez', '1983-09-07', 'Female', 'Married', '2009-05-03', 'David Lopez', 'docs/marital/grace_lopez_marriage_cert.pdf', 'Marriage Certificate', 'MC-2009-05-001122', 'Philippine Statistics Authority - Pasig', 'Filipino', '345-78-9012', '345789012', NULL, NULL, '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345', 'Bachelor''s Degree', 'Accountancy', 'Far Eastern University', 2005, 'Certified Public Accountant (CPA), Certified Internal Auditor', 'Tax Planning and Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
-(14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', '2004-11-12', 'Sofia Hernandez', 'docs/marital/eduardo_hernandez_marriage_cert.pdf', 'Marriage Certificate', 'MC-2004-11-334455', 'Philippine Statistics Authority - Manila', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(12, 'Pablo', 'Fernandez', '1979-02-22', 'Male', 'Married', '2001-11-11', 'Carmen Fernandez', 'Marriage Certificate', 'Marriage Certificate', 'MC-2001-741852', 'National Statistics Office', 'Filipino', '234-67-8901', '234678901', NULL, NULL, '0917-246-7890', 'Carmen Fernandez', 'Spouse', '0917-680-1234', 'Vocational/Technical', 'Computer Technology', 'TESDA', 1998, 'Computer Systems Servicing NC II', 'Web Development Bootcamp, Network Administration', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(13, 'Grace', 'Lopez', '1983-09-07', 'Female', 'Married', '2006-02-14', 'David Lopez', 'Marriage Certificate', 'Marriage Certificate', 'MC-2006-369147', 'National Statistics Office', 'Filipino', '345-78-9012', '345789012', NULL, NULL, '0917-357-8901', 'David Lopez', 'Spouse', '0917-791-2345', 'Bachelor''s Degree', 'Accountancy', 'Far Eastern University', 2005, 'Certified Public Accountant (CPA), Certified Internal Auditor', 'Tax Planning and Management Seminar', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
+(14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', '2001-10-20', 'Sofia Hernandez', 'Marriage Certificate', 'Marriage Certificate', 'MC-2001-852147', 'National Statistics Office', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
 (15, 'Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', NULL, NULL, NULL, NULL, NULL, NULL, 'Filipino', '567-90-1234', '567901234', NULL, NULL, '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567', 'Bachelor''s Degree', 'Communication Arts', 'University of the Philippines', 2011, 'Certified Digital Content Creator', 'Video Production Workshop, Social Media Strategy Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
 
+=======
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
 -- --------------------------------------------------------
 
 --
@@ -2012,23 +2080,20 @@ CREATE TABLE `trainers` (
 --
 -- Table structure for table `training_courses`
 --
-
-CREATE TABLE `training_courses` (
-  `course_id` int(11) NOT NULL,
-  `course_name` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `category` varchar(100) DEFAULT NULL,
-  `delivery_method` enum('Online','Classroom','Workshop','Self-paced','Hybrid') NOT NULL,
-  `duration` int(11) DEFAULT NULL COMMENT 'Duration in hours',
-  `max_participants` int(11) DEFAULT NULL,
-  `prerequisites` text DEFAULT NULL,
-  `materials_url` varchar(255) DEFAULT NULL,
-  `status` enum('Active','Inactive','In Development') DEFAULT 'Active',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+CREATE TABLE training_courses (
+  course_id int(11) NOT NULL,
+  course_name varchar(255) NOT NULL,
+  description text DEFAULT NULL,
+  category varchar(100) DEFAULT NULL,
+  delivery_method enum('Classroom Training','Online Learning','Blended Learning','Workshop','Seminar','Webinar','Self-Paced','On-the-Job Training') NOT NULL,
+  duration int(11) DEFAULT NULL COMMENT 'Duration in hours',
+  max_participants int(11) DEFAULT NULL,
+  prerequisites text DEFAULT NULL,
+  materials_url varchar(255) DEFAULT NULL,
+  status enum('Active','Inactive','In Development') DEFAULT 'Active',
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `training_enrollments`
@@ -2252,7 +2317,10 @@ INSERT INTO `user_roles` (`role_id`, `role_name`, `description`) VALUES
 -- --------------------------------------------------------
 
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
 --
 -- Indexes for dumped tables
 --
@@ -3760,7 +3828,128 @@ ALTER TABLE `training_feedback`
 --
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE SET NULL;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `salary_grades`
+--
+
+CREATE TABLE `salary_grades` (
+  `grade_id` int(11) NOT NULL AUTO_INCREMENT,
+  `grade_name` varchar(50) NOT NULL COMMENT 'e.g., SG-1, SG-15, SG-24',
+  `grade_level` int(11) NOT NULL COMMENT 'Numeric level for ordering',
+  `step_number` int(11) NOT NULL DEFAULT 1 COMMENT 'Step within the grade (1-8 typical in PH gov)',
+  `monthly_salary` decimal(10,2) NOT NULL,
+  `annual_salary` decimal(10,2) GENERATED ALWAYS AS (`monthly_salary` * 12) STORED,
+  `description` text DEFAULT NULL,
+  `effective_date` date NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`grade_id`),
+  UNIQUE KEY `grade_step_unique` (`grade_level`, `step_number`, `effective_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `salary_grades`
+--
+
+INSERT INTO `salary_grades` (`grade_name`, `grade_level`, `step_number`, `monthly_salary`, `description`, `effective_date`) VALUES
+('SG-1',  1,  1, 13000.00, 'Utility Worker, Laborer',                    '2024-01-01'),
+('SG-3',  3,  1, 15000.00, 'Driver, Security Personnel',                 '2024-01-01'),
+('SG-4',  4,  1, 16000.00, 'Maintenance Worker',                         '2024-01-01'),
+('SG-6',  6,  1, 18000.00, 'Clerk I, Utility Worker II',                 '2024-01-01'),
+('SG-8',  8,  1, 
+22000.00, 'Administrative Aide, Cashier I',             '2024-01-01'),
+('SG-10', 10, 1, 28000.00, 'Accounting Staff, Planning Staff',           '2024-01-01'),
+('SG-11', 11, 1, 30000.00, 'Clerk III, Collection Officer I',            '2024-01-01'),
+('SG-12', 12, 1, 33000.00, 'Cashier II, Collection Officer II',          '2024-01-01'),
+('SG-14', 14, 1, 38000.00, 'CAD Operator, Agricultural Technician',      '2024-01-01'),
+('SG-15', 15, 1, 40000.00, 'Sanitary Inspector, Midwife',                '2024-01-01'),
+('SG-16', 16, 1, 42000.00, 'Nurse, Social Worker',                       '2024-01-01'),
+('SG-18', 18, 1, 45000.00, 'Budget Analyst, Accounting Staff Senior',    '2024-01-01'),
+('SG-22', 22, 1, 55000.00, 'Department Head I (Treasurer, Engineer)',    '2024-01-01'),
+('SG-24', 24, 1, 65000.00, 'Department Head III',                        '2024-01-01'),
+('SG-25', 25, 1, 75000.00, 'Department Head IV (Senior Engineer)',       '2024-01-01');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `salary_grade_history`
+--
+
+CREATE TABLE `salary_grade_history` (
+  `history_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `salary_grade_id` int(11) NOT NULL,
+  `previous_grade_id` int(11) DEFAULT NULL,
+  `effective_date` date NOT NULL,
+  `reason` varchar(255) DEFAULT NULL COMMENT 'e.g., Promotion, Step Increment, Salary Standardization',
+  `approved_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`history_id`),
+  KEY `employee_id` (`employee_id`),
+  KEY `salary_grade_id` (`salary_grade_id`),
+  KEY `previous_grade_id` (`previous_grade_id`),
+  KEY `approved_by` (`approved_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Constraints for table `salary_grades`
+--
+
+ALTER TABLE `employment_history`
+  ADD COLUMN `salary_grade_id` int(11) DEFAULT NULL AFTER `department_id`,
+  ADD KEY `salary_grade_id` (`salary_grade_id`),
+  ADD CONSTRAINT `employment_history_salary_grade_fk`
+    FOREIGN KEY (`salary_grade_id`) REFERENCES `salary_grades` (`grade_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `salary_grade_history`
+--
+
+ALTER TABLE `salary_grade_history`
+  ADD CONSTRAINT `sgh_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employee_profiles` (`employee_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `sgh_grade_fk` FOREIGN KEY (`salary_grade_id`) REFERENCES `salary_grades` (`grade_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `sgh_prev_grade_fk` FOREIGN KEY (`previous_grade_id`) REFERENCES `salary_grades` (`grade_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `sgh_approved_by_fk` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Mapping existing employees to their salary grades
+--
+
+UPDATE `employee_profiles` ep
+JOIN `salary_grades` sg ON sg.monthly_salary = ep.current_salary AND sg.is_active = 1
+SET ep.salary_grade_id = sg.grade_id;
+
+-- --------------------------------------------------------
+
+--
+-- View `employee_salary_overview`
+--
+
+CREATE VIEW `employee_salary_overview` AS
+SELECT
+  ep.employee_id,
+  ep.employee_number,
+  CONCAT(pi.first_name, ' ', pi.last_name) AS employee_name,
+  jr.title AS job_title,
+  sg.grade_name AS salary_grade,
+  sg.grade_level,
+  sg.step_number,
+  ep.current_salary AS monthly_salary,
+  sg.annual_salary,
+  sg.effective_date AS grade_effective_date
+FROM employee_profiles ep
+LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+LEFT JOIN salary_grades sg ON ep.salary_grade_id = sg.grade_id;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
 COMMIT;
+
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

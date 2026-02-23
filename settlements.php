@@ -114,54 +114,68 @@ if (isset($_SESSION['message'])) {
 }
 
 // Fetch settlements with related data
-$stmt = $pdo->query("
-    SELECT 
-        s.*,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number,
-        ep.work_email,
-        jr.title as job_title,
-        jr.department,
-        e.exit_type,
-        e.exit_date
-    FROM settlements s
-    LEFT JOIN employee_profiles ep ON s.employee_id = ep.employee_id
-    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-    LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-    LEFT JOIN exits e ON s.exit_id = e.exit_id
-    ORDER BY s.settlement_id DESC
-");
-$settlements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->query("
+        SELECT 
+            s.*,
+            CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+            ep.employee_number,
+            ep.work_email,
+            jr.title as job_title,
+            jr.department,
+            e.exit_type,
+            e.exit_date
+        FROM settlements s
+        LEFT JOIN employee_profiles ep ON s.employee_id = ep.employee_id
+        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+        LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+        LEFT JOIN exits e ON s.exit_id = e.exit_id
+        ORDER BY s.settlement_id DESC
+    ");
+    $settlements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $settlements = [];
+    error_log("Settlements query error: " . $e->getMessage());
+}
 
 // Fetch exits for dropdown
-$stmt = $pdo->query("
-    SELECT 
-        e.exit_id,
-        e.employee_id,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number,
-        e.exit_type,
-        e.exit_date
-    FROM exits e
-    LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
-    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-    WHERE e.exit_id NOT IN (SELECT exit_id FROM settlements)
-    ORDER BY e.exit_date DESC
-");
-$availableExits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->query("
+        SELECT 
+            e.exit_id,
+            e.employee_id,
+            CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+            ep.employee_number,
+            e.exit_type,
+            e.exit_date
+        FROM exits e
+        LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
+        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+        WHERE e.exit_id NOT IN (SELECT exit_id FROM settlements)
+        ORDER BY e.exit_date DESC
+    ");
+    $availableExits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $availableExits = [];
+    error_log("Available exits query error: " . $e->getMessage());
+}
 
 // Fetch all employees for dropdown
-$stmt = $pdo->query("
-    SELECT 
-        ep.employee_id,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number,
-        ep.current_salary
-    FROM employee_profiles ep
-    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-    ORDER BY pi.first_name
-");
-$employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->query("
+        SELECT 
+            ep.employee_id,
+            CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+            ep.employee_number
+        FROM employee_profiles ep
+        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+        ORDER BY pi.first_name
+    ");
+    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $employees = [];
+    error_log("Employees query error: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -502,10 +516,12 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 4px;
             font-weight: 600;
             color: transparent;
+            cursor: default;
             position: relative;
             display: inline-block;
             min-width: 120px;
             user-select: none;
+            pointer-events: none;
         }
 
         @keyframes shimmer {
@@ -514,7 +530,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .amount-masked::after {
-            content: '********';
+            content: '🔒 ••••••••';
             position: absolute;
             left: 0;
             right: 0;
@@ -522,6 +538,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 16px;
             font-weight: 600;
             letter-spacing: 2px;
+        }
+
+        .amount-masked:hover {
+            opacity: 1;
+            transform: none;
         }
 
         .sensitive-badge {
@@ -756,13 +777,21 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="final_salary">Final Salary (₱) *</label>
+<<<<<<< HEAD
+                                <input type="number" id="final_salary" name="final_salary" class="form-control" step="0.01" required readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
+=======
                                 <input type="number" id="final_salary" name="final_salary" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="severance_pay">Severance Pay (₱)</label>
+<<<<<<< HEAD
+                                <input type="number" id="severance_pay" name="severance_pay" class="form-control" step="0.01" value="0" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+=======
                                 <input type="number" id="severance_pay" name="severance_pay" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                             </div>
                         </div>
                     </div>
@@ -771,13 +800,21 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="unused_leave_payout">Unused Leave Payout (₱)</label>
+<<<<<<< HEAD
+                                <input type="number" id="unused_leave_payout" name="unused_leave_payout" class="form-control" step="0.01" value="0" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+=======
                                 <input type="number" id="unused_leave_payout" name="unused_leave_payout" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="deductions">Deductions (₱)</label>
+<<<<<<< HEAD
+                                <input type="number" id="deductions" name="deductions" class="form-control" step="0.01" value="0" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+=======
                                 <input type="number" id="deductions" name="deductions" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
+>>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
                             </div>
                         </div>
                     </div>
