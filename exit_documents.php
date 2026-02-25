@@ -18,7 +18,7 @@ unset($_SESSION['message'], $_SESSION['message_type']);
 // Include database connection and helper functions
 require_once 'dp.php';
 
-// Database connection
+/// Database connection
 $host = getenv('DB_HOST') ?? 'localhost';
 $dbname = getenv('DB_NAME') ?? 'hr_system';
 $username = getenv('DB_USER') ?? 'root';
@@ -56,10 +56,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                     
+                    // Get employee_id from exit record
+                    $stmt_exit = $pdo->prepare("SELECT employee_id FROM exits WHERE exit_id = ?");
+                    $stmt_exit->execute([$_POST['exit_id']]);
+                    $exit_data = $stmt_exit->fetch(PDO::FETCH_ASSOC);
+                    
                     $stmt = $pdo->prepare("INSERT INTO exit_documents (exit_id, employee_id, document_type, document_name, document_url, notes) VALUES (?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['exit_id'],
-                        $_POST['employee_id'],
+                        $exit_data['employee_id'],
                         $_POST['document_type'],
                         $_POST['document_name'],
                         $documentUrl,
@@ -104,10 +109,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                     
+                    // Get employee_id from exit record
+                    $stmt_exit = $pdo->prepare("SELECT employee_id FROM exits WHERE exit_id = ?");
+                    $stmt_exit->execute([$_POST['exit_id']]);
+                    $exit_data = $stmt_exit->fetch(PDO::FETCH_ASSOC);
+                    
                     $stmt = $pdo->prepare("UPDATE exit_documents SET exit_id=?, employee_id=?, document_type=?, document_name=?, document_url=?, notes=? WHERE document_id=?");
                     $stmt->execute([
                         $_POST['exit_id'],
-                        $_POST['employee_id'],
+                        $exit_data['employee_id'],
                         $_POST['document_type'],
                         $_POST['document_name'],
                         $documentUrl,
@@ -177,7 +187,6 @@ $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("
     SELECT 
         e.exit_id,
-        e.employee_id,
         e.exit_type,
         e.exit_date,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
@@ -187,6 +196,18 @@ $stmt = $pdo->query("
     ORDER BY e.exit_date DESC
 ");
 $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch employees for dropdown
+$stmt = $pdo->query("
+    SELECT 
+        ep.employee_id,
+        ep.employee_number,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
+    FROM employee_profiles ep
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY pi.first_name
+");
+$employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -644,6 +665,9 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <button class="btn btn-warning btn-small" onclick="editDocument(<?= $doc['document_id'] ?>)">
                                             ✏️ Edit
                                         </button>
+                                        <button class="btn btn-danger btn-small" onclick="deleteDocument(<?= $doc['document_id'] ?>)">
+                                            🗑️ Delete
+                                        </button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -681,7 +705,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <select id="exit_id" name="exit_id" class="form-control" required>
                             <option value="">Select exit record...</option>
                             <?php foreach ($exits as $exit): ?>
-                            <option value="<?= $exit['exit_id'] ?>" data-employee-id="<?= $exit['employee_id'] ?>">
+                            <option value="<?= $exit['exit_id'] ?>">
                                 <?= htmlspecialchars($exit['employee_name']) ?> - <?= htmlspecialchars($exit['exit_type']) ?> (<?= date('M d, Y', strtotime($exit['exit_date'])) ?>)
                             </option>
                             <?php endforeach; ?>
@@ -692,7 +716,7 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="form-row">
                         <div class="form-col">
                             <div class="form-group">
-                                <label for="document_type">Document Name</label>
+                                <label for="document_type">Document Type</label>
                                 <select id="document_type" name="document_type" class="form-control" required>
                                     <option value="">Select type...</option>
                                     <option value="Clearance">Clearance</option>
@@ -707,18 +731,8 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="form-col">
                             <div class="form-group">
-<<<<<<< HEAD
-                                <label for="document_name">File Extension Type</label>
-=======
-                                <label for="document_name">File Extension Type
->>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
-                                <select id="document_name" name="document_name" class="form-control" required>
-                                    <option value="">Select document format...</option>
-                                    <option value="PDF">.PDF</option>
-                                    <option value="Docx">.Docx</option>
-                                    <option value="xlsx">.xlsx</option>
-                                    <option value="ppt">.ppt</option>
-                                </select>
+                                <label for="document_name">Document Name</label>
+                                <input type="text" id="document_name" name="document_name" class="form-control" required placeholder="e.g., Final Clearance Form">
                             </div>
                         </div>
                     </div>
@@ -734,7 +748,10 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div id="fileNameDisplay" class="file-name-display" style="display: none;"></div>
                     </div>
 
-                    <input type="hidden" id="notes" name="notes" value="">
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="4" placeholder="Add any additional notes or comments about this document..."></textarea>
+                    </div>
 
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal()">Cancel</button>
@@ -748,13 +765,6 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script>
         // Global variables
         let documentsData = <?= json_encode($documents) ?>;
-
-        // Auto-populate employee_id when exit record is selected
-        document.getElementById('exit_id').addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const employeeId = selectedOption.getAttribute('data-employee-id');
-            document.getElementById('employee_id').value = employeeId || '';
-        });
 
         // File upload handling
         document.getElementById('document_file').addEventListener('change', function(e) {

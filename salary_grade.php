@@ -150,7 +150,7 @@ try {
             ep.employee_number,
             CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
             jr.title as job_title,
-            d.department_name,
+            COALESCE(d.department_name, jr.department) as department_name,
             sg.grade_name,
             sg.grade_level,
             ep.current_salary,
@@ -159,7 +159,7 @@ try {
         FROM employee_profiles ep
         LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
         LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-        LEFT JOIN departments d ON jr.department = d.department_id
+        LEFT JOIN departments d ON jr.department = d.department_name
         LEFT JOIN salary_grades sg ON ep.salary_grade_id = sg.grade_id
         WHERE ep.employment_status NOT IN ('Terminated', 'Resigned')
         ORDER BY ep.employee_number ASC
@@ -180,9 +180,11 @@ try {
             jr.min_salary,
             COUNT(ep.employee_id) as total_employees,
             AVG(ep.current_salary) as avg_employee_salary,
-            MAX(ep.current_salary) as max_employee_salary
+            MAX(ep.current_salary) as max_employee_salary,
+            GROUP_CONCAT(DISTINCT sg.grade_name) as salary_grades
         FROM job_roles jr
         LEFT JOIN employee_profiles ep ON jr.job_role_id = ep.job_role_id AND ep.employment_status NOT IN ('Terminated', 'Resigned')
+        LEFT JOIN salary_grades sg ON ep.salary_grade_id = sg.grade_id
         GROUP BY jr.job_role_id, jr.title, jr.department, jr.max_salary, jr.min_salary
         ORDER BY jr.max_salary DESC
         LIMIT 10
@@ -200,15 +202,19 @@ try {
             ep.employee_number,
             CONCAT(pi.first_name, ' ', pi.last_name) as full_name,
             jr.title as job_title,
-            d.department_name,
+            COALESCE(d.department_name, jr.department) as department_name,
+            sg.grade_name,
+            sg.grade_level,
             ep.current_salary,
+            sg.monthly_salary as grade_salary,
             ep.hire_date,
             TIMESTAMPDIFF(YEAR, ep.hire_date, CURDATE()) as years_of_service,
             ep.employment_status
         FROM employee_profiles ep
         LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
         LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-        LEFT JOIN departments d ON jr.department = d.department_id
+        LEFT JOIN departments d ON jr.department = d.department_name
+        LEFT JOIN salary_grades sg ON ep.salary_grade_id = sg.grade_id
         WHERE ep.employment_status NOT IN ('Terminated', 'Resigned')
         ORDER BY ep.current_salary DESC
         LIMIT 10
@@ -866,6 +872,7 @@ try {
                                         <th>Department</th>
                                         <th>Min Salary</th>
                                         <th>Max Salary</th>
+                                        <th>Salary Grades Used</th>
                                         <th>Employees Count</th>
                                         <th>Avg Employee Salary</th>
                                         <th>Max Employee Salary</th>
@@ -879,6 +886,15 @@ try {
                                                 <td><?php echo htmlspecialchars($role['department']); ?></td>
                                                 <td>₱<?php echo number_format($role['min_salary'], 2); ?></td>
                                                 <td><span class="status-badge" style="background: #cfe2ff; color: #084298;">₱<?php echo number_format($role['max_salary'], 2); ?></span></td>
+                                                <td>
+                                                    <?php if (!empty($role['salary_grades'])): ?>
+                                                        <small style="background: #e7f3ff; padding: 3px 8px; border-radius: 3px; display: inline-block;">
+                                                            <?php echo htmlspecialchars(str_replace(',', ', ', $role['salary_grades'])); ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <em style="color: #999;">Not assigned</em>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td><?php echo $role['total_employees'] ?? 0; ?></td>
                                                 <td>₱<?php echo number_format($role['avg_employee_salary'] ?? 0, 2); ?></td>
                                                 <td>₱<?php echo number_format($role['max_employee_salary'] ?? 0, 2); ?></td>
@@ -886,7 +902,7 @@ try {
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="7" class="no-data">
+                                            <td colspan="8" class="no-data">
                                                 <i class="fas fa-inbox"></i>
                                                 <p>No job role data found</p>
                                             </td>
@@ -910,6 +926,7 @@ try {
                                         <th>Employee #</th>
                                         <th>Job Title</th>
                                         <th>Department</th>
+                                        <th>Salary Grade</th>
                                         <th>Current Salary</th>
                                         <th>Hire Date</th>
                                         <th>Years of Service</th>
@@ -934,6 +951,10 @@ try {
                                                 <td><?php echo htmlspecialchars($employee['employee_number']); ?></td>
                                                 <td><?php echo htmlspecialchars($employee['job_title']); ?></td>
                                                 <td><?php echo htmlspecialchars($employee['department_name']); ?></td>
+                                                <td><span class="status-badge" style="background: #fff3cd; color: #664d03;">
+                                                    <?php echo htmlspecialchars($employee['grade_name'] ?? 'Not Assigned'); ?>
+                                                    <?php if (!empty($employee['grade_level'])): ?>(Level <?php echo $employee['grade_level']; ?>)<?php endif; ?>
+                                                </span></td>
                                                 <td><span class="status-badge" style="background: #d1e7dd; color: #0f5132; font-weight: bold;">₱<?php echo number_format($employee['current_salary'], 2); ?></span></td>
                                                 <td><?php echo htmlspecialchars($employee['hire_date']); ?></td>
                                                 <td><?php echo $employee['years_of_service'] ?? 0; ?> years</td>

@@ -114,68 +114,54 @@ if (isset($_SESSION['message'])) {
 }
 
 // Fetch settlements with related data
-try {
-    $stmt = $pdo->query("
-        SELECT 
-            s.*,
-            CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-            ep.employee_number,
-            ep.work_email,
-            jr.title as job_title,
-            jr.department,
-            e.exit_type,
-            e.exit_date
-        FROM settlements s
-        LEFT JOIN employee_profiles ep ON s.employee_id = ep.employee_id
-        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-        LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
-        LEFT JOIN exits e ON s.exit_id = e.exit_id
-        ORDER BY s.settlement_id DESC
-    ");
-    $settlements = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $settlements = [];
-    error_log("Settlements query error: " . $e->getMessage());
-}
+$stmt = $pdo->query("
+    SELECT 
+        s.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number,
+        ep.work_email,
+        jr.title as job_title,
+        jr.department,
+        e.exit_type,
+        e.exit_date
+    FROM settlements s
+    LEFT JOIN employee_profiles ep ON s.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
+    LEFT JOIN exits e ON s.exit_id = e.exit_id
+    ORDER BY s.settlement_id DESC
+");
+$settlements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch exits for dropdown
-try {
-    $stmt = $pdo->query("
-        SELECT 
-            e.exit_id,
-            e.employee_id,
-            CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-            ep.employee_number,
-            e.exit_type,
-            e.exit_date
-        FROM exits e
-        LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
-        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-        WHERE e.exit_id NOT IN (SELECT exit_id FROM settlements)
-        ORDER BY e.exit_date DESC
-    ");
-    $availableExits = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $availableExits = [];
-    error_log("Available exits query error: " . $e->getMessage());
-}
+$stmt = $pdo->query("
+    SELECT 
+        e.exit_id,
+        e.employee_id,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number,
+        e.exit_type,
+        e.exit_date
+    FROM exits e
+    LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    WHERE e.exit_id NOT IN (SELECT exit_id FROM settlements)
+    ORDER BY e.exit_date DESC
+");
+$availableExits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all employees for dropdown
-try {
-    $stmt = $pdo->query("
-        SELECT 
-            ep.employee_id,
-            CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-            ep.employee_number
-        FROM employee_profiles ep
-        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
-        ORDER BY pi.first_name
-    ");
-    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $employees = [];
-    error_log("Employees query error: " . $e->getMessage());
-}
+$stmt = $pdo->query("
+    SELECT 
+        ep.employee_id,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number,
+        ep.current_salary
+    FROM employee_profiles ep
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY pi.first_name
+");
+$employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -516,12 +502,11 @@ try {
             border-radius: 4px;
             font-weight: 600;
             color: transparent;
-            cursor: default;
+            cursor: pointer;
             position: relative;
             display: inline-block;
             min-width: 120px;
             user-select: none;
-            pointer-events: none;
         }
 
         @keyframes shimmer {
@@ -530,7 +515,7 @@ try {
         }
 
         .amount-masked::after {
-            content: '🔒 ••••••••';
+            content: '*******';
             position: absolute;
             left: 0;
             right: 0;
@@ -541,8 +526,8 @@ try {
         }
 
         .amount-masked:hover {
-            opacity: 1;
-            transform: none;
+            opacity: 0.8;
+            transform: scale(1.05);
         }
 
         .sensitive-badge {
@@ -698,7 +683,7 @@ try {
                                     <td><?= htmlspecialchars($settlement['exit_type']) ?></td>
                                     <td><?= date('M d, Y', strtotime($settlement['last_working_day'])) ?></td>
                                     <td>
-                                        <div class="amount-masked"></div>
+                                        <div class="amount-masked" style="cursor: not-allowed; pointer-events: none;" title="Hidden for security">*******</div>
                                     </td>
                                     <td><?= $settlement['payment_date'] ? date('M d, Y', strtotime($settlement['payment_date'])) : '<em>Not set</em>' ?></td>
                                     <td>
@@ -709,6 +694,9 @@ try {
                                     <td>
                                         <button class="btn btn-info btn-small" onclick="viewSettlementDetails(<?= $settlement['settlement_id'] ?>)">
                                             📄 View Details
+                                        </button>
+                                        <button class="btn btn-warning btn-small" onclick="updateStatus(<?= $settlement['settlement_id'] ?>, '<?= $settlement['status'] ?>')">
+                                            🔄 Update
                                         </button>
                                     </td>
                                 </tr>
@@ -777,21 +765,13 @@ try {
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="final_salary">Final Salary (₱) *</label>
-<<<<<<< HEAD
-                                <input type="number" id="final_salary" name="final_salary" class="form-control" step="0.01" required readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
-=======
-                                <input type="number" id="final_salary" name="final_salary" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
->>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
+                                <input type="number" id="final_salary" name="final_salary" class="form-control" step="0.01" required onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="severance_pay">Severance Pay (₱)</label>
-<<<<<<< HEAD
-                                <input type="number" id="severance_pay" name="severance_pay" class="form-control" step="0.01" value="0" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-=======
-                                <input type="number" id="severance_pay" name="severance_pay" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
->>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
+                                <input type="number" id="severance_pay" name="severance_pay" class="form-control" step="0.01" value="0" onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
                             </div>
                         </div>
                     </div>
@@ -800,21 +780,13 @@ try {
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="unused_leave_payout">Unused Leave Payout (₱)</label>
-<<<<<<< HEAD
-                                <input type="number" id="unused_leave_payout" name="unused_leave_payout" class="form-control" step="0.01" value="0" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-=======
-                                <input type="number" id="unused_leave_payout" name="unused_leave_payout" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
->>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
+                                <input type="number" id="unused_leave_payout" name="unused_leave_payout" class="form-control" step="0.01" value="0" onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="deductions">Deductions (₱)</label>
-<<<<<<< HEAD
-                                <input type="number" id="deductions" name="deductions" class="form-control" step="0.01" value="0" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-=======
-                                <input type="number" id="deductions" name="deductions" class="form-control" step="0.01" value="0.00" readonly style="background-color: #f5f5f5; cursor: not-allowed;" placeholder="Nothing's here yet...">
->>>>>>> 13776b824ff02bbf68eecd564fbb3aa1e513a708
+                                <input type="number" id="deductions" name="deductions" class="form-control" step="0.01" value="0" onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
                             </div>
                         </div>
                     </div>
@@ -849,18 +821,33 @@ try {
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="payment_method">Payment Method</label>
-                                <input type="text" id="payment_method" name="payment_method" class="form-control" value="Transfer Method" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                                <select id="payment_method" name="payment_method" class="form-control" disabled style="background-color: #f5f5f5; cursor: not-allowed;">
+                                    <option value="">Select method...</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Check">Check</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <input type="hidden" name="payment_method" value="">
                             </div>
                         </div>
                         <div class="form-col">
                             <div class="form-group">
                                 <label for="status">Status *</label>
-                                <input type="text" id="status" name="status" class="form-control" value="Settlement Status" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                                <select id="status" name="status" class="form-control" required disabled style="background-color: #f5f5f5; cursor: not-allowed;">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Processing">Processing</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                                <input type="hidden" name="status" value="Pending">
                             </div>
                         </div>
                     </div>
 
-                    <input type="hidden" id="notes" name="notes" value="">
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Additional notes or comments..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
+                    </div>
 
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeAddModal()">Cancel</button>

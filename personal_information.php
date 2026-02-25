@@ -410,6 +410,28 @@ $stmt = $pdo->query("
     ORDER BY pi.personal_info_id DESC
 ");
 $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch education, marital history, and certifications for use in JavaScript
+try {
+    $educationStmt = $pdo->query("SELECT * FROM educational_background ORDER BY personal_info_id, year_graduated DESC");
+    $educationData = $educationStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $educationData = [];
+}
+
+try {
+    $maritalStmt = $pdo->query("SELECT * FROM marital_status_history ORDER BY personal_info_id, status_date DESC");
+    $maritalHistoryData = $maritalStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $maritalHistoryData = [];
+}
+
+try {
+    $certificationStmt = $pdo->query("SELECT * FROM employee_certifications WHERE obtained_before_joining = 1 ORDER BY personal_info_id, issue_date DESC");
+    $employeeCertifications = $certificationStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $employeeCertifications = [];
+}
 ?>
 
 <!DOCTYPE html>
@@ -1196,6 +1218,12 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <!-- Content will be loaded dynamically -->
             </div>
             <div style="padding: 20px 30px; border-top: 1px solid #e0e0e0; text-align: center;">
+                <button class="btn btn-info" id="addEducationFromView" onclick="openEducationModal()" style="display: none; margin-right: 5px;">
+                    🎓 Add Education
+                </button>
+                <button class="btn btn-info" id="addCertificationFromView" onclick="openCertificationModal()" style="display: none; margin-right: 5px;">
+                    🏆 Add Certification
+                </button>
                 <button class="btn btn-success" id="printPDSFromView" onclick="printPDSFromViewModal()" style="display: none;">
                     🖨️ Print PDS
                 </button>
@@ -1203,40 +1231,183 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <!-- Add Education Modal -->
+    <div id="educationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Educational Background</h2>
+                <span class="close" onclick="closeEducationModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="educationForm" method="POST">
+                    <input type="hidden" name="action" value="add_education">
+                    <input type="hidden" id="edu_personal_info_id" name="personal_info_id">
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="education_level">Education Level *</label>
+                                <select id="education_level" name="education_level" class="form-control" required>
+                                    <option value="">Select Level</option>
+                                    <option value="Elementary">Elementary</option>
+                                    <option value="High School">High School</option>
+                                    <option value="Vocational">Vocational</option>
+                                    <option value="Associate Degree">Associate Degree</option>
+                                    <option value="Bachelor's Degree">Bachelor's Degree</option>
+                                    <option value="Master's Degree">Master's Degree</option>
+                                    <option value="Doctorate">Doctorate</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="school_name">School/University Name *</label>
+                                <input type="text" id="school_name" name="school_name" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="course_degree">Course/Degree</label>
+                                <input type="text" id="course_degree" name="course_degree" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="major_specialization">Major/Specialization</label>
+                                <input type="text" id="major_specialization" name="major_specialization" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="year_started">Year Started</label>
+                                <input type="number" id="year_started" name="year_started" class="form-control" min="1900" max="<?= date('Y') ?>">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="year_graduated">Year Graduated</label>
+                                <input type="number" id="year_graduated" name="year_graduated" class="form-control" min="1900" max="<?= date('Y') ?>">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="honors_awards">Honors/Awards</label>
+                        <input type="text" id="honors_awards" name="honors_awards" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="education_document">Document Upload</label>
+                        <input type="file" id="education_document" name="education_document" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeEducationModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">💾 Save Education</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Certification Modal -->
+    <div id="certificationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Professional Certification</h2>
+                <span class="close" onclick="closeCertificationModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="certificationForm" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_certification">
+                    <input type="hidden" id="cert_personal_info_id" name="personal_info_id">
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="certification_name">Certification Name *</label>
+                                <input type="text" id="certification_name" name="certification_name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="issuing_organization">Issuing Organization *</label>
+                                <input type="text" id="issuing_organization" name="issuing_organization" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="issue_date">Issue Date *</label>
+                                <input type="date" id="issue_date" name="issue_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="expiry_date">Expiry Date</label>
+                                <input type="date" id="expiry_date" name="expiry_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certification_number">Certification Number</label>
+                        <input type="text" id="certification_number" name="certification_number" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certification_file">Certificate File *</label>
+                        <input type="file" id="certification_file" name="certification_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                        <small style="color: #666;">PDF, JPG, or PNG format. Max 5MB</small>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeCertificationModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">💾 Save Certification</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let personalInfoData = <?= json_encode($personalInfo) ?>;
-        
-        // Fetch education and marital history data
-        <?php
-        $educationStmt = $pdo->query("SELECT * FROM educational_background ORDER BY personal_info_id, year_graduated DESC");
-        $educationData = $educationStmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $maritalStmt = $pdo->query("SELECT * FROM marital_status_history ORDER BY personal_info_id, status_date DESC");
-        $maritalHistoryData = $maritalStmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $certificationStmt = $pdo->query("SELECT * FROM employee_certifications WHERE obtained_before_joining = 1 ORDER BY personal_info_id, issue_date DESC");
-        $employeeCertifications = $certificationStmt->fetchAll(PDO::FETCH_ASSOC);
-        ?>
         let educationData = <?= json_encode($educationData) ?>;
         let maritalHistoryData = <?= json_encode($maritalHistoryData) ?>;
         let employeeCertifications = <?= json_encode($employeeCertifications) ?>;
 
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const tableBody = document.getElementById('personalInfoTableBody');
-            const rows = tableBody.getElementsByTagName('tr');
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const tableBody = document.getElementById('personalInfoTableBody');
+                    if (tableBody) {
+                        const rows = tableBody.getElementsByTagName('tr');
 
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const text = row.textContent.toLowerCase();
-                
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                        for (let i = 0; i < rows.length; i++) {
+                            const row = rows[i];
+                            const text = row.textContent.toLowerCase();
+                            
+                            if (text.includes(searchTerm)) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        }
+                    }
+                });
             }
         });
 
@@ -1335,8 +1506,10 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             const personMaritalHistory = maritalHistoryData.filter(m => m.personal_info_id == personalInfoId);
             const personCertifications = employeeCertifications.filter(c => c.personal_info_id == personalInfoId);
             
-            // Show print button
+            // Show action buttons
             document.getElementById('printPDSFromView').style.display = 'inline-block';
+            document.getElementById('addEducationFromView').style.display = 'inline-block';
+            document.getElementById('addCertificationFromView').style.display = 'inline-block';
 
             let html = `
                 <div class="info-grid">
@@ -1559,50 +1732,99 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
+        // Education Modal Functions
+        function openEducationModal() {
+            if (!currentViewingPersonId) return;
+            document.getElementById('edu_personal_info_id').value = currentViewingPersonId;
+            document.getElementById('educationForm').reset();
+            document.getElementById('educationModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEducationModal() {
+            document.getElementById('educationModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Certification Modal Functions
+        function openCertificationModal() {
+            if (!currentViewingPersonId) return;
+            document.getElementById('cert_personal_info_id').value = currentViewingPersonId;
+            document.getElementById('certificationForm').reset();
+            document.getElementById('certificationModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCertificationModal() {
+            document.getElementById('certificationModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
         // Close modal when clicking outside
         window.onclick = function(event) {
             const personalInfoModal = document.getElementById('personalInfoModal');
             const viewDetailsModal = document.getElementById('viewDetailsModal');
+            const educationModal = document.getElementById('educationModal');
+            const certificationModal = document.getElementById('certificationModal');
+            
             if (event.target === personalInfoModal) {
                 closeModal();
             }
             if (event.target === viewDetailsModal) {
                 closeViewModal();
             }
+            if (event.target === educationModal) {
+                closeEducationModal();
+            }
+            if (event.target === certificationModal) {
+                closeCertificationModal();
+            }
         }
-
-        // Form validation
-        document.getElementById('personalInfoForm').addEventListener('submit', function(e) {
-            const firstName = document.getElementById('first_name').value.trim();
-            const lastName = document.getElementById('last_name').value.trim();
-            
-            if (firstName.length < 2) {
-                e.preventDefault();
-                alert('First name must be at least 2 characters long');
-                return;
-            }
-            
-            if (lastName.length < 2) {
-                e.preventDefault();
-                alert('Last name must be at least 2 characters long');
-                return;
-            }
-        });
-
-        // Auto-hide alerts
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.remove();
-                }, 500);
-            });
-        }, 5000);
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const tableBody = document.getElementById('personalInfoTableBody');
+                    const rows = tableBody.getElementsByTagName('tr');
+
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+                        const text = row.textContent.toLowerCase();
+                        
+                        if (text.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            }
+            
+            // Form validation
+            const personalInfoForm = document.getElementById('personalInfoForm');
+            if (personalInfoForm) {
+                personalInfoForm.addEventListener('submit', function(e) {
+                    const firstName = document.getElementById('first_name').value.trim();
+                    const lastName = document.getElementById('last_name').value.trim();
+                    
+                    if (firstName.length < 2) {
+                        e.preventDefault();
+                        alert('First name must be at least 2 characters long');
+                        return;
+                    }
+                    
+                    if (lastName.length < 2) {
+                        e.preventDefault();
+                        alert('Last name must be at least 2 characters long');
+                        return;
+                    }
+                });
+            }
+
             // Set max date for birth date (today)
             const today = new Date().toISOString().split('T')[0];
             const dateOfBirthInput = document.getElementById('date_of_birth');
@@ -1613,7 +1835,28 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 const minDate = new Date();
                 minDate.setFullYear(minDate.getFullYear() - 120);
                 dateOfBirthInput.setAttribute('min', minDate.toISOString().split('T')[0]);
+                
+                // Live age calculation on birth date change
+                dateOfBirthInput.addEventListener('change', function() {
+                    const birthDate = this.value;
+                    if (birthDate) {
+                        const age = calculateAge(birthDate);
+                        console.log(`Age will be: ${age} years`);
+                    }
+                });
             }
+            
+            // Auto-hide alerts
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500);
+                });
+            }, 5000);
         });
 
         // Keyboard shortcuts
@@ -1622,6 +1865,8 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (e.key === 'Escape') {
                 closeModal();
                 closeViewModal();
+                closeEducationModal();
+                closeCertificationModal();
             }
             
             // Ctrl+N to add new person
@@ -1645,17 +1890,7 @@ $personalInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
             return age;
         }
 
-        // Live age calculation on birth date change
-        const dateOfBirthInput = document.getElementById('date_of_birth');
-        if (dateOfBirthInput) {
-            dateOfBirthInput.addEventListener('change', function() {
-                const birthDate = this.value;
-                if (birthDate) {
-                    const age = calculateAge(birthDate);
-                    console.log(`Age will be: ${age} years`);
-                }
-            });
-        }
+
 
         // Print PDS function
         function printPDS(personalInfoId) {
