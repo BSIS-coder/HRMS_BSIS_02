@@ -28,20 +28,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Check if creating new person or using existing
                     if ($_POST['creation_type'] === 'new_person') {
                         // Create new personal information first
-                        $personalStmt = $pdo->prepare("INSERT INTO personal_information (first_name, last_name, date_of_birth, gender, marital_status, nationality, tax_id, social_security_number, phone_number, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        
+                        // Handle marital status document upload
+                        $maritalDocUrl = null;
+                        if (isset($_FILES['marital_status_document']) && $_FILES['marital_status_document']['error'] === 0) {
+                            $targetDir = 'uploads/marital_documents/';
+                            if (!file_exists($targetDir)) {
+                                mkdir($targetDir, 0777, true);
+                            }
+                            $fileName = uniqid() . '_' . basename($_FILES['marital_status_document']['name']);
+                            $targetFile = $targetDir . $fileName;
+                            if (move_uploaded_file($_FILES['marital_status_document']['tmp_name'], $targetFile)) {
+                                $maritalDocUrl = '/uploads/marital_documents/' . $fileName;
+                            }
+                        }
+                        
+                        // Handle previous job experiences as JSON
+                        $previousJobExperiences = !empty($_POST['previous_job_experiences']) ? json_encode(explode('\n\n', $_POST['previous_job_experiences'])) : null;
+                        
+                        $personalStmt = $pdo->prepare("INSERT INTO personal_information (
+                            first_name, last_name, date_of_birth, gender, marital_status, marital_status_date, 
+                            spouse_name, marital_status_document, document_type, document_number, issuing_authority, nationality, tax_id, gsis_id, 
+                            pag_ibig_id, philhealth_id, phone_number, 
+                            emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
+                            highest_education_level, field_of_study, institution_name, graduation_year, previous_job_experiences,
+                            certifications, additional_training
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        
                         $personalStmt->execute([
                             $_POST['first_name'],
                             $_POST['last_name'],
                             $_POST['date_of_birth'],
                             $_POST['gender'],
                             $_POST['marital_status'],
+                            !empty($_POST['marital_status_date']) ? $_POST['marital_status_date'] : null,
+                            $_POST['spouse_name'] ?? null,
+                            $maritalDocUrl,
+                            $_POST['document_type'] ?? null,
+                            $_POST['document_number'] ?? null,
+                            $_POST['issuing_authority'] ?? null,
                             $_POST['nationality'],
                             $_POST['tax_id'],
-                            $_POST['social_security_number'],
+                            $_POST['gsis_id'],
+                            $_POST['pag_ibig_id'] ?? null,
+                            $_POST['philhealth_id'] ?? null,
                             $_POST['phone_number'],
                             $_POST['emergency_contact_name'],
                             $_POST['emergency_contact_relationship'],
-                            $_POST['emergency_contact_phone']
+                            $_POST['emergency_contact_phone'],
+                            !empty($_POST['highest_education_level']) ? $_POST['highest_education_level'] : null,
+                            $_POST['field_of_study'] ?? null,
+                            $_POST['institution_name'] ?? null,
+                            !empty($_POST['graduation_year']) ? $_POST['graduation_year'] : null,
+                            $previousJobExperiences,
+                            !empty($_POST['certifications']) ? $_POST['certifications'] : null,
+                            !empty($_POST['additional_training']) ? $_POST['additional_training'] : null
                         ]);
                         
                         $personalInfoId = $pdo->lastInsertId();
@@ -689,7 +730,7 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="userForm" method="POST">
+                <form id="userForm" method="POST" enctype="multipart/form-data">
                     <input type="hidden" id="action" name="action" value="add">
                     <input type="hidden" id="user_id" name="user_id">
 
@@ -826,10 +867,52 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
                             </div>
                             <div class="form-col">
                                 <div class="form-group">
-                                    <label for="nationality">Nationality</label>
-                                    <input type="text" id="nationality" name="nationality" class="form-control" value="Filipino">
+                                    <label for="marital_status_date">Marital Status Date</label>
+                                    <input type="date" id="marital_status_date" name="marital_status_date" class="form-control">
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="spouse_name">Spouse Name</label>
+                                    <input type="text" id="spouse_name" name="spouse_name" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="marital_status_document">Marital Status Document</label>
+                                    <input type="file" id="marital_status_document" name="marital_status_document" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                                    <small style="color: #666;">Upload marriage certificate, divorce decree, etc.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="document_type">Document Type</label>
+                                    <select id="document_type" name="document_type" class="form-control">
+                                        <option value="">Select Type</option>
+                                        <option value="Marriage Certificate">Marriage Certificate</option>
+                                        <option value="Divorce Decree">Divorce Decree</option>
+                                        <option value="Death Certificate">Death Certificate</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="document_number">Document Number</label>
+                                    <input type="text" id="document_number" name="document_number" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="issuing_authority">Issuing Authority</label>
+                            <input type="text" id="issuing_authority" name="issuing_authority" class="form-control">
                         </div>
 
                         <div class="form-row">
@@ -841,12 +924,111 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
                             </div>
                             <div class="form-col">
                                 <div class="form-group">
-                                    <label for="social_security_number">Social Security Number</label>
-                                    <input type="text" id="social_security_number" name="social_security_number" class="form-control" placeholder="123456789">
+                                    <label for="gsis_id">GSIS ID (Government Service Insurance System)</label>
+                                    <input type="text" id="gsis_id" name="gsis_id" class="form-control">
                                 </div>
                             </div>
                         </div>
 
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="pag_ibig_id">Pag-IBIG ID</label>
+                                    <input type="text" id="pag_ibig_id" name="pag_ibig_id" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="philhealth_id">PhilHealth ID</label>
+                                    <input type="text" id="philhealth_id" name="philhealth_id" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="nationality">Nationality</label>
+                                    <input type="text" id="nationality" name="nationality" class="form-control" value="Filipino">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Previous Work Experience Section -->
+                        <div class="section-divider">
+                            <div class="section-header">💼 Previous Work Experience</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="previous_job_experiences">Previous Job Experiences (One job per paragraph, separate with blank line)</label>
+                            <textarea id="previous_job_experiences" name="previous_job_experiences" class="form-control" rows="5" placeholder="Job Title: Senior Accountant&#10;Company: ABC Corporation&#10;Duration: 2015-2020&#10;Responsibilities: Financial reporting, audit&#10;&#10;Job Title: Accountant&#10;Company: XYZ Company&#10;Duration: 2010-2015"></textarea>
+                        </div>
+
+                        <!-- Education Section -->
+                        <div class="section-divider">
+                            <div class="section-header">🎓 Education</div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="highest_education_level">Highest Educational Attainment</label>
+                                    <select id="highest_education_level" name="highest_education_level" class="form-control">
+                                        <option value="">Select Level</option>
+                                        <option value="Elementary">Elementary</option>
+                                        <option value="High School">High School</option>
+                                        <option value="Senior High School">Senior High School</option>
+                                        <option value="Vocational">Vocational</option>
+                                        <option value="Associate Degree">Associate Degree</option>
+                                        <option value="Bachelor's Degree">Bachelor's Degree</option>
+                                        <option value="Master's Degree">Master's Degree</option>
+                                        <option value="Doctorate">Doctorate</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="field_of_study">Course/Degree</label>
+                                    <input type="text" id="field_of_study" name="field_of_study" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="institution_name">School/University</label>
+                                    <input type="text" id="institution_name" name="institution_name" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="graduation_year">Year Graduated</label>
+                                    <input type="number" id="graduation_year" name="graduation_year" class="form-control" min="1900" max="<?= date('Y') ?>">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Certifications Section -->
+                        <div class="section-divider">
+                            <div class="section-header">🏆 Professional Certifications</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="certifications">Certifications (One per line or comma-separated)</label>
+                            <textarea id="certifications" name="certifications" class="form-control" rows="3" placeholder="Certified Public Accountant (CPA)&#10;Project Management Professional (PMP)&#10;ITIL Foundation Certification"></textarea>
+                        </div>
+
+                        <!-- Additional Training Section -->
+                        <div class="section-divider">
+                            <div class="section-header">📚 Additional Training</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="additional_training">Training Programs (One per line or comma-separated)</label>
+                            <textarea id="additional_training" name="additional_training" class="form-control" rows="3" placeholder="Advanced Excel Training&#10;Leadership Workshop&#10;Agile Scrum Master Training"></textarea>
+                        </div>
+
+                        <!-- Emergency Contact Section -->
+                        <div class="section-divider">
+                            <div class="section-header">📱 Contact Information</div>
+                        </div>
                         <div class="form-row">
                             <div class="form-col">
                                 <div class="form-group">
@@ -854,15 +1036,18 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
                                     <input type="tel" id="phone_number" name="phone_number" class="form-control" placeholder="555-1234">
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="section-divider">
+                            <div class="section-header">🚨 Emergency Contact</div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="emergency_contact_name">Emergency Contact Name</label>
                                     <input type="text" id="emergency_contact_name" name="emergency_contact_name" class="form-control">
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-row">
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="emergency_contact_relationship">Emergency Contact Relationship</label>
@@ -879,12 +1064,11 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="emergency_contact_phone">Emergency Contact Phone</label>
-                                    <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" class="form-control" placeholder="555-5678">
-                                </div>
-                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="emergency_contact_phone">Emergency Contact Phone</label>
+                            <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" class="form-control" placeholder="555-5678">
                         </div>
 
                         <!-- Employee Information -->
@@ -1048,7 +1232,7 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
         }
 
         function setNewPersonFieldsRequired(required) {
-            const requiredFields = ['first_name', 'last_name', 'date_of_birth', 'gender', 'marital_status', 'nationality', 'tax_id', 'social_security_number', 'phone_number', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone'];
+            const requiredFields = ['first_name', 'last_name', 'date_of_birth', 'gender', 'marital_status', 'nationality', 'tax_id', 'gsis_id', 'phone_number', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone'];
             
             requiredFields.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
@@ -1098,6 +1282,22 @@ $nextEmployeeNumber = 'EMP' . str_pad(($result['max_num'] ?? 0) + 1, 4, '0', STR
                 // Set default values for new person
                 document.getElementById('nationality').value = 'Filipino';
                 document.getElementById('employee_number').value = nextEmployeeNumber;
+                document.getElementById('marital_status').value = '';
+                document.getElementById('marital_status_date').value = '';
+                document.getElementById('spouse_name').value = '';
+                document.getElementById('document_type').value = '';
+                document.getElementById('document_number').value = '';
+                document.getElementById('issuing_authority').value = '';
+                document.getElementById('gsis_id').value = '';
+                document.getElementById('pag_ibig_id').value = '';
+                document.getElementById('philhealth_id').value = '';
+                document.getElementById('previous_job_experiences').value = '';
+                document.getElementById('highest_education_level').value = '';
+                document.getElementById('field_of_study').value = '';
+                document.getElementById('institution_name').value = '';
+                document.getElementById('graduation_year').value = '';
+                document.getElementById('certifications').value = '';
+                document.getElementById('additional_training').value = '';
                 document.getElementById('hire_date').value = new Date().toISOString().split('T')[0];
                 document.getElementById('employment_status').value = 'Full-time';
                 

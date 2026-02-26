@@ -605,7 +605,7 @@ INSERT INTO `document_management` (`document_id`, `employee_id`, `document_type`
 --
 
 CREATE TABLE `educational_background` (
-  `education_id` int(11) NOT NULL,
+  `education_id` int(11) NOT NULL AUTO_INCREMENT,
   `personal_info_id` int(11) NOT NULL,
   `education_level` enum('Elementary','High School','Vocational','Associate Degree','Bachelor''s Degree','Master''s Degree','Doctoral Degree','Other') NOT NULL,
   `school_name` varchar(150) NOT NULL,
@@ -617,7 +617,8 @@ CREATE TABLE `educational_background` (
   `is_highest_attainment` tinyint(1) DEFAULT 0,
   `document_url` varchar(255) DEFAULT NULL COMMENT 'Diploma or certificate',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`education_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1767,7 +1768,7 @@ INSERT INTO `performance_review_cycles` (`cycle_id`, `cycle_name`, `start_date`,
 -- Modified personal_information table with marital status details
 
 CREATE TABLE `personal_information` (
-  `personal_info_id` int(11) NOT NULL,
+  `personal_info_id` int(11) NOT NULL AUTO_INCREMENT,
   `first_name` varchar(50) NOT NULL,
   `last_name` varchar(50) NOT NULL,
   `date_of_birth` date NOT NULL,
@@ -1796,7 +1797,8 @@ CREATE TABLE `personal_information` (
   `certifications` text DEFAULT NULL,
   `additional_training` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`personal_info_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name`, `date_of_birth`, `gender`, `marital_status`, `marital_status_date`, `spouse_name`, `marital_status_document`, `document_type`, `document_number`, `issuing_authority`, `nationality`, `tax_id`, `gsis_id`, `pag_ibig_id`, `philhealth_id`, `phone_number`, `emergency_contact_name`, `emergency_contact_relationship`, `emergency_contact_phone`, `highest_education_level`, `field_of_study`, `institution_name`, `graduation_year`, `previous_job_experiences`, `certifications`, `additional_training`, `created_at`, `updated_at`) VALUES
@@ -1816,7 +1818,7 @@ INSERT INTO `personal_information` (`personal_info_id`, `first_name`, `last_name
 (14, 'Eduardo', 'Hernandez', '1977-12-03', 'Male', 'Married', '2004-09-25', 'Sofia Hernandez', 'Marriage Certificate of Eduardo Hernandez and Sofia Reyes', 'Marriage Certificate', 'MC-2004-07789', 'Philippine Statistics Authority (PSA)', 'Filipino', '456-89-0123', '456890123', NULL, NULL, '0917-468-9012', 'Sofia Hernandez', 'Spouse', '0917-802-3456', 'Bachelor''s Degree', 'Architecture', 'University of Santo Tomas', 2000, NULL, 'Licensed Architect', 'Sustainable Design Workshop, BIM Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15'),
 (15, 'Rosario', 'Gonzales', '1989-06-28', 'Female', 'Single', NULL, NULL, NULL, 'None', NULL, NULL, 'Filipino', '567-90-1234', '567901234', NULL, NULL, '0917-579-0123', 'Miguel Gonzales', 'Father', '0917-913-4567', 'Bachelor''s Degree', 'Communication Arts', 'University of the Philippines', 2011, NULL, 'Certified Digital Content Creator', 'Video Production Workshop, Social Media Strategy Training', '2025-09-09 02:00:15', '2025-09-09 02:00:15');
 
--- --------------------------------------------------------
+
 -- --------------------------------------------------------
 
 --
@@ -2399,7 +2401,6 @@ ALTER TABLE `document_management`
 -- Indexes for table `educational_background`
 --
 ALTER TABLE `educational_background`
-  ADD PRIMARY KEY (`education_id`),
   ADD KEY `personal_info_id` (`personal_info_id`);
 
 --
@@ -2743,8 +2744,6 @@ ALTER TABLE `performance_review_cycles`
 --
 -- Indexes for table `personal_information`
 --
-ALTER TABLE `personal_information`
-  ADD PRIMARY KEY (`personal_info_id`);
 
 --
 -- Indexes for table `post_exit_surveys`
@@ -2982,12 +2981,6 @@ ALTER TABLE `development_plans`
 --
 ALTER TABLE `document_management`
   MODIFY `document_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
-
---
--- AUTO_INCREMENT for table `educational_background`
---
-ALTER TABLE `educational_background`
-  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `employee_benefits`
@@ -3248,11 +3241,6 @@ ALTER TABLE `performance_review_cycles`
   MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT for table `personal_information`
---
-ALTER TABLE `personal_information`
-  MODIFY `personal_info_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
-
 --
 -- AUTO_INCREMENT for table `post_exit_surveys`
 --
@@ -3904,6 +3892,495 @@ FROM employee_profiles ep
 LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
 LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
 LEFT JOIN salary_grades sg ON ep.salary_grade_id = sg.grade_id;
+
+
+
+CREATE TABLE `reports` (
+  `report_id`           INT(11)       NOT NULL AUTO_INCREMENT,
+
+  -- ── Report Identity ─────────────────────────────────────
+  `report_code`         VARCHAR(30)   NOT NULL COMMENT 'Unique human-readable code, e.g. RPT-PAY-2025-001',
+  `report_type`         ENUM(
+                          'Payroll Summary',
+                          'Payroll Detail',
+                          'Performance Evaluation Summary',
+                          'Performance Competency Report',
+                          'Attendance Report',
+                          'Leave Request Summary',
+                          'Leave Balance Report',
+                          'Employee Information Report'
+                        ) NOT NULL,
+  `report_title`        VARCHAR(255)  NOT NULL,
+  `description`         TEXT          DEFAULT NULL,
+
+  -- ── Coverage / Scope ────────────────────────────────────
+  `report_period_start` DATE          NOT NULL  COMMENT 'Start of the period this report covers',
+  `report_period_end`   DATE          NOT NULL  COMMENT 'End of the period this report covers',
+  `department_id`       INT(11)       DEFAULT NULL COMMENT 'NULL = all departments',
+  `employee_id`         INT(11)       DEFAULT NULL COMMENT 'NULL = all employees in scope',
+
+  -- ── Payroll-specific metrics ─────────────────────────────
+  `total_employees_included`  INT(11)        DEFAULT NULL,
+  `total_gross_pay`           DECIMAL(14,2)  DEFAULT NULL,
+  `total_tax_deductions`      DECIMAL(14,2)  DEFAULT NULL,
+  `total_statutory_deductions`DECIMAL(14,2)  DEFAULT NULL,
+  `total_other_deductions`    DECIMAL(14,2)  DEFAULT NULL,
+  `total_net_pay`             DECIMAL(14,2)  DEFAULT NULL,
+  `payroll_cycle_id`          INT(11)        DEFAULT NULL,
+
+  -- ── Performance-specific metrics ────────────────────────
+  `cycle_id`                  INT(11)        DEFAULT NULL COMMENT 'References performance_review_cycles',
+  `average_overall_rating`    DECIMAL(4,2)   DEFAULT NULL COMMENT '0.00 – 5.00',
+  `total_reviews_submitted`   INT(11)        DEFAULT NULL,
+  `total_reviews_finalized`   INT(11)        DEFAULT NULL,
+  `highest_rating`            DECIMAL(4,2)   DEFAULT NULL,
+  `lowest_rating`             DECIMAL(4,2)   DEFAULT NULL,
+
+  -- ── Attendance-specific metrics ─────────────────────────
+  `total_present`             INT(11)        DEFAULT NULL,
+  `total_absent`              INT(11)        DEFAULT NULL,
+  `total_late`                INT(11)        DEFAULT NULL,
+  `total_on_leave`            INT(11)        DEFAULT NULL,
+  `total_working_hours`       DECIMAL(10,2)  DEFAULT NULL,
+  `total_overtime_hours`      DECIMAL(8,2)   DEFAULT NULL,
+  `attendance_rate_pct`       DECIMAL(5,2)   DEFAULT NULL COMMENT 'e.g. 95.30 means 95.30%',
+
+  -- ── Leave-specific metrics ───────────────────────────────
+  `total_leave_requests`      INT(11)        DEFAULT NULL,
+  `approved_leave_requests`   INT(11)        DEFAULT NULL,
+  `rejected_leave_requests`   INT(11)        DEFAULT NULL,
+  `pending_leave_requests`    INT(11)        DEFAULT NULL,
+  `total_leave_days_taken`    DECIMAL(7,2)   DEFAULT NULL,
+  `leave_type_breakdown`      LONGTEXT       CHARACTER SET utf8mb4
+                                             COLLATE utf8mb4_bin
+                                             DEFAULT NULL
+                                             COMMENT 'JSON: {"Vacation Leave":12,"Sick Leave":8,...}'
+                                             CHECK (json_valid(`leave_type_breakdown`)),
+
+  -- ── File & Status ────────────────────────────────────────
+  `report_status`       ENUM('Draft','Generated','Reviewed','Approved','Archived')
+                          NOT NULL DEFAULT 'Draft',
+  `file_path`           VARCHAR(500)  DEFAULT NULL COMMENT 'Generated PDF/XLSX path',
+  `file_format`         ENUM('PDF','Excel','CSV','HTML','N/A') DEFAULT 'PDF',
+
+  -- ── Audit Fields ─────────────────────────────────────────
+  `generated_by`        INT(11)       NOT NULL COMMENT 'user_id who created/generated the report',
+  `reviewed_by`         INT(11)       DEFAULT NULL,
+  `approved_by`         INT(11)       DEFAULT NULL,
+  `generated_at`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reviewed_at`         TIMESTAMP     NULL DEFAULT NULL,
+  `approved_at`         TIMESTAMP     NULL DEFAULT NULL,
+  `notes`               TEXT          DEFAULT NULL,
+
+  `created_at`          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`report_id`),
+  UNIQUE KEY `report_code` (`report_code`),
+  KEY `fk_report_department`   (`department_id`),
+  KEY `fk_report_employee`     (`employee_id`),
+  KEY `fk_report_payroll_cycle`(`payroll_cycle_id`),
+  KEY `fk_report_perf_cycle`   (`cycle_id`),
+  KEY `fk_report_generated_by` (`generated_by`),
+  KEY `fk_report_reviewed_by`  (`reviewed_by`),
+  KEY `fk_report_approved_by`  (`approved_by`),
+  KEY `idx_report_type`        (`report_type`),
+  KEY `idx_report_period`      (`report_period_start`, `report_period_end`),
+  KEY `idx_report_status`      (`report_status`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  COMMENT='Central reports table covering Payroll, Performance, Attendance, and Leave modules';
+
+-- ============================================================
+-- FOREIGN KEY CONSTRAINTS
+-- ============================================================
+
+ALTER TABLE `reports`
+  ADD CONSTRAINT `fk_report_department`
+    FOREIGN KEY (`department_id`)    REFERENCES `departments`              (`department_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_report_employee`
+    FOREIGN KEY (`employee_id`)      REFERENCES `employee_profiles`        (`employee_id`)   ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_report_payroll_cycle`
+    FOREIGN KEY (`payroll_cycle_id`) REFERENCES `payroll_cycles`           (`payroll_cycle_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_report_perf_cycle`
+    FOREIGN KEY (`cycle_id`)         REFERENCES `performance_review_cycles`(`cycle_id`)     ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_report_generated_by`
+    FOREIGN KEY (`generated_by`)     REFERENCES `users`                    (`user_id`)       ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_report_reviewed_by`
+    FOREIGN KEY (`reviewed_by`)      REFERENCES `users`                    (`user_id`)       ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_report_approved_by`
+    FOREIGN KEY (`approved_by`)      REFERENCES `users`                    (`user_id`)       ON DELETE SET NULL;
+
+-- ============================================================
+-- SAMPLE DATA  (accurate values derived from existing DB rows)
+-- ============================================================
+
+INSERT INTO `reports` (
+  `report_code`, `report_type`, `report_title`, `description`,
+  `report_period_start`, `report_period_end`,
+  `department_id`, `employee_id`,
+
+  -- payroll columns
+  `total_employees_included`,
+  `total_gross_pay`, `total_tax_deductions`,
+  `total_statutory_deductions`, `total_other_deductions`, `total_net_pay`,
+  `payroll_cycle_id`,
+
+  -- performance columns
+  `cycle_id`, `average_overall_rating`,
+  `total_reviews_submitted`, `total_reviews_finalized`,
+  `highest_rating`, `lowest_rating`,
+
+  -- attendance columns
+  `total_present`, `total_absent`, `total_late`, `total_on_leave`,
+  `total_working_hours`, `total_overtime_hours`, `attendance_rate_pct`,
+
+  -- leave columns
+  `total_leave_requests`, `approved_leave_requests`,
+  `rejected_leave_requests`, `pending_leave_requests`,
+  `total_leave_days_taken`, `leave_type_breakdown`,
+
+  -- file / status / audit
+  `report_status`, `file_path`, `file_format`,
+  `generated_by`, `reviewed_by`, `approved_by`,
+  `generated_at`, `reviewed_at`, `approved_at`,
+  `notes`
+)
+VALUES
+
+(
+  'RPT-PAY-2025-01',
+  'Payroll Summary',
+  'January 2025 Payroll Summary Report – All Departments',
+  'Monthly payroll summary covering all 15 active employees across all municipal departments for January 2025.',
+  '2025-01-01', '2025-01-31',
+  NULL, NULL,
+  -- payroll
+  15, 569000.00, 56900.00, 28450.00, 5690.00, 477960.00,
+  NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Approved',
+  '/reports/payroll/RPT-PAY-2025-01.pdf', 'PDF',
+  2, 1, 1,
+  '2025-02-01 08:00:00', '2025-02-03 10:00:00', '2025-02-05 09:00:00',
+  'All 15 employees processed. No disputes raised.'
+),
+
+(
+  'RPT-PAY-2025-07-D03',
+  'Payroll Detail',
+  'July 2025 Payroll Detail – Municipal Treasurer\'s Office',
+  'Detailed payroll breakdown for Department 3 (Municipal Treasurer\'s Office) covering employees Maria Santos, Sandra Pascual, and Jose Ramos.',
+  '2025-07-01', '2025-07-31',
+  3, NULL,
+  -- payroll
+  3, 103000.00, 10300.00, 5150.00, 1030.00, 86520.00,
+  NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Approved',
+  '/reports/payroll/RPT-PAY-2025-07-D03.pdf', 'PDF',
+  2, 1, 1,
+  '2025-08-01 08:30:00', '2025-08-02 11:00:00', '2025-08-04 14:00:00',
+  'Sandra Pascual had 1 approved leave day deducted. Final net verified.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 3. PAYROLL SUMMARY – All Departments, Q3 2025 (Jul–Sep)
+--    3-month aggregate for 15 employees
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-PAY-2025-Q3',
+  'Payroll Summary',
+  'Q3 2025 Payroll Summary Report (July – September)',
+  'Quarterly payroll summary for Q3 2025 covering all active municipal employees.',
+  '2025-07-01', '2025-09-30',
+  NULL, NULL,
+  -- payroll
+  15, 1707000.00, 170700.00, 85350.00, 17070.00, 1433880.00,
+  NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Approved',
+  '/reports/payroll/RPT-PAY-2025-Q3.xlsx', 'Excel',
+  1, 2, 1,
+  '2025-10-03 09:00:00', '2025-10-05 14:00:00', '2025-10-07 10:00:00',
+  'Includes bonus payment records from bonus_payments table. No anomalies detected.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 4. PERFORMANCE EVALUATION SUMMARY – Monthly Cycle (cycle_id=3)
+--    cycle_id=3 = "Monthly Evaluation" Oct 2025
+--    Actual competency data: Roberto Cruz avg ~3.0, Carmen ~4.5, Ana ~3.0
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-PERF-2025-10',
+  'Performance Evaluation Summary',
+  'October 2025 Monthly Performance Evaluation Summary',
+  'Summary of performance evaluations submitted during the Monthly Evaluation cycle (Oct 2025). Based on competency assessments for all participating employees.',
+  '2025-10-01', '2025-10-31',
+  NULL, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  3, 3.58, 7, 5, 4.50, 2.00,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Reviewed',
+  '/reports/performance/RPT-PERF-2025-10.pdf', 'PDF',
+  2, 1, NULL,
+  '2025-11-03 08:00:00', '2025-11-04 10:00:00', NULL,
+  'Employee ID 2 (Roberto Cruz) had 3 competencies assessed: Infrastructure Design (3), Construction Oversight (2), Problem Solving (4). Employee ID 7 (Carmen Dela Cruz) scored highest at 5 and 4. Awaiting final approval.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 5. PERFORMANCE COMPETENCY REPORT – Municipal Engineer's Office, Cycle 3
+--    Dept 7: Roberto Cruz competencies rated
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-COMP-2025-10-D07',
+  'Performance Competency Report',
+  'October 2025 Competency Assessment – Municipal Engineer\'s Office',
+  'Detailed competency-level performance report for the Municipal Engineer\'s Office. Covers Infrastructure Design, Construction Oversight, and Problem Solving ratings for Roberto Cruz (Employee #MUN002).',
+  '2025-10-01', '2025-10-31',
+  7, 2,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  3, 3.00, 3, 3, 4.00, 2.00,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Generated',
+  '/reports/performance/RPT-COMP-2025-10-D07.pdf', 'PDF',
+  2, NULL, NULL,
+  '2025-11-01 07:45:00', NULL, NULL,
+  'Infrastructure Design: 3 (Nice Improvement). Construction Oversight: 2 (Attend Seminar & Training). Problem Solving: 4 (Excellent). Recommend targeted training for Construction Oversight.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 6. PERFORMANCE EVALUATION SUMMARY – Yearly Cycle (cycle_id=4)
+--    cycle_id=4 = "Yearly Evaluation" 2026
+--    Ana Morales (emp 11): Bookkeeping 3 (nice), Data Accuracy 3 (amazing)
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-PERF-2026-ANNUAL',
+  'Performance Evaluation Summary',
+  '2026 Annual Performance Evaluation Summary – All Departments',
+  'Organisation-wide annual performance evaluation summary for the 2026 cycle. Includes competency ratings for all employees evaluated under the Yearly Evaluation cycle.',
+  '2026-01-01', '2026-12-31',
+  NULL, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  4, 3.00, 2, 0, 3.00, 3.00,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Draft',
+  NULL, 'N/A',
+  2, NULL, NULL,
+  '2026-01-27 02:30:00', NULL, NULL,
+  'Cycle in progress. Only Ana Morales (emp 11) evaluated so far: Bookkeeping 3, Data Accuracy 3. More evaluations pending.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 7. ATTENDANCE REPORT – All Departments, January 2024
+--    Derived from leave_balances 2024 data and employee shifts
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-ATT-2024-01',
+  'Attendance Report',
+  'January 2024 Attendance Report – All Departments',
+  'Monthly attendance report for January 2024 covering all active employees. Metrics derived from clock-in/out records and leave data.',
+  '2024-01-01', '2024-01-31',
+  NULL, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance (23 working days × 15 employees = 345 possible days)
+  310, 15, 20, 20,
+  2480.00, 32.00, 89.86,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Approved',
+  '/reports/attendance/RPT-ATT-2024-01.pdf', 'PDF',
+  2, 1, 1,
+  '2024-02-02 08:00:00', '2024-02-03 09:00:00', '2024-02-05 11:00:00',
+  'Employee #MUN004 (Antonio Garcia) recorded highest late arrivals (7 instances). Employee #MUN002 (Roberto Cruz) logged overtime on 4 days.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 8. ATTENDANCE REPORT – Municipal Health Office, Q1 2024
+--    Dept 9: employees 3 (Jennifer Reyes), 13 (Grace Lopez)
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-ATT-2024-Q1-D09',
+  'Attendance Report',
+  'Q1 2024 Attendance Report – Municipal Health Office',
+  'Quarterly attendance report for Q1 2024 (January–March) for the Municipal Health Office. Covers Nurse Jennifer Reyes and Midwife Grace Lopez.',
+  '2024-01-01', '2024-03-31',
+  9, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance (65 working days × 2 employees = 130 possible)
+  118, 4, 8, 10,
+  944.00, 8.00, 90.77,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Approved',
+  '/reports/attendance/RPT-ATT-2024-Q1-D09.pdf', 'PDF',
+  2, 1, 1,
+  '2024-04-03 09:00:00', '2024-04-04 10:00:00', '2024-04-07 14:30:00',
+  'Grace Lopez used 10 days of Maternity Leave in March 2024 (balance: 60 remaining).'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 9. LEAVE REQUEST SUMMARY – All Departments, 2024
+--    From leave_balances: employees 1–5 have VL + SL data
+--    Total leaves taken: 3+5+2+7+4 (VL) + 1+3+0+2+1 (SL) = 28 leave days
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-LVE-2024-ANNUAL',
+  'Leave Request Summary',
+  '2024 Annual Leave Request Summary – All Departments',
+  'Full-year 2024 leave request summary for all employees. Includes breakdown by leave type (Vacation, Sick, Maternity, Paternity, Emergency, Solo Parent, Menstrual Disorder).',
+  '2024-01-01', '2024-12-31',
+  NULL, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave (derived from leave_balances 2024 rows for employees 1-5)
+  38, 32, 3, 3,
+  28.00,
+  '{"Vacation Leave": 21, "Sick Leave": 7, "Maternity Leave": 0, "Paternity Leave": 0, "Emergency Leave": 0}',
+  -- status
+  'Approved',
+  '/reports/leave/RPT-LVE-2024-ANNUAL.xlsx', 'Excel',
+  2, 1, 1,
+  '2025-01-05 08:00:00', '2025-01-07 10:00:00', '2025-01-09 09:00:00',
+  'Employees 1–5 recorded. Remaining employees had zero leave requests in 2024. Full data pending for employees 6–15.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 10. LEAVE BALANCE REPORT – All Departments, Year 2024
+--     Snapshot of remaining balances from leave_balances table
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-LVBAL-2024',
+  'Leave Balance Report',
+  '2024 End-of-Year Leave Balance Report – All Departments',
+  'End-of-year leave balance snapshot for 2024. Shows remaining Vacation Leave, Sick Leave, Maternity, and Paternity balances per employee as of December 31, 2024.',
+  '2024-01-01', '2024-12-31',
+  NULL, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave (totals from leave_balances: VL remaining 12+9+13+8+9=51, SL remaining 9+7+10+8+9=43)
+  NULL, NULL, NULL, NULL,
+  28.00,
+  '{"Vacation Leave": {"total_allocated": 75, "total_taken": 21, "total_remaining": 51}, "Sick Leave": {"total_allocated": 50, "total_taken": 7, "total_remaining": 43}, "Maternity Leave": {"total_allocated": 180, "total_taken": 0, "total_remaining": 180}, "Paternity Leave": {"total_allocated": 21, "total_taken": 0, "total_remaining": 21}}',
+  -- status
+  'Approved',
+  '/reports/leave/RPT-LVBAL-2024.pdf', 'PDF',
+  2, 1, 1,
+  '2025-01-02 07:30:00', '2025-01-03 09:00:00', '2025-01-06 10:00:00',
+  'Based on leave_balances records for employees 1–5 in year 2024. Carry-forward of up to 5 days VL/SL per RA 10911 applies. Reported to HR Director for FY closing.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 11. EMPLOYEE INFORMATION REPORT – All Employees, Jan 2026
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-EMP-2026-01',
+  'Employee Information Report',
+  'January 2026 Employee Information Masterlist',
+  'Comprehensive employee information report listing all active employees, their job roles, departments, hire dates, employment status, and current salary grades as of January 2026.',
+  '2026-01-01', '2026-01-31',
+  NULL, NULL,
+  -- payroll
+  15, 570000.00, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- status
+  'Approved',
+  '/reports/employee/RPT-EMP-2026-01.xlsx', 'Excel',
+  2, 1, 1,
+  '2026-01-20 06:00:00', '2026-01-21 10:00:00', '2026-01-22 14:00:00',
+  'Includes 15 active employees (MUN001–MUN015). Archived employees (Pedro Santos MUN016, Ramon Reyes MUN017) excluded. Data sourced from employee_profiles, personal_information, job_roles, salary_grades.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- 12. LEAVE REQUEST SUMMARY – Municipal Health Office, H1 2025
+--     Dept 9: Jennifer Reyes (VL: 2 taken, SL: 0 taken) + Grace Lopez
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-LVE-2025-H1-D09',
+  'Leave Request Summary',
+  'H1 2025 Leave Request Summary – Municipal Health Office',
+  'Leave request summary for the first half of 2025 (January–June) for the Municipal Health Office (Department 9). Covers Nurse Jennifer Reyes and Midwife Grace Lopez.',
+  '2025-01-01', '2025-06-30',
+  9, NULL,
+  -- payroll
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- performance
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- attendance
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  -- leave
+  5, 4, 0, 1,
+  4.00,
+  '{"Vacation Leave": 2, "Sick Leave": 2}',
+  -- status
+  'Reviewed',
+  '/reports/leave/RPT-LVE-2025-H1-D09.pdf', 'PDF',
+  2, 1, NULL,
+  '2025-07-03 08:00:00', '2025-07-05 09:00:00', NULL,
+  'Grace Lopez: midwifery license expires 2025-09-30 (ref document_management). Reminder included in notes for renewal. 1 leave request pending supervisor action.'
+);
+
+
+ALTER TABLE `reports`
+  MODIFY `report_id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
 
 SET FOREIGN_KEY_CHECKS = 1;
 
