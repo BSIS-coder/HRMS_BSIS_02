@@ -11,26 +11,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Include database connection and helper functions
-require_once 'dp.php';
+require_once 'config.php';
 
-// Database connection
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
-
-// Create uploads directory if it doesn't exist
-$uploadsDir = 'uploads/documents/';
-if (!file_exists($uploadsDir)) {
-    mkdir($uploadsDir, 0755, true);
-}
+// For backward compatibility with existing code
+$pdo = $conn;
 
 // Handle form submissions
 $message = '';

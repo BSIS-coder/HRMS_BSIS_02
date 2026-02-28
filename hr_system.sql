@@ -1456,6 +1456,92 @@ CREATE TABLE `knowledge_transfers` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- ═══════════════════════════════════════════════════════════════
+-- KT TABLES FIX – Run this in phpMyAdmin on hr_system database
+-- WARNING: This drops and recreates kt_documents and
+-- kt_document_versions. Only existing data will be lost.
+-- kt_responsibilities and kt_sessions are NOT affected.
+-- ═══════════════════════════════════════════════════════════════
+
+-- Step 1: Drop old tables (order matters due to any references)
+DROP TABLE IF EXISTS kt_document_versions;
+DROP TABLE IF EXISTS kt_documents;
+
+-- Step 2: Recreate kt_documents with correct column names
+CREATE TABLE kt_documents (
+    document_id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transfer_id         INT UNSIGNED NOT NULL,
+    document_title      VARCHAR(255) NOT NULL,
+    document_type       ENUM('SOP','Manual','Credentials Guide','Workflow Diagram','Training Material','Meeting Notes','Other') NOT NULL DEFAULT 'Other',
+    description         TEXT,
+    current_version_id  INT UNSIGNED DEFAULT 0,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_transfer  (transfer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Step 3: Recreate kt_document_versions with correct column names
+CREATE TABLE kt_document_versions (
+    version_id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    document_id         INT UNSIGNED NOT NULL,
+    version_number      SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    file_path           VARCHAR(500) NOT NULL,
+    file_name           VARCHAR(255) NOT NULL,
+    file_size           BIGINT UNSIGNED DEFAULT 0,
+    uploaded_by_name    VARCHAR(255),
+    upload_date         DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes               TEXT,
+    INDEX idx_document  (document_id),
+    UNIQUE KEY uq_doc_ver (document_id, version_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Step 4: Also fix kt_responsibilities if it was created with wrong columns
+DROP TABLE IF EXISTS kt_responsibilities;
+CREATE TABLE kt_responsibilities (
+    responsibility_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transfer_id         INT UNSIGNED NOT NULL,
+    task_name           VARCHAR(255) NOT NULL,
+    description         TEXT,
+    priority            ENUM('High','Medium','Low') NOT NULL DEFAULT 'Medium',
+    priority_order      INT UNSIGNED DEFAULT 0,
+    assigned_receiver   VARCHAR(255),
+    completion_status   ENUM('Pending','In Progress','Completed') NOT NULL DEFAULT 'Pending',
+    is_completed        TINYINT(1) NOT NULL DEFAULT 0,
+    completed_at        DATETIME NULL,
+    remarks             TEXT,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_transfer  (transfer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Step 5: Also fix kt_sessions if needed
+DROP TABLE IF EXISTS kt_sessions;
+CREATE TABLE kt_sessions (
+    session_id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transfer_id         INT UNSIGNED NOT NULL,
+    session_date        DATE NOT NULL,
+    attendees           TEXT NOT NULL,
+    summary             TEXT NOT NULL,
+    action_items        TEXT,
+    meeting_notes_path  VARCHAR(500),
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_transfer  (transfer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Step 6: Add missing columns to knowledge_transfers if not already there
+ALTER TABLE knowledge_transfers
+    ADD COLUMN IF NOT EXISTS kt_status ENUM('Pending','Ongoing','Completed') NOT NULL DEFAULT 'Pending',
+    ADD COLUMN IF NOT EXISTS transfer_deadline DATE NULL,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Also make sure these folders exist on your server:
+--   /uploads/kt_docs/
+--   /uploads/kt_sessions/
+-- ═══════════════════════════════════════════════════════════════
+
 -- --------------------------------------------------------
 
 --
@@ -1839,6 +1925,14 @@ CREATE TABLE `post_exit_surveys` (
   `evaluation_score` int(11) DEFAULT 0,
   `evaluation_criteria` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS survey_notifications (
+    notif_id        INT      AUTO_INCREMENT PRIMARY KEY,
+    exit_id         INT      NOT NULL UNIQUE,
+    sent_by_user_id INT      NULL,
+    sent_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX (exit_id)
+);
 
 -- --------------------------------------------------------
 
@@ -2493,6 +2587,21 @@ ALTER TABLE `exits`
   ADD PRIMARY KEY (`exit_id`),
   ADD KEY `employee_id` (`employee_id`);
 
+  ALTER TABLE exits 
+MODIFY COLUMN status ENUM(
+    'Pending',
+    'Under Review',
+    'Request Revision',
+    'Approved',
+    'Rejected',
+    'Processing',
+    'Clearance Ongoing',
+    'Exit Interview Scheduled',
+    'On Hold',
+    'Withdrawn',
+    'Completed'
+) NOT NULL DEFAULT 'Pending';
+
 --
 -- Indexes for table `exit_checklist`
 --
@@ -2648,6 +2757,73 @@ ALTER TABLE `knowledge_transfers`
   ADD KEY `exit_id` (`exit_id`),
   ADD KEY `employee_id` (`employee_id`);
 
+  -- ═══════════════════════════════════════════════════════════════
+-- KNOWLEDGE TRANSFER SYSTEM – Run this in phpMyAdmin or MySQL
+-- Database: hr_system
+-- ═══════════════════════════════════════════════════════════════
+
+-- 1. Add new columns to existing knowledge_transfers table
+ALTER TABLE knowledge_transfers
+    ADD COLUMN IF NOT EXISTS kt_status ENUM('Pending','Ongoing','Completed') NOT NULL DEFAULT 'Pending',
+    ADD COLUMN IF NOT EXISTS transfer_deadline DATE NULL,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- 2. KT RESPONSIBILITIES
+CREATE TABLE IF NOT EXISTS kt_responsibilities (
+    responsibility_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transfer_id         INT UNSIGNED NOT NULL,
+    task_name           VARCHAR(255) NOT NULL,
+    description         TEXT,
+    priority            ENUM('High','Medium','Low') NOT NULL DEFAULT 'Medium',
+    priority_order      INT UNSIGNED DEFAULT 0,
+    assigned_receiver   VARCHAR(255),
+    completion_status   ENUM('Pending','In Progress','Completed') NOT NULL DEFAULT 'Pending',
+    is_completed        TINYINT(1) NOT NULL DEFAULT 0,
+    completed_at        DATETIME NULL,
+    remarks             TEXT,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. KT DOCUMENTS (master record per document)
+CREATE TABLE IF NOT EXISTS kt_documents (
+    document_id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transfer_id         INT UNSIGNED NOT NULL,
+    document_title      VARCHAR(255) NOT NULL,
+    document_type       ENUM('SOP','Manual','Credentials Guide','Workflow Diagram','Training Material','Meeting Notes','Other') NOT NULL DEFAULT 'Other',
+    description         TEXT,
+    current_version_id  INT UNSIGNED DEFAULT 0,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. KT DOCUMENT VERSIONS (revision history per document)
+CREATE TABLE IF NOT EXISTS kt_document_versions (
+    version_id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    document_id         INT UNSIGNED NOT NULL,
+    version_number      SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    file_path           VARCHAR(500) NOT NULL,
+    file_name           VARCHAR(255) NOT NULL,
+    file_size           BIGINT UNSIGNED DEFAULT 0,
+    uploaded_by_name    VARCHAR(255),
+    upload_date         DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes               TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. KT SESSIONS (knowledge sharing meetings)
+CREATE TABLE IF NOT EXISTS kt_sessions (
+    session_id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transfer_id         INT UNSIGNED NOT NULL,
+    session_date        DATE NOT NULL,
+    attendees           TEXT NOT NULL,
+    summary             TEXT NOT NULL,
+    action_items        TEXT,
+    meeting_notes_path  VARCHAR(500),
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 --
 -- Indexes for table `learning_resources`
 --
@@ -2752,6 +2928,9 @@ ALTER TABLE `post_exit_surveys`
   ADD PRIMARY KEY (`survey_id`),
   ADD KEY `employee_id` (`employee_id`),
   ADD KEY `exit_id` (`exit_id`);
+
+  ALTER TABLE post_exit_surveys 
+ADD COLUMN submitted_by_employee TINYINT(1) NOT NULL DEFAULT 0;
 
 --
 -- Indexes for table `public_holidays`
@@ -4380,6 +4559,305 @@ VALUES
 
 ALTER TABLE `reports`
   MODIFY `report_id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+-- ============================================================
+-- 1. ADD 'DTR Report' TO THE report_type ENUM
+-- ============================================================
+
+ALTER TABLE `reports`
+  MODIFY COLUMN `report_type` ENUM(
+    'Payroll Summary',
+    'Payroll Detail',
+    'Performance Evaluation Summary',
+    'Performance Competency Report',
+    'Attendance Report',
+    'Leave Request Summary',
+    'Leave Balance Report',
+    'Employee Information Report',
+    'DTR Report'                      -- ← NEW
+  ) NOT NULL;
+
+
+-- ============================================================
+-- 2. ADD DTR-SPECIFIC COLUMNS
+-- ============================================================
+
+ALTER TABLE `reports`
+  ADD COLUMN `dtr_employee_id`        INT(11)       DEFAULT NULL
+    COMMENT 'Employee this DTR belongs to (NULL = batch/department DTR)'
+    AFTER `total_on_leave`,
+
+  ADD COLUMN `dtr_total_days_worked`  INT(11)       DEFAULT NULL
+    COMMENT 'Total days the employee was present'
+    AFTER `dtr_employee_id`,
+
+  ADD COLUMN `dtr_total_days_absent`  INT(11)       DEFAULT NULL
+    COMMENT 'Total days absent within the DTR period'
+    AFTER `dtr_total_days_worked`,
+
+  ADD COLUMN `dtr_total_late_minutes` DECIMAL(8,2)  DEFAULT NULL
+    COMMENT 'Total accumulated late minutes in the period'
+    AFTER `dtr_total_days_absent`,
+
+  ADD COLUMN `dtr_total_undertime_minutes` DECIMAL(8,2) DEFAULT NULL
+    COMMENT 'Total accumulated undertime minutes in the period'
+    AFTER `dtr_total_late_minutes`,
+
+  ADD COLUMN `dtr_total_overtime_hours`    DECIMAL(8,2) DEFAULT NULL
+    COMMENT 'Total overtime hours rendered'
+    AFTER `dtr_total_undertime_minutes`,
+
+  ADD COLUMN `dtr_total_working_hours`     DECIMAL(10,2) DEFAULT NULL
+    COMMENT 'Total actual hours worked in the period'
+    AFTER `dtr_total_overtime_hours`,
+
+  ADD COLUMN `dtr_daily_records`      LONGTEXT
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_bin
+    DEFAULT NULL
+    COMMENT 'JSON array – one entry per day: [{date, day_of_week, clock_in, clock_out, working_hours, overtime_hours, late_minutes, undertime_minutes, status, notes}]'
+    AFTER `dtr_total_working_hours`,
+
+  ADD COLUMN `dtr_certification_officer` VARCHAR(150) DEFAULT NULL
+    COMMENT 'Name/position of the officer certifying the DTR'
+    AFTER `dtr_daily_records`,
+
+  ADD COLUMN `dtr_supervisor_name`    VARCHAR(150) DEFAULT NULL
+    COMMENT 'Immediate supervisor who verified the DTR'
+    AFTER `dtr_certification_officer`,
+
+  ADD COLUMN `dtr_is_certified`       TINYINT(1)   DEFAULT 0
+    COMMENT '1 = DTR has been certified/signed off'
+    AFTER `dtr_supervisor_name`,
+
+  ADD COLUMN `dtr_certified_at`       TIMESTAMP    NULL DEFAULT NULL
+    COMMENT 'When the DTR was certified'
+    AFTER `dtr_is_certified`,
+
+  ADD KEY `fk_report_dtr_employee` (`dtr_employee_id`);
+
+-- Foreign key for dtr_employee_id
+ALTER TABLE `reports`
+  ADD CONSTRAINT `fk_report_dtr_employee`
+    FOREIGN KEY (`dtr_employee_id`)
+    REFERENCES `employee_profiles` (`employee_id`)
+    ON DELETE SET NULL;
+
+
+-- ============================================================
+-- 3. SAMPLE DATA – DTR Reports
+-- ============================================================
+
+INSERT INTO `reports` (
+  `report_code`, `report_type`, `report_title`, `description`,
+  `report_period_start`, `report_period_end`,
+  `department_id`, `employee_id`,
+
+  -- payroll / performance / attendance / leave (all NULL for DTR)
+  `total_employees_included`,
+  `total_gross_pay`, `total_tax_deductions`,
+  `total_statutory_deductions`, `total_other_deductions`, `total_net_pay`,
+  `payroll_cycle_id`,
+  `cycle_id`, `average_overall_rating`,
+  `total_reviews_submitted`, `total_reviews_finalized`,
+  `highest_rating`, `lowest_rating`,
+  `total_present`, `total_absent`, `total_late`, `total_on_leave`,
+  `total_working_hours`, `total_overtime_hours`, `attendance_rate_pct`,
+  `total_leave_requests`, `approved_leave_requests`,
+  `rejected_leave_requests`, `pending_leave_requests`,
+  `total_leave_days_taken`, `leave_type_breakdown`,
+
+  -- DTR-specific
+  `dtr_employee_id`,
+  `dtr_total_days_worked`,
+  `dtr_total_days_absent`,
+  `dtr_total_late_minutes`,
+  `dtr_total_undertime_minutes`,
+  `dtr_total_overtime_hours`,
+  `dtr_total_working_hours`,
+  `dtr_daily_records`,
+  `dtr_certification_officer`,
+  `dtr_supervisor_name`,
+  `dtr_is_certified`,
+  `dtr_certified_at`,
+
+  -- file / status / audit
+  `report_status`, `file_path`, `file_format`,
+  `generated_by`, `reviewed_by`, `approved_by`,
+  `generated_at`, `reviewed_at`, `approved_at`,
+  `notes`
+)
+VALUES
+
+-- ─────────────────────────────────────────────────────────
+-- DTR Sample 1: Maria Santos (MUN001) – January 2026
+--   Municipal Treasurer, Full-time, Dept 3
+--   22 working days, 0 absent, 2 late days (20+15 min),
+--   4 overtime days (2h each), 0 undertime
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-DTR-2026-01-EMP001',
+  'DTR Report',
+  'January 2026 Daily Time Record – Maria Santos (MUN001)',
+  'Official Daily Time Record for Municipal Treasurer Maria Santos covering the full month of January 2026. Records all clock-in/clock-out times, late arrivals, and overtime hours.',
+  '2026-01-01', '2026-01-31',
+  3, 1,
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- DTR
+  1,
+  22, 0, 35.00, 0.00, 8.00, 176.00,
+  '[
+    {"date":"2026-01-02","day_of_week":"Friday",   "clock_in":"07:55:00","clock_out":"17:05:00","working_hours":8.17,"overtime_hours":1.08,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-05","day_of_week":"Monday",   "clock_in":"08:20:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":20,"undertime_minutes":0,"status":"Late","notes":""},
+    {"date":"2026-01-06","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-07","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-08","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-09","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"19:00:00","working_hours":8.00,"overtime_hours":2.00,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":"Budget deadline overtime"},
+    {"date":"2026-01-12","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-13","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-14","day_of_week":"Wednesday","clock_in":"08:15:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":15,"undertime_minutes":0,"status":"Late","notes":""},
+    {"date":"2026-01-15","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-16","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"19:00:00","working_hours":8.00,"overtime_hours":2.00,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":"Year-end reconciliation overtime"},
+    {"date":"2026-01-19","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-20","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-21","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-22","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-23","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"19:00:00","working_hours":8.00,"overtime_hours":2.00,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":"Treasury audit overtime"},
+    {"date":"2026-01-26","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-27","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-28","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-29","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-30","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"19:00:00","working_hours":8.00,"overtime_hours":2.00,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":"Month-end closing overtime"}
+  ]',
+  'Municipal HR Officer',
+  'Roberto Cruz – Municipal Engineer (Dept Head)',
+  1,
+  '2026-02-02 08:30:00',
+  'Approved',
+  '/reports/dtr/RPT-DTR-2026-01-EMP001.pdf', 'PDF',
+  2, 1, 1,
+  '2026-02-01 07:00:00', '2026-02-02 09:00:00', '2026-02-03 10:00:00',
+  'DTR verified against biometric logs. 35 minutes late total spread across 2 days. 8 overtime hours approved by department head. No absences recorded.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- DTR Sample 2: Roberto Cruz (MUN002) – January 2026
+--   Municipal Engineer, Dept 7
+--   20 working days, 1 absent (sick), 1 late, 6 overtime hours
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-DTR-2026-01-EMP002',
+  'DTR Report',
+  'January 2026 Daily Time Record – Roberto Cruz (MUN002)',
+  'Official Daily Time Record for Municipal Engineer Roberto Cruz for January 2026. Includes one sick absence and field work overtime entries.',
+  '2026-01-01', '2026-01-31',
+  7, 2,
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- DTR
+  2,
+  20, 1, 25.00, 0.00, 6.00, 160.00,
+  '[
+    {"date":"2026-01-02","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-05","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-06","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-07","day_of_week":"Wednesday","clock_in":"08:25:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":25,"undertime_minutes":0,"status":"Late","notes":"Traffic delay"},
+    {"date":"2026-01-08","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-09","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"20:00:00","working_hours":8.00,"overtime_hours":3.00,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":"Infrastructure site inspection overtime"},
+    {"date":"2026-01-12","day_of_week":"Monday",   "clock_in":null,      "clock_out":null,      "working_hours":0,   "overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Absent","notes":"Sick leave – medical certificate submitted"},
+    {"date":"2026-01-13","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-14","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-15","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-16","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-19","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-20","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-21","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-22","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-23","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"20:00:00","working_hours":8.00,"overtime_hours":3.00,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":"Road project inspection overtime"},
+    {"date":"2026-01-26","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-27","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-28","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-29","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-30","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""}
+  ]',
+  'Municipal HR Officer',
+  'Office of the Mayor – Direct Supervisor',
+  1,
+  '2026-02-02 09:00:00',
+  'Approved',
+  '/reports/dtr/RPT-DTR-2026-01-EMP002.pdf', 'PDF',
+  2, 1, 1,
+  '2026-02-01 07:10:00', '2026-02-02 10:00:00', '2026-02-03 11:00:00',
+  'One sick absence on Jan 12 – medical certificate on file. 6 overtime hours from two site inspection events. Verified against project logs.'
+),
+
+-- ─────────────────────────────────────────────────────────
+-- DTR Sample 3: Carmen Dela Cruz (MUN007) – January 2026
+--   Clerk, Municipal Civil Registrar's Office, Dept 8
+--   22 working days, 0 absent, 0 late, 0 overtime
+--   Clean DTR – used for payroll base reference
+-- ─────────────────────────────────────────────────────────
+(
+  'RPT-DTR-2026-01-EMP007',
+  'DTR Report',
+  'January 2026 Daily Time Record – Carmen Dela Cruz (MUN007)',
+  'Official Daily Time Record for Clerk Carmen Dela Cruz for January 2026. Perfect attendance with no late arrivals or absences.',
+  '2026-01-01', '2026-01-31',
+  8, 7,
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, NULL, NULL,
+  -- DTR
+  7,
+  22, 0, 0.00, 0.00, 0.00, 176.00,
+  '[
+    {"date":"2026-01-02","day_of_week":"Friday",   "clock_in":"07:58:00","clock_out":"17:02:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-05","day_of_week":"Monday",   "clock_in":"07:55:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-06","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-07","day_of_week":"Wednesday","clock_in":"07:59:00","clock_out":"17:01:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-08","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-09","day_of_week":"Friday",   "clock_in":"07:57:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-12","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-13","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-14","day_of_week":"Wednesday","clock_in":"07:56:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-15","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-16","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-19","day_of_week":"Monday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-20","day_of_week":"Tuesday",  "clock_in":"07:58:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-21","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-22","day_of_week":"Thursday", "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-23","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-26","day_of_week":"Monday",   "clock_in":"07:59:00","clock_out":"17:01:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-27","day_of_week":"Tuesday",  "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-28","day_of_week":"Wednesday","clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-29","day_of_week":"Thursday", "clock_in":"07:55:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-30","day_of_week":"Friday",   "clock_in":"08:00:00","clock_out":"17:00:00","working_hours":8.00,"overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Present","notes":""},
+    {"date":"2026-01-31","day_of_week":"Saturday", "clock_in":null,      "clock_out":null,      "working_hours":0,  "overtime_hours":0,"late_minutes":0,"undertime_minutes":0,"status":"Rest Day","notes":""}
+  ]',
+  'Municipal HR Officer',
+  'Municipal Civil Registrar – Direct Supervisor',
+  1,
+  '2026-02-02 08:00:00',
+  'Approved',
+  '/reports/dtr/RPT-DTR-2026-01-EMP007.pdf', 'PDF',
+  2, 1, 1,
+  '2026-02-01 07:00:00', '2026-02-02 08:30:00', '2026-02-03 09:00:00',
+  'Perfect attendance. 22/22 working days present. No deductions applicable. Submitted for payroll processing reference.'
+);
+
+
+-- ============================================================
+-- 4. UPDATE AUTO_INCREMENT
+-- ============================================================
+
+ALTER TABLE `reports`
+  MODIFY `report_id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 
 SET FOREIGN_KEY_CHECKS = 1;

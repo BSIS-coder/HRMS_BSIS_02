@@ -227,30 +227,15 @@ $sidebar_stats = getSidebarStats();
                         <a class="nav-link <?php echo isActiveMenu('competencies.php'); ?>" href="competencies.php">
                             <i class="fas fa-star"></i> Competencies
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('employee_competencies.php'); ?>" href="employee_competencies.php">
-                            <i class="fas fa-user-star"></i> Employee Competencies
+                        <li class="nav-item">
+                        <a class="nav-link <?php echo isActiveMenu('employee_evaluation_form.php'); ?>" href="employee_evaluation_form.php">
+                            <i class="fas fa-clipboard-check"></i> Employee Evaluation
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('performance_review_cycles.php'); ?>" href="performance_review_cycles.php">
-                            <i class="fas fa-sync-alt"></i> Performance Review Cycles
-                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('performance_reviews.php'); ?>" href="performance_reviews.php">
                             <i class="fas fa-comments"></i> Performance Reviews
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('feedback_360.php'); ?>" href="feedback_360.php">
-                            <i class="fas fa-comment-dots"></i> Feedback 360
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('goals.php'); ?>" href="goals.php">
-                            <i class="fas fa-bullseye"></i> Goals
                         </a>
                     </li>
                     <li class="nav-item">

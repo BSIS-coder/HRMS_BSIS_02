@@ -1,41 +1,34 @@
 <?php
 header('Content-Type: application/json');
-include 'db_connect.php';
+require_once 'config.php';
+
+$competency_id = isset($_POST['competency_id']) ? (int)$_POST['competency_id'] : 0;
+$name = isset($_POST['competency_name']) ? trim($_POST['competency_name']) : '';
+$description = isset($_POST['description']) ? trim($_POST['description']) : '';
+$job_role_id = isset($_POST['job_role_id']) && $_POST['job_role_id'] !== '' ? (int)$_POST['job_role_id'] : null;
+
+if ($competency_id <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Invalid competency ID']);
+    exit;
+}
+
+if (empty($name)) {
+    echo json_encode(['success' => false, 'message' => 'Competency name is required']);
+    exit;
+}
 
 try {
-    // Validate required fields
-    if (empty($_POST['competency_id']) || empty($_POST['competency_name']) || empty($_POST['job_role_id'])) {
-        echo json_encode(["success" => false, "message" => "Missing required fields."]);
-        exit;
-    }
+    $sql = "UPDATE competencies SET name = :name, description = :description, job_role_id = :job_role_id WHERE competency_id = :competency_id";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([
+        ':name' => $name,
+        ':description' => $description,
+        ':job_role_id' => $job_role_id,
+        ':competency_id' => $competency_id
+    ]);
 
-    $id   = (int) $_POST['competency_id'];
-    $name = trim($_POST['competency_name']);
-    $desc = isset($_POST['description']) ? trim($_POST['description']) : null;
-    $role = (int) $_POST['job_role_id'];
-
-    $stmt = $conn->prepare("
-        UPDATE competencies 
-        SET name = ?, description = ?, job_role_id = ?, updated_at = NOW() 
-        WHERE competency_id = ?
-    ");
-
-    if (!$stmt) {
-        echo json_encode(["success" => false, "message" => "Prepare failed: " . $conn->error]);
-        exit;
-    }
-
-    $stmt->bind_param("ssii", $name, $desc, $role, $id);
-
-    if ($stmt->execute()) {
-        echo json_encode(["success" => true]);
-    } else {
-        echo json_encode(["success" => false, "message" => $stmt->error]);
-    }
-
-    $stmt->close();
-    $conn->close();
-
-} catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => $e->getMessage()]);
+    echo json_encode(['success' => true, 'message' => 'Competency updated successfully']);
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'message' => 'Error updating competency: ' . $e->getMessage()]);
 }
+?>

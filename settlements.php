@@ -34,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
-                // Add new settlement
                 try {
                     $stmt = $pdo->prepare("INSERT INTO settlements (exit_id, employee_id, last_working_day, final_salary, severance_pay, unused_leave_payout, deductions, final_settlement_amount, payment_date, payment_method, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
@@ -62,21 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
                 break;
-            
+
             case 'update_status':
-                // Update settlement status only
                 try {
                     $processed_date = null;
                     if ($_POST['status'] === 'Completed') {
                         $processed_date = date('Y-m-d');
                     }
-                    
                     $stmt = $pdo->prepare("UPDATE settlements SET status=?, processed_date=? WHERE settlement_id=?");
-                    $stmt->execute([
-                        $_POST['status'],
-                        $processed_date,
-                        $_POST['settlement_id']
-                    ]);
+                    $stmt->execute([$_POST['status'], $processed_date, $_POST['settlement_id']]);
                     $_SESSION['message'] = "Settlement status updated successfully!";
                     $_SESSION['messageType'] = "success";
                     header("Location: settlements.php");
@@ -88,24 +81,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
                 break;
-            
+
             case 'view_details':
-                // Log sensitive data access
                 try {
                     $stmt = $pdo->prepare("INSERT INTO settlement_access_logs (settlement_id, user_id, accessed_at) VALUES (?, ?, NOW())");
-                    $stmt->execute([
-                        $_POST['settlement_id'],
-                        $_SESSION['user_id'] ?? 'unknown'
-                    ]);
-                } catch (PDOException $e) {
-                    // Log silently
-                }
+                    $stmt->execute([$_POST['settlement_id'], $_SESSION['user_id'] ?? 'unknown']);
+                } catch (PDOException $e) {}
                 break;
         }
     }
 }
 
-// Check for messages in session
 if (isset($_SESSION['message'])) {
     $message = $_SESSION['message'];
     $messageType = $_SESSION['messageType'];
@@ -113,17 +99,13 @@ if (isset($_SESSION['message'])) {
     unset($_SESSION['messageType']);
 }
 
-// Fetch settlements with related data
+// Fetch settlements
 $stmt = $pdo->query("
-    SELECT 
-        s.*,
+    SELECT s.*,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number,
-        ep.work_email,
-        jr.title as job_title,
-        jr.department,
-        e.exit_type,
-        e.exit_date
+        ep.employee_number, ep.work_email, ep.current_salary, ep.hire_date,
+        jr.title as job_title, jr.department,
+        e.exit_type, e.exit_date
     FROM settlements s
     LEFT JOIN employee_profiles ep ON s.employee_id = ep.employee_id
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
@@ -135,13 +117,10 @@ $settlements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch exits for dropdown
 $stmt = $pdo->query("
-    SELECT 
-        e.exit_id,
-        e.employee_id,
+    SELECT e.exit_id, e.employee_id,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number,
-        e.exit_type,
-        e.exit_date
+        ep.employee_number, ep.current_salary, ep.hire_date,
+        e.exit_type, e.exit_date
     FROM exits e
     LEFT JOIN employee_profiles ep ON e.employee_id = ep.employee_id
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
@@ -150,20 +129,16 @@ $stmt = $pdo->query("
 ");
 $availableExits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all employees for dropdown
+// Fetch employees
 $stmt = $pdo->query("
-    SELECT 
-        ep.employee_id,
-        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
-        ep.employee_number,
-        ep.current_salary
+    SELECT ep.employee_id, CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number, ep.current_salary, ep.hire_date
     FROM employee_profiles ep
     LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
     ORDER BY pi.first_name
 ");
 $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -172,1073 +147,1903 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Settlement Management - HR System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Additional custom styles for settlements page */
         :root {
-            --azure-blue: #E91E63;
-            --azure-blue-light: #F06292;
-            --azure-blue-dark: #C2185B;
-            --azure-blue-lighter: #F8BBD0;
-            --azure-blue-pale: #FCE4EC;
+            --primary: #E91E63;
+            --primary-light: #F06292;
+            --primary-dark: #C2185B;
+            --primary-lighter: #F8BBD0;
+            --primary-pale: #FCE4EC;
+            --success: #00C853;
+            --success-pale: #E8F5E9;
+            --warning: #FF6F00;
+            --warning-pale: #FFF8E1;
+            --info: #0288D1;
+            --info-pale: #E1F5FE;
+            --danger: #D32F2F;
+            --danger-pale: #FFEBEE;
+            --dark: #1A1A2E;
+            --mid: #374151;
+            --muted: #6B7280;
+            --border: #E5E7EB;
+            --surface: #FFFFFF;
+            --bg: #FDF2F5;
         }
 
-        .section-title {
-            color: var(--azure-blue);
-            margin-bottom: 30px;
-            font-weight: 600;
-        }
-        
-        .container-fluid {
-            padding: 0;
-        }
-        
-        .row {
-            margin-right: 0;
-            margin-left: 0;
-        }
+        * { box-sizing: border-box; }
 
         body {
-            background: var(--azure-blue-pale);
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--dark);
         }
+
+        .container-fluid { padding: 0; }
+        .row { margin: 0; }
 
         .main-content {
-            background: var(--azure-blue-pale);
-            padding: 20px;
+            padding: 28px 32px;
+            background: var(--bg);
+            min-height: 100vh;
         }
 
+        /* ── Page Header ── */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-header-left h2 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--dark);
+            margin: 0 0 4px 0;
+        }
+
+        .page-header-left p {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* ── Summary Cards ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(233,30,99,0.10);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+
+        .stat-card.pink::before { background: var(--primary); }
+        .stat-card.green::before { background: var(--success); }
+        .stat-card.orange::before { background: var(--warning); }
+        .stat-card.blue::before { background: var(--info); }
+
+        .stat-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card.pink .stat-icon { background: var(--primary-pale); }
+        .stat-card.green .stat-icon { background: var(--success-pale); }
+        .stat-card.orange .stat-icon { background: var(--warning-pale); }
+        .stat-card.blue .stat-icon { background: var(--info-pale); }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--dark);
+            font-family: 'DM Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        /* ── Controls ── */
         .controls {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 15px;
         }
 
         .search-box {
             position: relative;
             flex: 1;
-            max-width: 400px;
+            min-width: 220px;
+            max-width: 380px;
         }
 
         .search-box input {
             width: 100%;
-            padding: 12px 15px 12px 45px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            padding: 10px 14px 10px 40px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--surface);
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .search-box input:focus {
-            border-color: var(--azure-blue);
+            border-color: var(--primary);
             outline: none;
-            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+            box-shadow: 0 0 0 3px rgba(233,30,99,0.10);
         }
 
         .search-icon {
             position: absolute;
-            left: 15px;
+            left: 13px;
             top: 50%;
             transform: translateY(-50%);
-            color: #666;
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
-            background: linear-gradient(135deg, var(--azure-blue-light) 0%, var(--azure-blue-dark) 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: white;
-        }
-
-        .btn-small {
-            padding: 8px 15px;
+            color: var(--muted);
             font-size: 14px;
-            margin: 0 3px;
         }
 
-        .table-container {
-            background: white;
+        /* ── Buttons ── */
+        .btn {
+            padding: 10px 20px;
+            border: none;
             border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(233,30,99,0.30); color: white; }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #00A846; transform: translateY(-1px); color: white; }
+
+        .btn-info { background: var(--info); color: white; }
+        .btn-info:hover { background: #0277BD; transform: translateY(-1px); color: white; }
+
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #E65100; transform: translateY(-1px); color: white; }
+
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--mid); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-pale); }
+
+        .btn-ghost { background: transparent; color: var(--muted); padding: 8px 12px; }
+        .btn-ghost:hover { background: var(--bg); color: var(--dark); }
+
+        .btn-sm { padding: 7px 13px; font-size: 13px; border-radius: 8px; }
+
+        /* ── Table ── */
+        .table-card {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid var(--border);
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 14px;
         }
 
         .table th {
-            background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #e9ecef 100%);
-            padding: 15px;
+            background: #FAFAFA;
+            padding: 14px 16px;
             text-align: left;
             font-weight: 600;
-            color: var(--azure-blue-dark);
-            border-bottom: 2px solid #dee2e6;
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
 
         .table td {
-            padding: 15px;
-            border-bottom: 1px solid #f1f1f1;
+            padding: 14px 16px;
+            border-bottom: 1px solid #F3F4F6;
             vertical-align: middle;
         }
 
-        .table tbody tr:hover {
-            background-color: var(--azure-blue-lighter);
-            transform: scale(1.01);
-            transition: all 0.2s ease;
-        }
+        .table tbody tr:last-child td { border-bottom: none; }
 
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+        .table tbody tr:hover { background: #FAFAFA; }
+
+        .emp-info strong { display: block; font-size: 14px; color: var(--dark); }
+        .emp-info small { color: var(--muted); font-size: 12px; }
+
+        /* ── Status Badges ── */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.4px;
             display: inline-block;
         }
 
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
+        .badge-pending { background: var(--warning-pale); color: var(--warning); }
+        .badge-processing { background: var(--info-pale); color: var(--info); }
+        .badge-completed { background: var(--success-pale); color: #1B5E20; }
 
-        .status-processing {
-            background: #cfe2ff;
-            color: #084298;
-        }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background: white;
-            margin: 2% auto;
-            padding: 0;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 95vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
-            color: white;
-            padding: 20px 30px;
-            border-radius: 15px 15px 0 0;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            color: white;
-            opacity: 0.7;
-        }
-
-        .close:hover {
-            opacity: 1;
-        }
-
-        .modal-body {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--azure-blue-dark);
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 6px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--azure-blue);
-            outline: none;
-            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
-        }
-
-        .form-row {
-            display: flex;
-            gap: 20px;
-        }
-
-        .form-col {
-            flex: 1;
-        }
-
-        .calculation-summary {
-            background: var(--azure-blue-pale);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
-        .calculation-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .calculation-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 1.2em;
-            color: var(--azure-blue-dark);
-            margin-top: 10px;
-            padding-top: 15px;
-            border-top: 2px solid var(--azure-blue);
-        }
-
-        .alert {
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 50px;
-            color: #666;
-        }
-
-        .no-results i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            color: #ddd;
-        }
-
-        .amount-masked {
-            background: linear-gradient(90deg, #e0e0e0 0%, #f0f0f0 50%, #e0e0e0 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-weight: 600;
+        .amount-hidden {
+            font-family: 'DM Mono', monospace;
+            background: #F3F4F6;
             color: transparent;
-            cursor: pointer;
-            position: relative;
-            display: inline-block;
-            min-width: 120px;
+            text-shadow: 0 0 8px rgba(0,0,0,0.4);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 13px;
             user-select: none;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        .amount-masked::after {
-            content: '*******';
-            position: absolute;
-            left: 0;
-            right: 0;
-            color: #666;
-            font-size: 16px;
-            font-weight: 600;
+            cursor: not-allowed;
             letter-spacing: 2px;
         }
 
-        .amount-masked:hover {
-            opacity: 0.8;
-            transform: scale(1.05);
+        /* ── Modals ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(4px);
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px 16px;
+            overflow-y: auto;
         }
 
-        .sensitive-badge {
-            background: #ff6b6b;
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: var(--surface);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 760px;
+            overflow: hidden;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.20);
+            animation: modalIn 0.25s ease;
+            margin: auto;
+        }
+
+        .modal-box.wide { max-width: 960px; }
+        .modal-box.narrow { max-width: 500px; }
+
+        @keyframes modalIn {
+            from { transform: translateY(-20px) scale(0.98); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .modal-head {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-            margin-left: 5px;
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .view-details-link {
-            color: var(--azure-blue);
-            text-decoration: none;
+        .modal-head h3 { margin: 0; font-size: 18px; font-weight: 700; }
+        .modal-head p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+
+        .modal-close {
+            background: rgba(255,255,255,0.20);
+            border: none;
+            color: white;
+            width: 32px; height: 32px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: 600;
+            font-size: 18px;
+            line-height: 1;
+            transition: background 0.2s;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .view-details-link:hover {
-            text-decoration: underline;
-        }
+        .modal-close:hover { background: rgba(255,255,255,0.35); }
 
-        .details-modal-content {
-            background: white;
-        }
+        .modal-body { padding: 28px; }
 
-        .sensitive-info-section {
-            background: #fff3cd;
-            padding: 15px;
-            border-left: 4px solid #ffc107;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
-
-        .sensitive-info-section strong {
-            color: #856404;
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        .detail-row {
-            display: grid;
-            grid-template-columns: 200px 1fr;
-            gap: 20px;
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: var(--azure-blue-dark);
-        }
-
-        .detail-value {
-            color: #333;
-        }
-
-        .access-log-badge {
-            background: #d1ecf1;
-            color: #0c5460;
-            padding: 3px 8px;
+        /* ── Tabs (inside Final Pay modal) ── */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            background: #F3F4F6;
             border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 9px 14px;
+            border: none;
+            background: transparent;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── Form Styles ── */
+        .form-section {
+            background: #FAFAFA;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .form-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .form-grid.cols-1 { grid-template-columns: 1fr; }
+
+        .form-group { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--mid);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group label .req { color: var(--primary); margin-left: 2px; }
+
+        .form-control {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            background: white;
+            color: var(--dark);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(233,30,99,0.10);
+        }
+
+        .form-control:read-only, .form-control[readonly] {
+            background: #F9FAFB;
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .form-control.computed {
+            background: var(--primary-pale);
+            color: var(--primary-dark);
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            cursor: default;
+        }
+
+        /* ── Calculation Summary ── */
+        .calc-summary {
+            background: linear-gradient(135deg, var(--dark) 0%, #2D3748 100%);
+            border-radius: 14px;
+            padding: 22px;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .calc-summary-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 16px;
+        }
+
+        .calc-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 14px;
+        }
+
+        .calc-line:last-child { border-bottom: none; }
+
+        .calc-line.subtotal {
+            border-top: 1px solid rgba(255,255,255,0.2);
+            margin-top: 8px;
+            padding-top: 14px;
+            font-weight: 600;
+            color: #86EFAC;
+        }
+
+        .calc-line.deduction .calc-amt { color: #FCA5A5; }
+
+        .calc-line.total {
+            border-top: 2px solid rgba(255,255,255,0.3);
+            margin-top: 10px;
+            padding-top: 16px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .calc-line.total .calc-amt { color: #86EFAC; font-family: 'DM Mono', monospace; }
+
+        .calc-label { opacity: 0.85; }
+        .calc-amt { font-family: 'DM Mono', monospace; font-weight: 600; }
+
+        /* ── Leave Monetization Calculator ── */
+        .leave-breakdown {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .leave-breakdown-header {
+            background: #F8FAFC;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leave-breakdown-row {
+            padding: 12px 16px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+            border-bottom: 1px solid #F3F4F6;
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+
+        .leave-breakdown-row:last-child { border-bottom: none; }
+        .leave-breakdown-row:hover { background: var(--primary-pale); }
+
+        .leave-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .leave-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .leave-payout-total {
+            background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%);
+            color: white;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ── Detail View ── */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        .detail-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-item:nth-child(odd) { border-right: 1px solid var(--border); }
+
+        .detail-item-label {
             font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .detail-item-value {
+            font-size: 14px;
+            color: var(--dark);
+            font-weight: 500;
+        }
+
+        .detail-item-value.mono {
+            font-family: 'DM Mono', monospace;
+            font-size: 15px;
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .sensitive-section {
+            background: linear-gradient(135deg, #FFF8E1 0%, #FFFDE7 100%);
+            border: 1.5px solid #FFD54F;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sensitive-section-icon { font-size: 22px; }
+
+        .sensitive-section-text strong { display: block; color: #E65100; font-size: 13px; }
+        .sensitive-section-text span { color: #BF360C; font-size: 12px; }
+
+        .fin-breakdown-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .fin-breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            border-bottom: 1px solid #F3F4F6;
+            font-size: 14px;
+        }
+
+        .fin-breakdown-row:last-child { border-bottom: none; }
+        .fin-breakdown-row.total-row {
+            background: var(--primary-pale);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .fin-breakdown-row .amount { font-family: 'DM Mono', monospace; font-weight: 600; }
+        .fin-breakdown-row .amount.positive { color: #1B5E20; }
+        .fin-breakdown-row .amount.negative { color: var(--danger); }
+        .fin-breakdown-row .amount.total { color: var(--primary-dark); font-size: 17px; }
+
+        /* ── Alert ── */
+        .alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success { background: var(--success-pale); color: #1B5E20; border: 1px solid #A5D6A7; }
+        .alert-error { background: var(--danger-pale); color: var(--danger); border: 1px solid #EF9A9A; }
+
+        .info-banner {
+            background: linear-gradient(135deg, var(--primary-pale) 0%, #FDE8F0 100%);
+            border: 1px solid var(--primary-lighter);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-banner-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+        .info-banner-text strong { display: block; color: var(--primary-dark); font-size: 13px; margin-bottom: 2px; }
+        .info-banner-text span { color: var(--mid); font-size: 13px; }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 30px;
+            color: var(--muted);
+        }
+
+        .no-data-icon { font-size: 48px; margin-bottom: 12px; }
+        .no-data h3 { font-size: 18px; color: var(--mid); margin-bottom: 6px; }
+        .no-data p { font-size: 14px; }
+
+        /* Divider */
+        .modal-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+
+        /* Tooltip-style helper text */
+        .field-hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Employee info card (in modal) */
+        .emp-card {
+            background: linear-gradient(135deg, var(--primary-pale) 0%, #FDE8F0 100%);
+            border: 1px solid var(--primary-lighter);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .emp-card-avatar {
+            width: 44px; height: 44px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .emp-card-info strong { display: block; font-size: 16px; color: var(--dark); }
+        .emp-card-info span { font-size: 13px; color: var(--muted); }
+
+        .emp-card-salary {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .emp-card-salary strong { display: block; font-size: 18px; font-family: 'DM Mono', monospace; color: var(--primary-dark); }
+        .emp-card-salary span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+
+        /* Progress ring for leave balance */
+        .leave-progress {
+            position: relative;
+            width: 52px; height: 52px;
+            flex-shrink: 0;
+        }
+
+        .leave-progress svg {
+            transform: rotate(-90deg);
+        }
+
+        .leave-progress-label {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--dark);
         }
 
         @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
+            .stats-row { grid-template-columns: 1fr 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-grid.cols-3 { grid-template-columns: 1fr; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .detail-item:nth-child(odd) { border-right: none; }
+            .main-content { padding: 16px; }
+            .leave-breakdown-header, .leave-breakdown-row {
+                grid-template-columns: 2fr 1fr 1fr;
             }
-
-            .search-box {
-                max-width: none;
-            }
-
-            .form-row {
-                flex-direction: column;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            .content {
-                padding: 20px;
-            }
-
-            .detail-row {
-                grid-template-columns: 1fr;
-            }
+            .leave-breakdown-header span:last-child,
+            .leave-breakdown-row span:last-child { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <?php include 'navigation.php'; ?>
-        <div class="row">
-            <?php include 'sidebar.php'; ?>
-            <div class="main-content">
-                <h2 class="section-title">Settlement Management</h2>
-                <div class="content">
-                    <?php if ($message): ?>
-                        <div class="alert alert-<?= $messageType ?>">
-                            <?= htmlspecialchars($message) ?>
-                        </div>
-                    <?php endif; ?>
+<div class="container-fluid">
+    <?php include 'navigation.php'; ?>
+    <div class="row">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
 
-                    <div class="controls">
-                        <div class="search-box">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search settlements by employee name or number...">
-                        </div>
-                        <button class="btn btn-primary" onclick="openAddModal()">
-                            ➕ Add New Settlement
-                        </button>
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h2>💼 Settlement Management</h2>
+                    <p>Manage final pay computations, salary & benefits, and leave monetization</p>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-outline" onclick="openFinalPayCalculator()">🧮 Final Pay Calculator</button>
+                    <button class="btn btn-primary" onclick="openAddModal()">➕ New Settlement</button>
+                </div>
+            </div>
+
+            <?php if ($message): ?>
+            <div class="alert alert-<?= $messageType ?>">
+                <?= $messageType === 'success' ? '✅' : '❌' ?>
+                <?= htmlspecialchars($message) ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Summary Stats -->
+            <div class="stats-row">
+                <?php
+                    $total = count($settlements);
+                    $pending = count(array_filter($settlements, fn($s) => $s['status'] === 'Pending'));
+                    $processing = count(array_filter($settlements, fn($s) => $s['status'] === 'Processing'));
+                    $completed = count(array_filter($settlements, fn($s) => $s['status'] === 'Completed'));
+                    $totalPayout = array_sum(array_column($settlements, 'final_settlement_amount'));
+                ?>
+                <div class="stat-card pink">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-value"><?= $total ?></div>
+                    <div class="stat-label">Total Settlements</div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-value"><?= $pending ?></div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="stat-icon">🔄</div>
+                    <div class="stat-value"><?= $processing ?></div>
+                    <div class="stat-label">Processing</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value"><?= $completed ?></div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Info Banner -->
+            <div class="info-banner">
+                <div class="info-banner-icon">🔒</div>
+                <div class="info-banner-text">
+                    <strong>Sensitive Data Protection Active</strong>
+                    <span>Final settlement amounts are hidden in the list view. Click "View Details" to access financial information. All access is securely logged.</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <div class="search-box">
+                    <span class="search-icon"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" placeholder="Search by employee name or number…">
+                </div>
+                <select id="statusFilter" class="form-control" style="width:auto; padding: 10px 14px; border-radius:10px; border: 1.5px solid var(--border);">
+                    <option value="">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="table-card">
+                <table class="table" id="settlementTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Exit Type</th>
+                            <th>Last Working Day</th>
+                            <th>Final Amount</th>
+                            <th>Payment Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="settlementTableBody">
+                        <?php foreach ($settlements as $s): ?>
+                        <tr data-status="<?= $s['status'] ?>">
+                            <td><strong style="font-family:'DM Mono',monospace;color:var(--muted);">#<?= $s['settlement_id'] ?></strong></td>
+                            <td>
+                                <div class="emp-info">
+                                    <strong><?= htmlspecialchars($s['employee_name']) ?></strong>
+                                    <small><?= htmlspecialchars($s['employee_number']) ?></small>
+                                </div>
+                            </td>
+                            <td><small><?= htmlspecialchars($s['department'] ?? '—') ?></small></td>
+                            <td><small><?= htmlspecialchars($s['exit_type']) ?></small></td>
+                            <td><small><?= date('M d, Y', strtotime($s['last_working_day'])) ?></small></td>
+                            <td><span class="amount-hidden">₱•••••••</span></td>
+                            <td><small><?= $s['payment_date'] ? date('M d, Y', strtotime($s['payment_date'])) : '—' ?></small></td>
+                            <td><span class="badge badge-<?= strtolower($s['status']) ?>"><?= $s['status'] ?></span></td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="viewSettlementDetails(<?= $s['settlement_id'] ?>)">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="btn btn-warning btn-sm" onclick="updateStatus(<?= $s['settlement_id'] ?>, '<?= $s['status'] ?>')">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php if (empty($settlements)): ?>
+                <div class="no-data">
+                    <div class="no-data-icon">💼</div>
+                    <h3>No settlements yet</h3>
+                    <p>Add your first settlement to get started.</p>
+                </div>
+                <?php endif; ?>
+            </div>
+
+        </div><!-- end main-content -->
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: ADD SETTLEMENT
+══════════════════════════════════════════════ -->
+<div id="addModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div>
+                <h3>➕ New Settlement</h3>
+                <p>Create a final pay settlement for a departing employee</p>
+            </div>
+            <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="addForm" method="POST">
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" id="add_employee_id" name="employee_id">
+                <input type="hidden" id="add_final_settlement_amount" name="final_settlement_amount" value="0">
+                <input type="hidden" name="status" value="Pending">
+                <input type="hidden" name="payment_method" value="">
+
+                <!-- Exit Selection -->
+                <div class="form-section">
+                    <div class="form-section-title">📋 Exit Record</div>
+                    <div class="form-group">
+                        <label>Exit Record <span class="req">*</span></label>
+                        <select id="add_exit_id" name="exit_id" class="form-control" required onchange="onExitSelect()">
+                            <option value="">Choose an exit record…</option>
+                            <?php foreach ($availableExits as $ex): ?>
+                            <option value="<?= $ex['exit_id'] ?>"
+                                data-eid="<?= $ex['employee_id'] ?>"
+                                data-edate="<?= $ex['exit_date'] ?>"
+                                data-salary="<?= $ex['current_salary'] ?>"
+                                data-hire="<?= $ex['hire_date'] ?>">
+                                <?= htmlspecialchars($ex['employee_name']) ?> — <?= $ex['exit_type'] ?> (<?= date('M d, Y', strtotime($ex['exit_date'])) ?>)
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+                </div>
 
-                    <div style="background: #e7f3ff; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--azure-blue);">
-                        <strong style="color: var(--azure-blue);">🔒 Sensitive Data Protection:</strong>
-                        <p style="margin: 5px 0 0 0; font-size: 13px; color: #333;">Final settlement amounts are hidden in this view. Click "View Details" to access full information. All access is logged for security.</p>
+                <!-- Employee Info Card (populated dynamically) -->
+                <div id="addEmpCard" class="emp-card" style="display:none;"></div>
+
+                <!-- Dates -->
+                <div class="form-section">
+                    <div class="form-section-title">📅 Dates</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Last Working Day <span class="req">*</span></label>
+                            <input type="date" id="add_last_working_day" name="last_working_day" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Date</label>
+                            <input type="date" id="add_payment_date" name="payment_date" class="form-control">
+                        </div>
                     </div>
+                </div>
 
-                    <div class="table-container">
-                        <table class="table" id="settlementTable">
-                            <thead>
-                                <tr>
-                                    <th>Settlement ID</th>
-                                    <th>Employee</th>
-                                    <th>Exit Type</th>
-                                    <th>Last Working Day</th>
-                                    <th>Final Amount <span class="sensitive-badge">HIDDEN</span></th>
-                                    <th>Payment Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="settlementTableBody">
-                                <?php foreach ($settlements as $settlement): ?>
-                                <tr>
-                                    <td><strong>#<?= htmlspecialchars($settlement['settlement_id']) ?></strong></td>
-                                    <td>
-                                        <div>
-                                            <strong><?= htmlspecialchars($settlement['employee_name']) ?></strong><br>
-                                            <small style="color: #666;">👤 <?= htmlspecialchars($settlement['employee_number']) ?></small><br>
-                                            <small style="color: #666;">📧 <?= htmlspecialchars($settlement['work_email']) ?></small>
-                                        </div>
-                                    </td>
-                                    <td><?= htmlspecialchars($settlement['exit_type']) ?></td>
-                                    <td><?= date('M d, Y', strtotime($settlement['last_working_day'])) ?></td>
-                                    <td>
-                                        <div class="amount-masked" style="cursor: not-allowed; pointer-events: none;" title="Hidden for security">*******</div>
-                                    </td>
-                                    <td><?= $settlement['payment_date'] ? date('M d, Y', strtotime($settlement['payment_date'])) : '<em>Not set</em>' ?></td>
-                                    <td>
-                                        <span class="status-badge status-<?= strtolower($settlement['status']) ?>">
-                                            <?= htmlspecialchars($settlement['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-info btn-small" onclick="viewSettlementDetails(<?= $settlement['settlement_id'] ?>)">
-                                            📄 View Details
-                                        </button>
-                                        <button class="btn btn-warning btn-small" onclick="updateStatus(<?= $settlement['settlement_id'] ?>, '<?= $settlement['status'] ?>')">
-                                            🔄 Update
-                                        </button>
-                                    </td>
-                                </tr>
+                <!-- Salary & Benefits -->
+                <div class="form-section">
+                    <div class="form-section-title">💵 Salary &amp; Benefits</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Final Salary (₱) <span class="req">*</span></label>
+                            <input type="number" id="add_final_salary" name="final_salary" class="form-control" step="0.01" min="0" required oninput="recalcAdd()">
+                            <div class="field-hint">Pro-rated salary for the last month if applicable</div>
+                        </div>
+                        <div class="form-group">
+                            <label>13th Month Pay (₱)</label>
+                            <input type="number" id="add_13th_month" name="thirteenth_month" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                            <div class="field-hint">Pro-rated 13th month pay</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Severance Pay (₱)</label>
+                            <input type="number" id="add_severance" name="severance_pay" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                            <div class="field-hint">Based on years of service &amp; exit type</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Other Benefits (₱)</label>
+                            <input type="number" id="add_other_benefits" name="other_benefits" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                            <div class="field-hint">Rice subsidy, allowances, etc.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Monetization -->
+                <div class="form-section">
+                    <div class="form-section-title">🌿 Leave Monetization</div>
+                    <div class="form-grid cols-3">
+                        <div class="form-group">
+                            <label>Unused VL Days</label>
+                            <input type="number" id="add_vl_days" class="form-control" step="0.5" min="0" value="0" oninput="calcLeave()">
+                        </div>
+                        <div class="form-group">
+                            <label>Unused SL Days</label>
+                            <input type="number" id="add_sl_days" class="form-control" step="0.5" min="0" value="0" oninput="calcLeave()">
+                        </div>
+                        <div class="form-group">
+                            <label>Other Leave Days</label>
+                            <input type="number" id="add_other_leave" class="form-control" step="0.5" min="0" value="0" oninput="calcLeave()">
+                        </div>
+                        <div class="form-group">
+                            <label>Daily Rate (₱)</label>
+                            <input type="number" id="add_daily_rate" class="form-control" step="0.01" min="0" value="0" oninput="calcLeave()">
+                            <div class="field-hint">Monthly ÷ 26 working days</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Leave Payout (₱)</label>
+                            <input type="number" id="add_leave_total" class="form-control computed" readonly>
+                        </div>
+                        <div class="form-group" style="display:flex; align-items:flex-end;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="applyLeave()" style="width:100%">
+                                ✅ Apply to Settlement
+                            </button>
+                        </div>
+                    </div>
+                    <input type="number" id="add_unused_leave_payout" name="unused_leave_payout" value="0" style="display:none;">
+                </div>
+
+                <!-- Deductions -->
+                <div class="form-section">
+                    <div class="form-section-title">🔻 Deductions</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>SSS / GSIS (₱)</label>
+                            <input type="number" id="add_ded_sss" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                        </div>
+                        <div class="form-group">
+                            <label>PhilHealth (₱)</label>
+                            <input type="number" id="add_ded_ph" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                        </div>
+                        <div class="form-group">
+                            <label>Pag-IBIG (₱)</label>
+                            <input type="number" id="add_ded_pi" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                        </div>
+                        <div class="form-group">
+                            <label>Withholding Tax (₱)</label>
+                            <input type="number" id="add_ded_tax" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                        </div>
+                        <div class="form-group">
+                            <label>Loans / Advances (₱)</label>
+                            <input type="number" id="add_ded_loans" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                        </div>
+                        <div class="form-group">
+                            <label>Other Deductions (₱)</label>
+                            <input type="number" id="add_ded_other" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                        </div>
+                    </div>
+                    <input type="number" id="add_deductions" name="deductions" value="0" style="display:none;">
+                </div>
+
+                <!-- Notes -->
+                <div class="form-section">
+                    <div class="form-section-title">📝 Notes</div>
+                    <div class="form-group">
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes or remarks…"></textarea>
+                    </div>
+                </div>
+
+                <!-- Calculation Summary -->
+                <div class="calc-summary" id="addCalcSummary">
+                    <div class="calc-summary-title">💡 Settlement Calculation Preview</div>
+                    <div class="calc-line"><span class="calc-label">Final Salary</span><span class="calc-amt" id="cs_salary">₱0.00</span></div>
+                    <div class="calc-line"><span class="calc-label">13th Month Pay</span><span class="calc-amt" id="cs_13th">₱0.00</span></div>
+                    <div class="calc-line"><span class="calc-label">Severance Pay</span><span class="calc-amt" id="cs_severance">₱0.00</span></div>
+                    <div class="calc-line"><span class="calc-label">Leave Payout</span><span class="calc-amt" id="cs_leave">₱0.00</span></div>
+                    <div class="calc-line"><span class="calc-label">Other Benefits</span><span class="calc-amt" id="cs_benefits">₱0.00</span></div>
+                    <div class="calc-line subtotal"><span class="calc-label">Gross Settlement</span><span class="calc-amt" id="cs_gross">₱0.00</span></div>
+                    <div class="calc-line deduction"><span class="calc-label">Total Deductions</span><span class="calc-amt" id="cs_deductions">-₱0.00</span></div>
+                    <div class="calc-line total"><span class="calc-label">NET FINAL PAY</span><span class="calc-amt" id="cs_total">₱0.00</span></div>
+                </div>
+
+                <div class="action-bar">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
+                    <button type="submit" class="btn btn-success">💾 Save Settlement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: FINAL PAY CALCULATOR (standalone)
+══════════════════════════════════════════════ -->
+<div id="calcModal" class="modal-overlay">
+    <div class="modal-box wide">
+        <div class="modal-head">
+            <div>
+                <h3>🧮 Final Pay Calculator</h3>
+                <p>Compute employee final pay with salary, benefits &amp; leave monetization</p>
+            </div>
+            <button class="modal-close" onclick="closeModal('calcModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('tab-salary')" id="btn-tab-salary">💵 Salary &amp; Benefits</button>
+                <button class="tab-btn" onclick="switchTab('tab-leave')" id="btn-tab-leave">🌿 Leave Monetization</button>
+                <button class="tab-btn" onclick="switchTab('tab-summary')" id="btn-tab-summary">📊 Summary</button>
+            </div>
+
+            <!-- TAB: Salary & Benefits -->
+            <div id="tab-salary" class="tab-pane active">
+                <div class="form-section">
+                    <div class="form-section-title">👤 Employee Information</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Employee</label>
+                            <select id="calc_emp" class="form-control" onchange="onCalcEmpSelect()">
+                                <option value="">Select employee…</option>
+                                <?php foreach ($employees as $e): ?>
+                                <option value="<?= $e['employee_id'] ?>"
+                                    data-salary="<?= $e['current_salary'] ?>"
+                                    data-hire="<?= $e['hire_date'] ?>">
+                                    <?= htmlspecialchars($e['employee_name']) ?> (<?= $e['employee_number'] ?>)
+                                </option>
                                 <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                        
-                        <?php if (empty($settlements)): ?>
-                        <div class="no-results">
-                            <i>💰</i>
-                            <h3>No settlements found</h3>
-                            <p>Start by adding your first settlement record.</p>
+                            </select>
                         </div>
-                        <?php endif; ?>
+                        <div class="form-group">
+                            <label>Last Working Date</label>
+                            <input type="date" id="calc_last_day" class="form-control" onchange="calcSeverance()">
+                        </div>
+                        <div class="form-group">
+                            <label>Monthly Basic Salary (₱)</label>
+                            <input type="number" id="calc_monthly_salary" class="form-control" step="0.01" min="0" value="0" oninput="onSalaryInput(); recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Exit Reason</label>
+                            <select id="calc_exit_reason" class="form-control" onchange="calcSeverance()">
+                                <option value="Resignation">Resignation</option>
+                                <option value="End of Contract">End of Contract</option>
+                                <option value="Retirement">Retirement</option>
+                                <option value="Retrenchment">Retrenchment</option>
+                                <option value="Redundancy">Redundancy</option>
+                                <option value="Disease">Disease</option>
+                                <option value="Termination for Cause">Termination for Cause</option>
+                            </select>
+                        </div>
                     </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">📦 Benefits Computation</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Working Days in Last Month</label>
+                            <input type="number" id="calc_worked_days" class="form-control" step="0.5" min="0" max="26" value="26" oninput="recalcFP()">
+                            <div class="field-hint">Standard: 26 days/month</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Pro-Rated Final Salary (₱)</label>
+                            <input type="number" id="calc_prorated_salary" class="form-control computed" readonly>
+                            <div class="field-hint">Auto-computed from worked days</div>
+                        </div>
+                        <div class="form-group">
+                            <label>13th Month Pay (₱)</label>
+                            <input type="number" id="calc_13th" class="form-control computed" readonly>
+                            <div class="field-hint">Pro-rated based on months worked this year</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Override 13th Month</label>
+                            <input type="number" id="calc_13th_override" class="form-control" step="0.01" min="0" placeholder="Leave blank to auto" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Severance Pay (₱)</label>
+                            <input type="number" id="calc_severance_val" class="form-control computed" readonly>
+                            <div id="calc_severance_note" class="field-hint">Select exit reason to compute</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Override Severance</label>
+                            <input type="number" id="calc_severance_override" class="form-control" step="0.01" min="0" placeholder="Leave blank to auto" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Other Allowances / Benefits (₱)</label>
+                            <input type="number" id="calc_other_benefits" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">🔻 Government &amp; Other Deductions</div>
+                    <div class="form-grid cols-3">
+                        <div class="form-group">
+                            <label>SSS / GSIS (₱)</label>
+                            <input type="number" id="calc_ded_sss" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>PhilHealth (₱)</label>
+                            <input type="number" id="calc_ded_ph" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Pag-IBIG (₱)</label>
+                            <input type="number" id="calc_ded_pi" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Withholding Tax (₱)</label>
+                            <input type="number" id="calc_ded_tax" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Loans / Advances (₱)</label>
+                            <input type="number" id="calc_ded_loans" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                        <div class="form-group">
+                            <label>Other Deductions (₱)</label>
+                            <input type="number" id="calc_ded_other" class="form-control" step="0.01" min="0" value="0" oninput="recalcFP()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="switchTab('tab-leave')">Next: Leave Monetization →</button>
+                </div>
+            </div>
+
+            <!-- TAB: Leave Monetization -->
+            <div id="tab-leave" class="tab-pane">
+                <div class="form-section">
+                    <div class="form-section-title">🌿 Leave Balance &amp; Monetization</div>
+                    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+                        Under Philippine labor law, employees are entitled to monetize their unused leave credits upon separation.
+                        SIL (Service Incentive Leave) and other contractual leave may be converted to cash.
+                    </p>
+                    <div class="form-grid cols-3">
+                        <div class="form-group">
+                            <label>Daily Rate (₱)</label>
+                            <input type="number" id="calc_daily_rate" class="form-control computed" readonly>
+                            <div class="field-hint">Auto: Monthly ÷ 26 days</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Reason for Leaving</label>
+                            <input type="text" id="calc_leave_reason_display" class="form-control" readonly placeholder="Set in Salary tab">
+                        </div>
+                        <div class="form-group">
+                            <label>SIL Monetizable?</label>
+                            <select id="calc_sil_eligible" class="form-control" onchange="recalcLeave()">
+                                <option value="1">Yes — All unused leave</option>
+                                <option value="0">No — Not eligible</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">📋 Leave Credits Input</div>
+                    <div class="form-grid cols-3">
+                        <div class="form-group">
+                            <label>Vacation Leave (VL) Days</label>
+                            <input type="number" id="calc_vl" class="form-control" step="0.5" min="0" value="0" oninput="recalcLeave()">
+                        </div>
+                        <div class="form-group">
+                            <label>Sick Leave (SL) Days</label>
+                            <input type="number" id="calc_sl" class="form-control" step="0.5" min="0" value="0" oninput="recalcLeave()">
+                        </div>
+                        <div class="form-group">
+                            <label>Other Leave Days</label>
+                            <input type="number" id="calc_other_leave" class="form-control" step="0.5" min="0" value="0" oninput="recalcLeave()">
+                        </div>
+                        <div class="form-group">
+                            <label>VL Monetization Rate</label>
+                            <select id="calc_vl_rate" class="form-control" onchange="recalcLeave()">
+                                <option value="1">100% (Full)</option>
+                                <option value="0.5">50% (Half)</option>
+                                <option value="0">0% (Not monetized)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>SL Monetization Rate</label>
+                            <select id="calc_sl_rate" class="form-control" onchange="recalcLeave()">
+                                <option value="1">100% (Full)</option>
+                                <option value="0.5">50% (Half)</option>
+                                <option value="0">0% (Not monetized)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Other Leave Rate</label>
+                            <select id="calc_other_leave_rate" class="form-control" onchange="recalcLeave()">
+                                <option value="1">100% (Full)</option>
+                                <option value="0.5">50% (Half)</option>
+                                <option value="0">0% (Not monetized)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Breakdown Table -->
+                <div class="leave-breakdown" id="leaveBreakdownTable">
+                    <div class="leave-breakdown-header">
+                        <span>Leave Type</span>
+                        <span>Days</span>
+                        <span>Rate</span>
+                        <span>Amount</span>
+                    </div>
+                    <div class="leave-breakdown-row" id="lb_vl">
+                        <div class="leave-type-badge"><span class="leave-dot" style="background:#E91E63;"></span> Vacation Leave (VL)</div>
+                        <span id="lb_vl_days">0</span>
+                        <span id="lb_vl_rate">100%</span>
+                        <span id="lb_vl_amt" style="font-family:'DM Mono',monospace; font-weight:600; color:#1B5E20;">₱0.00</span>
+                    </div>
+                    <div class="leave-breakdown-row" id="lb_sl">
+                        <div class="leave-type-badge"><span class="leave-dot" style="background:#0288D1;"></span> Sick Leave (SL)</div>
+                        <span id="lb_sl_days">0</span>
+                        <span id="lb_sl_rate">100%</span>
+                        <span id="lb_sl_amt" style="font-family:'DM Mono',monospace; font-weight:600; color:#1B5E20;">₱0.00</span>
+                    </div>
+                    <div class="leave-breakdown-row">
+                        <div class="leave-type-badge"><span class="leave-dot" style="background:#FF6F00;"></span> Other Leave</div>
+                        <span id="lb_oth_days">0</span>
+                        <span id="lb_oth_rate">100%</span>
+                        <span id="lb_oth_amt" style="font-family:'DM Mono',monospace; font-weight:600; color:#1B5E20;">₱0.00</span>
+                    </div>
+                    <div class="leave-payout-total">
+                        <strong>Total Leave Payout</strong>
+                        <strong id="lb_total" style="font-family:'DM Mono',monospace; font-size:18px;">₱0.00</strong>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn btn-outline" onclick="switchTab('tab-salary')">← Back</button>
+                    <button class="btn btn-primary" onclick="switchTab('tab-summary')">View Summary →</button>
+                </div>
+            </div>
+
+            <!-- TAB: Summary -->
+            <div id="tab-summary" class="tab-pane">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
+                    <div>
+                        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:8px;">Employee</div>
+                        <div id="sum_emp_name" style="font-size:16px; font-weight:700; color:var(--dark);">—</div>
+                        <div id="sum_exit_type" style="font-size:13px; color:var(--muted); margin-top:2px;">—</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:8px;">Net Final Pay</div>
+                        <div id="sum_net_total" style="font-size:28px; font-weight:700; font-family:'DM Mono',monospace; color:var(--primary-dark);">₱0.00</div>
+                    </div>
+                </div>
+
+                <div class="fin-breakdown-card">
+                    <div style="padding:12px 18px; background:#FAFAFA; border-bottom:1px solid var(--border); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted);">Earnings</div>
+                    <div class="fin-breakdown-row"><span>Pro-Rated Final Salary</span><span class="amount positive" id="sum_salary">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>13th Month Pay</span><span class="amount positive" id="sum_13th">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Severance Pay</span><span class="amount positive" id="sum_severance">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Leave Monetization</span><span class="amount positive" id="sum_leave">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Other Benefits</span><span class="amount positive" id="sum_benefits">₱0.00</span></div>
+                    <div class="fin-breakdown-row" style="background:#F0FDF4; font-weight:600;">
+                        <span>Gross Settlement</span><span class="amount positive" id="sum_gross">₱0.00</span>
+                    </div>
+
+                    <div style="padding:12px 18px; background:#FAFAFA; border-bottom:1px solid var(--border); border-top: 1px solid var(--border); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted);">Deductions</div>
+                    <div class="fin-breakdown-row"><span>SSS / GSIS</span><span class="amount negative" id="sum_sss">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>PhilHealth</span><span class="amount negative" id="sum_ph">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Pag-IBIG</span><span class="amount negative" id="sum_pi">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Withholding Tax</span><span class="amount negative" id="sum_tax">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Loans / Advances</span><span class="amount negative" id="sum_loans">₱0.00</span></div>
+                    <div class="fin-breakdown-row"><span>Other Deductions</span><span class="amount negative" id="sum_ded_other">₱0.00</span></div>
+                    <div class="fin-breakdown-row" style="background:#FFF5F5; font-weight:600; color:var(--danger);">
+                        <span>Total Deductions</span><span class="amount negative" id="sum_total_ded">₱0.00</span>
+                    </div>
+
+                    <div class="fin-breakdown-row total-row">
+                        <span>🏆 NET FINAL PAY</span>
+                        <span class="amount total" id="sum_net">₱0.00</span>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn btn-outline" onclick="switchTab('tab-leave')">← Back</button>
+                    <button class="btn btn-ghost" onclick="printFinalPay()">🖨️ Print</button>
+                    <button class="btn btn-success" onclick="closeModal('calcModal')">✅ Done</button>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Add Settlement Modal -->
-    <div id="addSettlementModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add New Settlement</h2>
-                <span class="close" onclick="closeAddModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="settlementForm" method="POST">
-                    <input type="hidden" name="action" value="add">
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="exit_id">Exit Record *</label>
-                                <select id="exit_id" name="exit_id" class="form-control" required onchange="loadExitDetails()">
-                                    <option value="">Select exit record...</option>
-                                    <?php foreach ($availableExits as $exit): ?>
-                                    <option value="<?= $exit['exit_id'] ?>" data-employee-id="<?= $exit['employee_id'] ?>" data-exit-date="<?= $exit['exit_date'] ?>">
-                                        <?= htmlspecialchars($exit['employee_name']) ?> - <?= htmlspecialchars($exit['exit_type']) ?> (<?= date('M d, Y', strtotime($exit['exit_date'])) ?>)
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <input type="hidden" id="employee_id" name="employee_id">
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="last_working_day">Last Working Day *</label>
-                                <input type="date" id="last_working_day" name="last_working_day" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="payment_date">Payment Date</label>
-                                <input type="date" id="payment_date" name="payment_date" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="final_salary">Final Salary (₱) *</label>
-                                <input type="number" id="final_salary" name="final_salary" class="form-control" step="0.01" required onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="severance_pay">Severance Pay (₱)</label>
-                                <input type="number" id="severance_pay" name="severance_pay" class="form-control" step="0.01" value="0" onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="unused_leave_payout">Unused Leave Payout (₱)</label>
-                                <input type="number" id="unused_leave_payout" name="unused_leave_payout" class="form-control" step="0.01" value="0" onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="deductions">Deductions (₱)</label>
-                                <input type="number" id="deductions" name="deductions" class="form-control" step="0.01" value="0" onchange="calculateTotal()" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="calculation-summary">
-                        <h4 style="color: var(--azure-blue-dark); margin-bottom: 15px;">Settlement Calculation</h4>
-                        <div class="calculation-row">
-                            <span>Final Salary:</span>
-                            <span id="display_final_salary">₱0.00</span>
-                        </div>
-                        <div class="calculation-row">
-                            <span>Severance Pay:</span>
-                            <span id="display_severance">₱0.00</span>
-                        </div>
-                        <div class="calculation-row">
-                            <span>Unused Leave Payout:</span>
-                            <span id="display_leave">₱0.00</span>
-                        </div>
-                        <div class="calculation-row">
-                            <span>Deductions:</span>
-                            <span id="display_deductions" style="color: #dc3545;">-₱0.00</span>
-                        </div>
-                        <div class="calculation-row">
-                            <span>FINAL SETTLEMENT AMOUNT:</span>
-                            <span id="display_total">₱0.00</span>
-                        </div>
-                    </div>
-
-                    <input type="hidden" id="final_settlement_amount" name="final_settlement_amount" value="0">
-
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="payment_method">Payment Method</label>
-                                <select id="payment_method" name="payment_method" class="form-control" disabled style="background-color: #f5f5f5; cursor: not-allowed;">
-                                    <option value="">Select method...</option>
-                                    <option value="Bank Transfer">Bank Transfer</option>
-                                    <option value="Check">Check</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <input type="hidden" name="payment_method" value="">
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="status">Status *</label>
-                                <select id="status" name="status" class="form-control" required disabled style="background-color: #f5f5f5; cursor: not-allowed;">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Processing">Processing</option>
-                                    <option value="Completed">Completed</option>
-                                </select>
-                                <input type="hidden" name="status" value="Pending">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Additional notes or comments..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
-                    </div>
-
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeAddModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success">💾 Save Settlement</button>
-                    </div>
-                </form>
-            </div>
+<!-- ══════════════════════════════════════════════
+     MODAL: UPDATE STATUS
+══════════════════════════════════════════════ -->
+<div id="statusModal" class="modal-overlay">
+    <div class="modal-box narrow">
+        <div class="modal-head">
+            <div><h3>🔄 Update Status</h3></div>
+            <button class="modal-close" onclick="closeModal('statusModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST">
+                <input type="hidden" name="action" value="update_status">
+                <input type="hidden" id="status_settlement_id" name="settlement_id">
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>New Status <span class="req">*</span></label>
+                    <select id="new_status" name="status" class="form-control" required>
+                        <option value="Pending">⏳ Pending</option>
+                        <option value="Processing">🔄 Processing</option>
+                        <option value="Completed">✅ Completed</option>
+                    </select>
+                </div>
+                <div class="action-bar">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('statusModal')">Cancel</button>
+                    <button type="submit" class="btn btn-success">Update Status</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Update Status Modal -->
-    <div id="statusModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>Update Settlement Status</h2>
-                <span class="close" onclick="closeStatusModal()">&times;</span>
+<!-- ══════════════════════════════════════════════
+     MODAL: VIEW DETAILS
+══════════════════════════════════════════════ -->
+<div id="detailsModal" class="modal-overlay">
+    <div class="modal-box wide">
+        <div class="modal-head">
+            <div>
+                <h3>🔒 Settlement Details</h3>
+                <p>Secure view — access is logged</p>
             </div>
-            <div class="modal-body">
-                <form method="POST">
-                    <input type="hidden" name="action" value="update_status">
-                    <input type="hidden" id="status_settlement_id" name="settlement_id">
+            <button class="modal-close" onclick="closeModal('detailsModal')">✕</button>
+        </div>
+        <div class="modal-body" id="detailsModalBody"></div>
+    </div>
+</div>
 
-                    <div class="form-group">
-                        <label for="new_status">Select New Status *</label>
-                        <select id="new_status" name="status" class="form-control" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Processing">Processing</option>
-                            <option value="Completed">Completed</option>
-                        </select>
-                    </div>
+<script>
+    const settlementsData = <?= json_encode($settlements) ?>;
+    const employeesData = <?= json_encode($employees) ?>;
 
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeStatusModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success">✅ Update Status</button>
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const fmt = (n) => '₱' + parseFloat(n || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    const gv = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+    const sv = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+
+    // ── Modal helpers ─────────────────────────────────────────────────────────
+    function openModal(id) { document.getElementById(id).classList.add('active'); document.body.style.overflow='hidden'; }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow='auto'; }
+    function openAddModal() { openModal('addModal'); }
+    function openFinalPayCalculator() { openModal('calcModal'); }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.addEventListener('click', e => { if(e.target === m) closeModal(m.id); });
+    });
+
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById('btn-' + tabId).classList.add('active');
+        if (tabId === 'tab-summary') buildSummary();
+        if (tabId === 'tab-leave') {
+            document.getElementById('calc_leave_reason_display').value = document.getElementById('calc_exit_reason').value;
+        }
+    }
+
+    // ── Search + Filter ───────────────────────────────────────────────────────
+    function filterTable() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        const sf = document.getElementById('statusFilter').value;
+        document.querySelectorAll('#settlementTableBody tr').forEach(row => {
+            const txt = row.textContent.toLowerCase();
+            const status = row.getAttribute('data-status');
+            const matchText = !q || txt.includes(q);
+            const matchStatus = !sf || status === sf;
+            row.style.display = (matchText && matchStatus) ? '' : 'none';
+        });
+    }
+    document.getElementById('searchInput').addEventListener('input', filterTable);
+    document.getElementById('statusFilter').addEventListener('change', filterTable);
+
+    // ── ADD MODAL ─────────────────────────────────────────────────────────────
+    function onExitSelect() {
+        const sel = document.getElementById('add_exit_id');
+        const opt = sel.options[sel.selectedIndex];
+        if (!opt.value) { document.getElementById('addEmpCard').style.display='none'; return; }
+        const eid = opt.getAttribute('data-eid');
+        const salary = parseFloat(opt.getAttribute('data-salary')) || 0;
+        const hire = opt.getAttribute('data-hire');
+        document.getElementById('add_employee_id').value = eid;
+        document.getElementById('add_last_working_day').value = opt.getAttribute('data-edate');
+        sv('add_final_salary', salary.toFixed(2));
+        sv('add_daily_rate', (salary / 26).toFixed(2));
+        // emp card
+        const card = document.getElementById('addEmpCard');
+        card.innerHTML = `
+            <div class="emp-card-avatar">${opt.text.charAt(0)}</div>
+            <div class="emp-card-info">
+                <strong>${opt.text.split(' — ')[0]}</strong>
+                <span>Hired: ${hire ? new Date(hire).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '—'}</span>
+            </div>
+            <div class="emp-card-salary">
+                <strong>${fmt(salary)}</strong>
+                <span>Monthly Salary</span>
+            </div>`;
+        card.style.display = 'flex';
+        recalcAdd();
+        calcLeave();
+    }
+
+    function calcLeave() {
+        const daily = gv('add_daily_rate');
+        const vl = gv('add_vl_days');
+        const sl = gv('add_sl_days');
+        const oth = gv('add_other_leave');
+        const total = (vl + sl + oth) * daily;
+        sv('add_leave_total', total.toFixed(2));
+    }
+
+    function applyLeave() {
+        const val = gv('add_leave_total');
+        sv('add_unused_leave_payout', val.toFixed(2));
+        recalcAdd();
+    }
+
+    function recalcAdd() {
+        const salary = gv('add_final_salary');
+        const thirteenth = gv('add_13th_month');
+        const severance = gv('add_severance');
+        const leave = gv('add_unused_leave_payout');
+        const benefits = gv('add_other_benefits');
+        const gross = salary + thirteenth + severance + leave + benefits;
+
+        const ded = gv('add_ded_sss') + gv('add_ded_ph') + gv('add_ded_pi') + gv('add_ded_tax') + gv('add_ded_loans') + gv('add_ded_other');
+        sv('add_deductions', ded.toFixed(2));
+
+        const net = gross - ded;
+        sv('add_final_settlement_amount', net.toFixed(2));
+
+        document.getElementById('cs_salary').textContent = fmt(salary);
+        document.getElementById('cs_13th').textContent = fmt(thirteenth);
+        document.getElementById('cs_severance').textContent = fmt(severance);
+        document.getElementById('cs_leave').textContent = fmt(leave);
+        document.getElementById('cs_benefits').textContent = fmt(benefits);
+        document.getElementById('cs_gross').textContent = fmt(gross);
+        document.getElementById('cs_deductions').textContent = '-' + fmt(ded);
+        document.getElementById('cs_total').textContent = fmt(net);
+    }
+
+    // ── FINAL PAY CALCULATOR ─────────────────────────────────────────────────
+    function onCalcEmpSelect() {
+        const sel = document.getElementById('calc_emp');
+        const opt = sel.options[sel.selectedIndex];
+        if (!opt.value) return;
+        const salary = parseFloat(opt.getAttribute('data-salary')) || 0;
+        sv('calc_monthly_salary', salary.toFixed(2));
+        document.getElementById('calc_last_day').value = document.getElementById('calc_last_day').value || new Date().toISOString().split('T')[0];
+        onSalaryInput();
+        calcSeverance();
+        recalcFP();
+    }
+
+    function onSalaryInput() {
+        const monthly = gv('calc_monthly_salary');
+        const daily = monthly / 26;
+        sv('calc_daily_rate', daily.toFixed(2));
+        recalcLeave();
+        recalcFP();
+    }
+
+    function calcSeverance() {
+        const monthly = gv('calc_monthly_salary');
+        const exitReason = document.getElementById('calc_exit_reason').value;
+        const lastDay = document.getElementById('calc_last_day').value;
+        const sel = document.getElementById('calc_emp');
+        const opt = sel.options[sel.selectedIndex];
+        const hire = opt?.getAttribute('data-hire');
+
+        let years = 0;
+        if (hire && lastDay) {
+            const ms = new Date(lastDay) - new Date(hire);
+            years = ms / (1000 * 60 * 60 * 24 * 365.25);
+        }
+
+        let severance = 0;
+        let note = '';
+        const halfMonth = monthly * 0.5;
+        const oneMonth = monthly;
+
+        if (['Retrenchment','Redundancy'].includes(exitReason)) {
+            severance = Math.max(halfMonth * Math.ceil(years), halfMonth);
+            note = `½ month × ${Math.ceil(years)} year(s) (Retrenchment/Redundancy)`;
+        } else if (exitReason === 'Disease') {
+            severance = Math.max(oneMonth * Math.ceil(years), oneMonth);
+            note = `1 month × ${Math.ceil(years)} year(s) (Disease)`;
+        } else if (exitReason === 'Retirement') {
+            severance = Math.max(halfMonth * Math.ceil(years), halfMonth);
+            note = `½ month × ${Math.ceil(years)} year(s) (Retirement)`;
+        } else if (exitReason === 'Resignation' || exitReason === 'End of Contract') {
+            severance = 0;
+            note = 'No statutory severance for resignation / end of contract';
+        } else if (exitReason === 'Termination for Cause') {
+            severance = 0;
+            note = 'No separation pay for termination for cause';
+        }
+
+        sv('calc_severance_val', severance.toFixed(2));
+        const noteEl = document.getElementById('calc_severance_note');
+        if (noteEl) noteEl.textContent = note;
+
+        // Pro-rated 13th month
+        const workedMonths = lastDay ? Math.min(12, (new Date(lastDay).getMonth() + 1)) : 0;
+        const auto13th = (monthly / 12) * workedMonths;
+        sv('calc_13th', auto13th.toFixed(2));
+        recalcFP();
+    }
+
+    function recalcFP() {
+        const monthly = gv('calc_monthly_salary');
+        const workedDays = gv('calc_worked_days');
+        const daily = monthly / 26;
+        const prorated = daily * workedDays;
+        sv('calc_prorated_salary', prorated.toFixed(2));
+
+        const salary13 = gv('calc_13th_override') || gv('calc_13th');
+        const severance = gv('calc_severance_override') || gv('calc_severance_val');
+        const leave = gv('calc_leave_payout_total') || 0;
+        const benefits = gv('calc_other_benefits');
+        const gross = prorated + salary13 + severance + leave + benefits;
+
+        const ded = gv('calc_ded_sss') + gv('calc_ded_ph') + gv('calc_ded_pi') + gv('calc_ded_tax') + gv('calc_ded_loans') + gv('calc_ded_other');
+        const net = gross - ded;
+        sv('calc_net_total', net.toFixed(2));
+    }
+
+    function recalcLeave() {
+        const daily = gv('calc_daily_rate');
+        const vl = gv('calc_vl');
+        const sl = gv('calc_sl');
+        const oth = gv('calc_other_leave');
+        const vlRate = gv('calc_vl_rate');
+        const slRate = gv('calc_sl_rate');
+        const othRate = gv('calc_other_leave_rate');
+        const eligible = document.getElementById('calc_sil_eligible').value === '1';
+
+        const vlAmt = eligible ? vl * daily * vlRate : 0;
+        const slAmt = eligible ? sl * daily * slRate : 0;
+        const othAmt = eligible ? oth * daily * othRate : 0;
+        const total = vlAmt + slAmt + othAmt;
+
+        const rateLabel = (r) => r == 1 ? '100%' : r == 0.5 ? '50%' : '0%';
+
+        document.getElementById('lb_vl_days').textContent = vl;
+        document.getElementById('lb_sl_days').textContent = sl;
+        document.getElementById('lb_oth_days').textContent = oth;
+        document.getElementById('lb_vl_rate').textContent = eligible ? rateLabel(vlRate) : 'N/A';
+        document.getElementById('lb_sl_rate').textContent = eligible ? rateLabel(slRate) : 'N/A';
+        document.getElementById('lb_oth_rate').textContent = eligible ? rateLabel(othRate) : 'N/A';
+        document.getElementById('lb_vl_amt').textContent = fmt(vlAmt);
+        document.getElementById('lb_sl_amt').textContent = fmt(slAmt);
+        document.getElementById('lb_oth_amt').textContent = fmt(othAmt);
+        document.getElementById('lb_total').textContent = fmt(total);
+
+        sv('calc_leave_payout_total', total.toFixed(2));
+        recalcFP();
+    }
+
+    function buildSummary() {
+        const sel = document.getElementById('calc_emp');
+        const opt = sel.options[sel.selectedIndex];
+        const empName = opt.value ? opt.text.split(' (')[0] : '—';
+        const exitReason = document.getElementById('calc_exit_reason').value;
+
+        const prorated = gv('calc_prorated_salary');
+        const salary13 = gv('calc_13th_override') || gv('calc_13th');
+        const severance = gv('calc_severance_override') || gv('calc_severance_val');
+        const leave = gv('calc_leave_payout_total') || 0;
+        const benefits = gv('calc_other_benefits');
+        const gross = prorated + salary13 + severance + leave + benefits;
+
+        const sss = gv('calc_ded_sss');
+        const ph = gv('calc_ded_ph');
+        const pi = gv('calc_ded_pi');
+        const tax = gv('calc_ded_tax');
+        const loans = gv('calc_ded_loans');
+        const dedOther = gv('calc_ded_other');
+        const totalDed = sss + ph + pi + tax + loans + dedOther;
+        const net = gross - totalDed;
+
+        document.getElementById('sum_emp_name').textContent = empName;
+        document.getElementById('sum_exit_type').textContent = exitReason;
+        document.getElementById('sum_salary').textContent = fmt(prorated);
+        document.getElementById('sum_13th').textContent = fmt(salary13);
+        document.getElementById('sum_severance').textContent = fmt(severance);
+        document.getElementById('sum_leave').textContent = fmt(leave);
+        document.getElementById('sum_benefits').textContent = fmt(benefits);
+        document.getElementById('sum_gross').textContent = fmt(gross);
+        document.getElementById('sum_sss').textContent = fmt(sss);
+        document.getElementById('sum_ph').textContent = fmt(ph);
+        document.getElementById('sum_pi').textContent = fmt(pi);
+        document.getElementById('sum_tax').textContent = fmt(tax);
+        document.getElementById('sum_loans').textContent = fmt(loans);
+        document.getElementById('sum_ded_other').textContent = fmt(dedOther);
+        document.getElementById('sum_total_ded').textContent = fmt(totalDed);
+        document.getElementById('sum_net').textContent = fmt(net);
+        document.getElementById('sum_net_total').textContent = fmt(net);
+    }
+
+    // ── STATUS MODAL ──────────────────────────────────────────────────────────
+    function updateStatus(id, cur) {
+        document.getElementById('status_settlement_id').value = id;
+        document.getElementById('new_status').value = cur;
+        openModal('statusModal');
+    }
+
+    // ── VIEW DETAILS ─────────────────────────────────────────────────────────
+    function viewSettlementDetails(id) {
+        const s = settlementsData.find(x => x.settlement_id == id);
+        if (!s) return;
+
+        const statusClass = { Pending: 'badge-pending', Processing: 'badge-processing', Completed: 'badge-completed' };
+
+        document.getElementById('detailsModalBody').innerHTML = `
+            <div class="emp-card" style="margin-bottom:20px;">
+                <div class="emp-card-avatar">${s.employee_name.charAt(0)}</div>
+                <div class="emp-card-info">
+                    <strong>${s.employee_name}</strong>
+                    <span>${s.employee_number} · ${s.job_title || '—'} · ${s.department || '—'}</span>
+                </div>
+                <div style="margin-left:auto;">
+                    <span class="badge ${statusClass[s.status] || 'badge-pending'}">${s.status}</span>
+                </div>
+            </div>
+
+            <div class="sensitive-section">
+                <div class="sensitive-section-icon">⚠️</div>
+                <div class="sensitive-section-text">
+                    <strong>CONFIDENTIAL — SETTLEMENT FINANCIAL DATA</strong>
+                    <span>Access to this information is logged. Accessed: ${new Date().toLocaleString()}</span>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:12px;">Employee & Exit Details</div>
+                    <div class="fin-breakdown-card">
+                        <div class="fin-breakdown-row"><span>Employee #</span><span>${s.employee_number}</span></div>
+                        <div class="fin-breakdown-row"><span>Email</span><span style="font-size:13px;">${s.work_email || '—'}</span></div>
+                        <div class="fin-breakdown-row"><span>Exit Type</span><span><strong>${s.exit_type}</strong></span></div>
+                        <div class="fin-breakdown-row"><span>Exit Date</span><span>${s.exit_date ? new Date(s.exit_date).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '—'}</span></div>
+                        <div class="fin-breakdown-row"><span>Last Working Day</span><span>${new Date(s.last_working_day).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'})}</span></div>
+                        <div class="fin-breakdown-row"><span>Payment Date</span><span>${s.payment_date ? new Date(s.payment_date).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '<em>Not scheduled</em>'}</span></div>
+                        <div class="fin-breakdown-row"><span>Payment Method</span><span>${s.payment_method || 'Not specified'}</span></div>
                     </div>
-                </form>
+                </div>
+                <div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:12px;">Settlement Breakdown</div>
+                    <div class="fin-breakdown-card">
+                        <div class="fin-breakdown-row"><span>Final Salary</span><span class="amount positive">${fmt(s.final_salary)}</span></div>
+                        <div class="fin-breakdown-row"><span>Severance Pay</span><span class="amount positive">${fmt(s.severance_pay)}</span></div>
+                        <div class="fin-breakdown-row"><span>Leave Payout</span><span class="amount positive">${fmt(s.unused_leave_payout)}</span></div>
+                        <div class="fin-breakdown-row"><span>Deductions</span><span class="amount negative">-${fmt(s.deductions)}</span></div>
+                        <div class="fin-breakdown-row total-row">
+                            <span>NET FINAL PAY</span>
+                            <span class="amount total">${fmt(s.final_settlement_amount)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${s.notes ? `<div style="margin-top:20px;"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px;">Notes</div><div style="background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:14px;white-space:pre-wrap;">${s.notes}</div></div>` : ''}
+
+            <div class="action-bar">
+                <button class="btn btn-outline" onclick="closeModal('detailsModal')">Close</button>
+                <button class="btn btn-ghost" onclick="printDetails(${id})">🖨️ Print</button>
+            </div>
+        `;
+
+        // Log access
+        const fd = new FormData();
+        fd.append('action', 'view_details');
+        fd.append('settlement_id', id);
+        fetch(window.location.href, { method: 'POST', body: fd }).catch(()=>{});
+
+        openModal('detailsModal');
+    }
+
+    // ── Print Final Pay ───────────────────────────────────────────────────────
+    function printFinalPay() {
+        const sel = document.getElementById('calc_emp');
+        const opt = sel.options[sel.selectedIndex];
+        const empName = opt.value ? opt.text.split(' (')[0] : '—';
+        const exitReason = document.getElementById('calc_exit_reason').value;
+        const lastDay = document.getElementById('calc_last_day').value;
+
+        const prorated = gv('calc_prorated_salary');
+        const salary13 = gv('calc_13th_override') || gv('calc_13th');
+        const severance = gv('calc_severance_override') || gv('calc_severance_val');
+        const leave = gv('calc_leave_payout_total') || 0;
+        const benefits = gv('calc_other_benefits');
+        const gross = prorated + salary13 + severance + leave + benefits;
+        const sss = gv('calc_ded_sss'); const ph = gv('calc_ded_ph'); const pi = gv('calc_ded_pi');
+        const tax = gv('calc_ded_tax'); const loans = gv('calc_ded_loans'); const dedOther = gv('calc_ded_other');
+        const totalDed = sss + ph + pi + tax + loans + dedOther;
+        const net = gross - totalDed;
+
+        const win = window.open('', '', 'width=800,height=900');
+        win.document.write(`<!DOCTYPE html><html><head><title>Final Pay — ${empName}</title>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 32px; color: #1A1A2E; }
+            .header { border-bottom: 3px solid #E91E63; padding-bottom: 16px; margin-bottom: 24px; display:flex; justify-content:space-between; }
+            .header h2 { margin:0; color:#E91E63; font-size:22px; }
+            .header p { margin:4px 0 0; font-size:13px; color:#6B7280; }
+            table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+            th { background:#F9FAFB; padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#6B7280; border-bottom:1px solid #E5E7EB; }
+            td { padding:10px 14px; border-bottom:1px solid #F3F4F6; font-size:14px; }
+            .amt { font-family:'Courier New',monospace; font-weight:600; text-align:right; }
+            .positive { color:#1B5E20; }
+            .negative { color:#D32F2F; }
+            .total-row td { background:#FCE4EC; font-weight:700; font-size:16px; color:#C2185B; }
+            .section-head td { background:#F9FAFB; font-weight:700; color:#6B7280; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+            .footer { font-size:11px; color:#9CA3AF; margin-top:32px; border-top:1px solid #E5E7EB; padding-top:12px; display:flex; justify-content:space-between; }
+        </style></head><body>
+        <div class="header">
+            <div><h2>FINAL PAY COMPUTATION</h2><p>Settlement Report · Confidential</p></div>
+            <div style="text-align:right;font-size:13px;color:#6B7280;">
+                <strong>${empName}</strong><br>
+                Exit: ${exitReason}<br>
+                Last Day: ${lastDay ? new Date(lastDay).toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}) : '—'}
             </div>
         </div>
-    </div>
-
-    <!-- View Settlement Details Modal -->
-    <div id="detailsModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2>🔒 Settlement Details (Secure View)</h2>
-                <span class="close" onclick="closeDetailsModal()">&times;</span>
-            </div>
-            <div class="modal-body details-modal-content" id="detailsModalBody">
-                <!-- Content will be populated dynamically -->
-            </div>
+        <table>
+            <tr class="section-head"><td colspan="2">Earnings</td></tr>
+            <tr><td>Pro-Rated Final Salary</td><td class="amt positive">${fmt(prorated)}</td></tr>
+            <tr><td>13th Month Pay</td><td class="amt positive">${fmt(salary13)}</td></tr>
+            <tr><td>Severance Pay</td><td class="amt positive">${fmt(severance)}</td></tr>
+            <tr><td>Leave Monetization</td><td class="amt positive">${fmt(leave)}</td></tr>
+            <tr><td>Other Benefits</td><td class="amt positive">${fmt(benefits)}</td></tr>
+            <tr style="background:#F0FDF4;font-weight:600;"><td>Gross Settlement</td><td class="amt positive">${fmt(gross)}</td></tr>
+            <tr class="section-head"><td colspan="2">Deductions</td></tr>
+            <tr><td>SSS / GSIS</td><td class="amt negative">( ${fmt(sss)} )</td></tr>
+            <tr><td>PhilHealth</td><td class="amt negative">( ${fmt(ph)} )</td></tr>
+            <tr><td>Pag-IBIG</td><td class="amt negative">( ${fmt(pi)} )</td></tr>
+            <tr><td>Withholding Tax</td><td class="amt negative">( ${fmt(tax)} )</td></tr>
+            <tr><td>Loans / Advances</td><td class="amt negative">( ${fmt(loans)} )</td></tr>
+            <tr><td>Other Deductions</td><td class="amt negative">( ${fmt(dedOther)} )</td></tr>
+            <tr style="background:#FFF5F5;font-weight:600;color:#D32F2F;"><td>Total Deductions</td><td class="amt negative">( ${fmt(totalDed)} )</td></tr>
+            <tr class="total-row"><td>🏆 NET FINAL PAY</td><td class="amt">${fmt(net)}</td></tr>
+        </table>
+        <div class="footer">
+            <span>This is a CONFIDENTIAL document. For HR use only.</span>
+            <span>Printed: ${new Date().toLocaleString()}</span>
         </div>
-    </div>
+        </body></html>`);
+        win.document.close();
+        setTimeout(() => win.print(), 300);
+    }
 
-    <script>
-        // Global settlements data
-        let settlementsData = <?= json_encode($settlements) ?>;
+    function printDetails(id) {
+        const s = settlementsData.find(x => x.settlement_id == id);
+        if (!s) return;
+        const win = window.open('', '', 'width=800,height=900');
+        win.document.write(`<!DOCTYPE html><html><head><title>Settlement #${s.settlement_id}</title>
+        <style>body{font-family:'Segoe UI',sans-serif;margin:32px;color:#1A1A2E;}
+        h2{color:#E91E63;margin:0 0 4px;}.sub{color:#6B7280;font-size:13px;}
+        .divider{border:none;border-top:2px solid #E91E63;margin:20px 0;}
+        .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:14px;}
+        .row strong{color:#C2185B;font-family:'Courier New',monospace;}
+        .total{background:#FCE4EC;padding:12px;border-radius:8px;display:flex;justify-content:space-between;font-weight:700;font-size:16px;color:#C2185B;margin-top:12px;}
+        .footer{font-size:11px;color:#9CA3AF;margin-top:32px;}</style></head>
+        <body>
+        <h2>SETTLEMENT REPORT #${s.settlement_id}</h2>
+        <p class="sub">${s.employee_name} · ${s.employee_number} · Printed ${new Date().toLocaleString()}</p>
+        <hr class="divider">
+        <div class="row"><span>Exit Type</span><span>${s.exit_type}</span></div>
+        <div class="row"><span>Last Working Day</span><span>${new Date(s.last_working_day).toLocaleDateString()}</span></div>
+        <div class="row"><span>Final Salary</span><strong>${fmt(s.final_salary)}</strong></div>
+        <div class="row"><span>Severance Pay</span><strong>${fmt(s.severance_pay)}</strong></div>
+        <div class="row"><span>Leave Payout</span><strong>${fmt(s.unused_leave_payout)}</strong></div>
+        <div class="row"><span>Deductions</span><strong style="color:#D32F2F;">-${fmt(s.deductions)}</strong></div>
+        <div class="total"><span>NET FINAL PAY</span><span>${fmt(s.final_settlement_amount)}</span></div>
+        <p class="footer">CONFIDENTIAL — For HR use only. Status: ${s.status}</p>
+        </body></html>`);
+        win.document.close();
+        setTimeout(() => win.print(), 300);
+    }
 
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const tableBody = document.getElementById('settlementTableBody');
-            const rows = tableBody.getElementsByTagName('tr');
-
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const text = row.textContent.toLowerCase();
-                
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            }
+    // Auto-dismiss alerts
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => {
+            a.style.transition = 'opacity 0.5s';
+            a.style.opacity = '0';
+            setTimeout(() => a.remove(), 500);
         });
-
-        // Load exit details when selected
-        function loadExitDetails() {
-            const exitSelect = document.getElementById('exit_id');
-            const selectedOption = exitSelect.options[exitSelect.selectedIndex];
-            
-            if (selectedOption.value) {
-                const employeeId = selectedOption.getAttribute('data-employee-id');
-                const exitDate = selectedOption.getAttribute('data-exit-date');
-                
-                document.getElementById('employee_id').value = employeeId;
-                document.getElementById('last_working_day').value = exitDate;
-            }
-        }
-
-        // Calculate total settlement amount
-        function calculateTotal() {
-            const finalSalary = parseFloat(document.getElementById('final_salary').value) || 0;
-            const severancePay = parseFloat(document.getElementById('severance_pay').value) || 0;
-            const leavePayout = parseFloat(document.getElementById('unused_leave_payout').value) || 0;
-            const deductions = parseFloat(document.getElementById('deductions').value) || 0;
-
-            const total = finalSalary + severancePay + leavePayout - deductions;
-
-            document.getElementById('display_final_salary').textContent = '₱' + finalSalary.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            document.getElementById('display_severance').textContent = '₱' + severancePay.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            document.getElementById('display_leave').textContent = '₱' + leavePayout.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            document.getElementById('display_deductions').textContent = '-₱' + deductions.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            document.getElementById('display_total').textContent = '₱' + total.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            
-            document.getElementById('final_settlement_amount').value = total.toFixed(2);
-        }
-
-        // Modal functions for Add Settlement
-        function openAddModal() {
-            document.getElementById('addSettlementModal').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAddModal() {
-            document.getElementById('addSettlementModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        // Modal functions for Update Status
-        function updateStatus(settlementId, currentStatus) {
-            document.getElementById('status_settlement_id').value = settlementId;
-            document.getElementById('new_status').value = currentStatus;
-            document.getElementById('statusModal').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeStatusModal() {
-            document.getElementById('statusModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        // View Settlement Details with sensitive data
-        function viewSettlementDetails(settlementId) {
-            const settlement = settlementsData.find(s => s.settlement_id == settlementId);
-            if (settlement) {
-                const modalBody = document.getElementById('detailsModalBody');
-                
-                const detailsHTML = `
-                    <div style="padding: 0;">
-                        <div style="background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #f0f0f0 100%); padding: 20px; margin: -30px -30px 20px -30px;">
-                            <h3 style="color: var(--azure-blue-dark); margin: 0;">Settlement #${settlement.settlement_id}</h3>
-                            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
-                                <span class="access-log-badge">🔐 Accessed: ${new Date().toLocaleString()}</span>
-                            </p>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Employee Name:</div>
-                            <div class="detail-value"><strong>${settlement.employee_name}</strong></div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Employee Number:</div>
-                            <div class="detail-value">${settlement.employee_number}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Email:</div>
-                            <div class="detail-value">${settlement.work_email}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Job Title:</div>
-                            <div class="detail-value">${settlement.job_title} - ${settlement.department}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Exit Type:</div>
-                            <div class="detail-value"><strong>${settlement.exit_type}</strong></div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Exit Date:</div>
-                            <div class="detail-value">${new Date(settlement.exit_date).toLocaleDateString()}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Last Working Day:</div>
-                            <div class="detail-value">${new Date(settlement.last_working_day).toLocaleDateString()}</div>
-                        </div>
-
-                        <div class="sensitive-info-section">
-                            <strong>💰 SETTLEMENT BREAKDOWN (SENSITIVE DATA)</strong>
-                            <p style="margin: 0; font-size: 13px; color: #856404;">This information is confidential and access is logged.</p>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Final Salary:</div>
-                            <div class="detail-value"><strong style="color: var(--azure-blue); font-size: 16px;">₱${parseFloat(settlement.final_salary).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Severance Pay:</div>
-                            <div class="detail-value"><strong style="color: #28a745; font-size: 16px;">₱${parseFloat(settlement.severance_pay).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Unused Leave Payout:</div>
-                            <div class="detail-value"><strong style="color: #17a2b8; font-size: 16px;">₱${parseFloat(settlement.unused_leave_payout).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Deductions:</div>
-                            <div class="detail-value"><strong style="color: #dc3545; font-size: 16px;">-₱${parseFloat(settlement.deductions).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</strong></div>
-                        </div>
-
-                        <div class="detail-row" style="background: linear-gradient(135deg, var(--azure-blue-pale) 0%, #fff 100%); font-weight: bold;">
-                            <div class="detail-label" style="color: var(--azure-blue-dark);">FINAL SETTLEMENT AMOUNT:</div>
-                            <div class="detail-value" style="color: var(--azure-blue); font-size: 18px;">₱${parseFloat(settlement.final_settlement_amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Payment Date:</div>
-                            <div class="detail-value">${settlement.payment_date ? new Date(settlement.payment_date).toLocaleDateString() : '<em>Not scheduled</em>'}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Payment Method:</div>
-                            <div class="detail-value">${settlement.payment_method || 'Not specified'}</div>
-                        </div>
-
-                        <div class="detail-row">
-                            <div class="detail-label">Status:</div>
-                            <div class="detail-value">
-                                <span class="status-badge status-${settlement.status.toLowerCase()}">
-                                    ${settlement.status}
-                                </span>
-                            </div>
-                        </div>
-
-                        ${settlement.notes ? `
-                        <div class="detail-row">
-                            <div class="detail-label">Notes:</div>
-                            <div class="detail-value" style="white-space: pre-wrap;">${settlement.notes}</div>
-                        </div>
-                        ` : ''}
-
-                        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
-                            <button class="btn btn-primary" onclick="closeDetailsModal()">Close</button>
-                            <button class="btn" style="background: #6c757d; color: white;" onclick="printDetails(${settlementId})">🖨️ Print</button>
-                        </div>
-                    </div>
-                `;
-                
-                modalBody.innerHTML = detailsHTML;
-                
-                // Log access
-                const formData = new FormData();
-                formData.append('action', 'view_details');
-                formData.append('settlement_id', settlementId);
-                fetch('<?php echo $_SERVER['PHP_SELF']; ?>', {
-                    method: 'POST',
-                    body: formData
-                }).catch(err => console.log('Access logged'));
-                
-                document.getElementById('detailsModal').style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        function closeDetailsModal() {
-            document.getElementById('detailsModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        function printDetails(settlementId) {
-            const settlement = settlementsData.find(s => s.settlement_id == settlementId);
-            if (settlement) {
-                const printWindow = window.open('', '', 'width=800,height=600');
-                const printContent = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Settlement Report #${settlement.settlement_id}</title>
-                        <style>
-                            body { font-family: Arial; margin: 20px; }
-                            .header { border-bottom: 3px solid #E91E63; padding-bottom: 10px; margin-bottom: 20px; }
-                            .section { margin: 20px 0; }
-                            .label { font-weight: bold; width: 200px; display: inline-block; }
-                            .amount { color: #E91E63; font-weight: bold; }
-                            .total-row { 
-                                border-top: 2px solid #E91E63; 
-                                margin-top: 20px;
-                                padding-top: 10px;
-                                font-size: 18px;
-                                font-weight: bold;
-                            }
-                            .sensitive { background: #fff3cd; padding: 10px; margin: 10px 0; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h2>SETTLEMENT REPORT</h2>
-                            <p>Settlement ID: #${settlement.settlement_id} | Date: ${new Date().toLocaleDateString()}</p>
-                        </div>
-
-                        <div class="section">
-                            <p><span class="label">Employee:</span> ${settlement.employee_name}</p>
-                            <p><span class="label">Employee #:</span> ${settlement.employee_number}</p>
-                            <p><span class="label">Position:</span> ${settlement.job_title}</p>
-                            <p><span class="label">Exit Type:</span> ${settlement.exit_type}</p>
-                        </div>
-
-                        <div class="section sensitive">
-                            <strong>CONFIDENTIAL - Settlement Breakdown</strong>
-                            <p><span class="label">Final Salary:</span> <span class="amount">₱${parseFloat(settlement.final_salary).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</span></p>
-                            <p><span class="label">Severance Pay:</span> <span class="amount">₱${parseFloat(settlement.severance_pay).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</span></p>
-                            <p><span class="label">Leave Payout:</span> <span class="amount">₱${parseFloat(settlement.unused_leave_payout).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</span></p>
-                            <p><span class="label">Deductions:</span> <span class="amount">-₱${parseFloat(settlement.deductions).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</span></p>
-                            <p class="total-row"><span class="label">TOTAL:</span> <span class="amount">₱${parseFloat(settlement.final_settlement_amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}</span></p>
-                        </div>
-
-                        <div class="section">
-                            <p><span class="label">Payment Method:</span> ${settlement.payment_method}</p>
-                            <p><span class="label">Status:</span> ${settlement.status}</p>
-                        </div>
-
-                        <p style="font-size: 12px; color: #666; margin-top: 40px;">
-                            This is a confidential document. Printed: ${new Date().toLocaleString()}
-                        </p>
-                    </body>
-                    </html>
-                `;
-                printWindow.document.write(printContent);
-                printWindow.document.close();
-                setTimeout(() => printWindow.print(), 250);
-            }
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const addModal = document.getElementById('addSettlementModal');
-            const statusModal = document.getElementById('statusModal');
-            const detailsModal = document.getElementById('detailsModal');
-            
-            if (event.target === addModal) closeAddModal();
-            if (event.target === statusModal) closeStatusModal();
-            if (event.target === detailsModal) closeDetailsModal();
-        }
-
-        // Form validation
-        document.getElementById('settlementForm').addEventListener('submit', function(e) {
-            const finalSalary = parseFloat(document.getElementById('final_salary').value);
-            if (finalSalary < 0) {
-                e.preventDefault();
-                alert('Final salary cannot be negative');
-                return;
-            }
-
-            const total = parseFloat(document.getElementById('final_settlement_amount').value);
-            if (total < 0) {
-                e.preventDefault();
-                alert('Final settlement amount cannot be negative. Please adjust your deductions.');
-                return;
-            }
-
-            const exitId = document.getElementById('exit_id').value;
-            if (!exitId) {
-                e.preventDefault();
-                alert('Please select an exit record');
-                return;
-            }
-        });
-
-        // Auto-hide alerts
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.remove();
-                }, 500);
-            });
-        }, 5000);
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to table rows
-            const tableRows = document.querySelectorAll('#settlementTable tbody tr');
-            tableRows.forEach(row => {
-                row.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.02)';
-                });
-                
-                row.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-        });
-                
-    </script>
+    }, 5000);
+</script>
 </body>
 </html>

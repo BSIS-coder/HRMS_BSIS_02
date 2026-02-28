@@ -6,9 +6,6 @@ require_once 'config.php'; // uses $conn (PDO)
 try {
     $employee_id = filter_input(INPUT_POST, 'employee_id', FILTER_VALIDATE_INT);
     $cycle_id = filter_input(INPUT_POST, 'cycle_id', FILTER_VALIDATE_INT);
-    $competency_ids = $_POST['competency_ids'] ?? [];
-    $ratings = $_POST['ratings'] ?? [];
-    $notes = $_POST['notes'] ?? [];
     $assessment_date = $_POST['assessment_date'] ?? date('Y-m-d');
 
     // ✅ Basic validation
@@ -17,13 +14,42 @@ try {
         exit;
     }
 
-    if (!is_array($competency_ids) || !is_array($ratings) || !is_array($notes)) {
-        echo json_encode(['success' => false, 'message' => 'Invalid data format.']);
-        exit;
+    // Parse competencies from JSON string (sent by frontend) or from individual arrays (legacy support)
+    $competencies = [];
+    if (isset($_POST['competencies'])) {
+        $competencies = json_decode($_POST['competencies'], true);
+        if (!is_array($competencies)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid competencies data format.']);
+            exit;
+        }
+    } else {
+        // Legacy support: also accept separate arrays
+        $competency_ids = $_POST['competency_ids'] ?? [];
+        $ratings = $_POST['ratings'] ?? [];
+        $notes = $_POST['notes'] ?? [];
+
+        if (!is_array($competency_ids) || !is_array($ratings) || !is_array($notes)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid data format.']);
+            exit;
+        }
+
+        if (count($competency_ids) !== count($ratings) || count($ratings) !== count($notes)) {
+            echo json_encode(['success' => false, 'message' => 'Mismatched array lengths.']);
+            exit;
+        }
+
+        // Convert to competency objects format
+        for ($i = 0; $i < count($competency_ids); $i++) {
+            $competencies[] = [
+                'competency_id' => $competency_ids[$i],
+                'rating' => $ratings[$i],
+                'comments' => $notes[$i] ?? ''
+            ];
+        }
     }
 
-    if (count($competency_ids) !== count($ratings) || count($ratings) !== count($notes)) {
-        echo json_encode(['success' => false, 'message' => 'Mismatched array lengths.']);
+    if (count($competencies) === 0) {
+        echo json_encode(['success' => false, 'message' => 'No competencies provided.']);
         exit;
     }
 
@@ -40,10 +66,10 @@ try {
     $stmt = $conn->prepare($sql);
 
     $inserted = 0;
-    for ($i = 0; $i < count($competency_ids); $i++) {
-        $competency_id = filter_var($competency_ids[$i], FILTER_VALIDATE_INT);
-        $rating = filter_var($ratings[$i], FILTER_VALIDATE_INT);
-        $comments = trim($notes[$i] ?? '');
+    foreach ($competencies as $comp) {
+        $competency_id = filter_var($comp['competency_id'], FILTER_VALIDATE_INT);
+        $rating = filter_var($comp['rating'], FILTER_VALIDATE_INT);
+        $comments = trim($comp['comments'] ?? '');
 
         if (!$competency_id || !$rating) continue; // Skip if no rating selected
 

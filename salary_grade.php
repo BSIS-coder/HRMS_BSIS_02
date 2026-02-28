@@ -682,9 +682,7 @@ try {
                         <button class="tab-button" onclick="switchTab('employees')">
                             <i class="fas fa-users"></i> Employees by Grade
                         </button>
-                        <button class="tab-button" onclick="switchTab('history')">
-                            <i class="fas fa-history"></i> Grade History
-                        </button>
+
                     </div>
 
                     <!-- Tab 1: Salary Grades -->

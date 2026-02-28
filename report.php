@@ -49,6 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         total_leave_requests, approved_leave_requests,
                         rejected_leave_requests, pending_leave_requests,
                         total_leave_days_taken, leave_type_breakdown,
+                        dtr_employee_id,
+                        dtr_total_days_worked, dtr_total_days_absent,
+                        dtr_total_late_minutes, dtr_total_undertime_minutes,
+                        dtr_total_overtime_hours, dtr_total_working_hours,
+                        dtr_daily_records,
+                        dtr_certification_officer, dtr_supervisor_name,
+                        dtr_is_certified,
                         report_status, file_path, file_format,
                         generated_by, notes
                     ) VALUES (
@@ -67,6 +74,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         :total_lv, :approved_lv,
                         :rejected_lv, :pending_lv,
                         :lv_days, :lv_breakdown,
+                        :dtr_emp_id,
+                        :dtr_days_worked, :dtr_days_absent,
+                        :dtr_late_min, :dtr_undertime_min,
+                        :dtr_ot_hrs, :dtr_work_hrs,
+                        :dtr_daily,
+                        :dtr_cert_officer, :dtr_supervisor,
+                        :dtr_is_certified,
                         :status, :file_path, :file_format,
                         :gen_by, :notes
                     )
@@ -106,6 +120,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ':pending_lv'   => !empty($_POST['pending_leave_requests'])   ? $_POST['pending_leave_requests']   : null,
                     ':lv_days'      => !empty($_POST['total_leave_days_taken'])   ? $_POST['total_leave_days_taken']   : null,
                     ':lv_breakdown' => !empty($_POST['leave_type_breakdown'])     ? $_POST['leave_type_breakdown']     : null,
+                    // DTR fields
+                    ':dtr_emp_id'       => !empty($_POST['dtr_employee_id'])            ? $_POST['dtr_employee_id']            : null,
+                    ':dtr_days_worked'  => !empty($_POST['dtr_total_days_worked'])      ? $_POST['dtr_total_days_worked']      : null,
+                    ':dtr_days_absent'  => isset($_POST['dtr_total_days_absent']) && $_POST['dtr_total_days_absent'] !== '' ? $_POST['dtr_total_days_absent'] : null,
+                    ':dtr_late_min'     => isset($_POST['dtr_total_late_minutes']) && $_POST['dtr_total_late_minutes'] !== '' ? $_POST['dtr_total_late_minutes'] : null,
+                    ':dtr_undertime_min'=> isset($_POST['dtr_total_undertime_minutes']) && $_POST['dtr_total_undertime_minutes'] !== '' ? $_POST['dtr_total_undertime_minutes'] : null,
+                    ':dtr_ot_hrs'       => !empty($_POST['dtr_total_overtime_hours'])   ? $_POST['dtr_total_overtime_hours']   : null,
+                    ':dtr_work_hrs'     => !empty($_POST['dtr_total_working_hours'])    ? $_POST['dtr_total_working_hours']    : null,
+                    ':dtr_daily'        => !empty($_POST['dtr_daily_records'])          ? $_POST['dtr_daily_records']          : null,
+                    ':dtr_cert_officer' => !empty($_POST['dtr_certification_officer'])  ? $_POST['dtr_certification_officer']  : null,
+                    ':dtr_supervisor'   => !empty($_POST['dtr_supervisor_name'])        ? $_POST['dtr_supervisor_name']        : null,
+                    ':dtr_is_certified' => isset($_POST['dtr_is_certified']) ? 1 : 0,
+                    // common
                     ':status'       => $_POST['report_status'],
                     ':file_path'    => !empty($_POST['file_path'])  ? $_POST['file_path']  : null,
                     ':file_format'  => $_POST['file_format'] ?? 'N/A',
@@ -143,6 +170,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         total_leave_requests=:total_lv, approved_leave_requests=:approved_lv,
                         rejected_leave_requests=:rejected_lv, pending_leave_requests=:pending_lv,
                         total_leave_days_taken=:lv_days, leave_type_breakdown=:lv_breakdown,
+                        dtr_employee_id=:dtr_emp_id,
+                        dtr_total_days_worked=:dtr_days_worked,
+                        dtr_total_days_absent=:dtr_days_absent,
+                        dtr_total_late_minutes=:dtr_late_min,
+                        dtr_total_undertime_minutes=:dtr_undertime_min,
+                        dtr_total_overtime_hours=:dtr_ot_hrs,
+                        dtr_total_working_hours=:dtr_work_hrs,
+                        dtr_daily_records=:dtr_daily,
+                        dtr_certification_officer=:dtr_cert_officer,
+                        dtr_supervisor_name=:dtr_supervisor,
+                        dtr_is_certified=:dtr_is_certified,
                         report_status=:status, file_path=:file_path, file_format=:file_format,
                         notes=:notes
                     WHERE report_id=:report_id
@@ -182,6 +220,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ':pending_lv'   => !empty($_POST['pending_leave_requests'])   ? $_POST['pending_leave_requests']   : null,
                     ':lv_days'      => !empty($_POST['total_leave_days_taken'])   ? $_POST['total_leave_days_taken']   : null,
                     ':lv_breakdown' => !empty($_POST['leave_type_breakdown'])     ? $_POST['leave_type_breakdown']     : null,
+                    // DTR fields
+                    ':dtr_emp_id'       => !empty($_POST['dtr_employee_id'])            ? $_POST['dtr_employee_id']            : null,
+                    ':dtr_days_worked'  => !empty($_POST['dtr_total_days_worked'])      ? $_POST['dtr_total_days_worked']      : null,
+                    ':dtr_days_absent'  => isset($_POST['dtr_total_days_absent']) && $_POST['dtr_total_days_absent'] !== '' ? $_POST['dtr_total_days_absent'] : null,
+                    ':dtr_late_min'     => isset($_POST['dtr_total_late_minutes']) && $_POST['dtr_total_late_minutes'] !== '' ? $_POST['dtr_total_late_minutes'] : null,
+                    ':dtr_undertime_min'=> isset($_POST['dtr_total_undertime_minutes']) && $_POST['dtr_total_undertime_minutes'] !== '' ? $_POST['dtr_total_undertime_minutes'] : null,
+                    ':dtr_ot_hrs'       => !empty($_POST['dtr_total_overtime_hours'])   ? $_POST['dtr_total_overtime_hours']   : null,
+                    ':dtr_work_hrs'     => !empty($_POST['dtr_total_working_hours'])    ? $_POST['dtr_total_working_hours']    : null,
+                    ':dtr_daily'        => !empty($_POST['dtr_daily_records'])          ? $_POST['dtr_daily_records']          : null,
+                    ':dtr_cert_officer' => !empty($_POST['dtr_certification_officer'])  ? $_POST['dtr_certification_officer']  : null,
+                    ':dtr_supervisor'   => !empty($_POST['dtr_supervisor_name'])        ? $_POST['dtr_supervisor_name']        : null,
+                    ':dtr_is_certified' => isset($_POST['dtr_is_certified']) ? 1 : 0,
+                    // common
                     ':status'       => $_POST['report_status'],
                     ':file_path'    => !empty($_POST['file_path'])  ? $_POST['file_path']  : null,
                     ':file_format'  => $_POST['file_format'] ?? 'N/A',
@@ -234,20 +285,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // FETCH DATA
 // ─────────────────────────────────────────────────────────────
 
-// All reports (join department + employee names)
+// All reports (join department + employee names + DTR employee name)
 try {
     $allReports = $pdo->query("
         SELECT r.*,
                d.department_name,
                CONCAT(pi.first_name,' ',pi.last_name) AS employee_name,
                ep.employee_number,
-               CONCAT(ug.first_name,' ',ug.last_name) AS generated_by_name
+               CONCAT(ug.first_name,' ',ug.last_name) AS generated_by_name,
+               CONCAT(dpi.first_name,' ',dpi.last_name) AS dtr_employee_name,
+               dep.employee_number AS dtr_employee_number
         FROM reports r
         LEFT JOIN departments d ON r.department_id = d.department_id
         LEFT JOIN employee_profiles ep ON r.employee_id = ep.employee_id
         LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
         LEFT JOIN users u ON r.generated_by = u.user_id
         LEFT JOIN personal_information ug ON u.employee_id = ep.employee_id
+        LEFT JOIN employee_profiles dep ON r.dtr_employee_id = dep.employee_id
+        LEFT JOIN personal_information dpi ON dep.personal_info_id = dpi.personal_info_id
         ORDER BY r.created_at DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -323,11 +378,29 @@ try {
     $empInfoReports = [];
 }
 
+// ── DTR reports ──────────────────────────────────────────────
+try {
+    $dtrReports = $pdo->query("
+        SELECT r.*,
+               d.department_name,
+               CONCAT(pi.first_name,' ',pi.last_name) AS dtr_employee_name,
+               ep.employee_number AS dtr_employee_number
+        FROM reports r
+        LEFT JOIN departments d ON r.department_id = d.department_id
+        LEFT JOIN employee_profiles ep ON r.dtr_employee_id = ep.employee_id
+        LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+        WHERE r.report_type = 'DTR Report'
+        ORDER BY r.report_period_start DESC, ep.employee_number ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $dtrReports = [];
+}
+
 // Summary stats for dashboard cards
-$totalReports     = count($allReports);
-$draftCount       = count(array_filter($allReports, fn($r) => $r['report_status'] === 'Draft'));
-$approvedCount    = count(array_filter($allReports, fn($r) => $r['report_status'] === 'Approved'));
-$pendingCount     = count(array_filter($allReports, fn($r) => in_array($r['report_status'], ['Generated','Reviewed'])));
+$totalReports  = count($allReports);
+$draftCount    = count(array_filter($allReports, fn($r) => $r['report_status'] === 'Draft'));
+$approvedCount = count(array_filter($allReports, fn($r) => $r['report_status'] === 'Approved'));
+$pendingCount  = count(array_filter($allReports, fn($r) => in_array($r['report_status'], ['Generated','Reviewed'])));
 
 // Departments and employees for dropdowns
 try {
@@ -369,6 +442,9 @@ try {
             --azure-blue-dark: #C2185B;
             --azure-blue-lighter: #F8BBD0;
             --azure-blue-pale: #FCE4EC;
+            --dtr-color: #6f42c1;
+            --dtr-light: #e9d8fd;
+            --dtr-pale: #f5f0ff;
         }
 
         body { background: var(--azure-blue-pale); }
@@ -408,17 +484,19 @@ try {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(233,30,99,0.15);
         }
-        .stat-card.blue  { border-left-color: #287ef3; }
-        .stat-card.green { border-left-color: #28a745; }
-        .stat-card.amber { border-left-color: #ffc107; }
-        .stat-card.gray  { border-left-color: #6c757d; }
+        .stat-card.blue   { border-left-color: #287ef3; }
+        .stat-card.green  { border-left-color: #28a745; }
+        .stat-card.amber  { border-left-color: #ffc107; }
+        .stat-card.gray   { border-left-color: #6c757d; }
+        .stat-card.purple { border-left-color: var(--dtr-color); }
 
         .stat-icon { font-size: 26px; margin-bottom: 8px; }
-        .stat-card.blue  .stat-icon { color: #287ef3; }
-        .stat-card.green .stat-icon { color: #28a745; }
-        .stat-card.amber .stat-icon { color: #e0a800; }
-        .stat-card.gray  .stat-icon { color: #6c757d; }
-        .stat-card       .stat-icon { color: var(--azure-blue); }
+        .stat-card.blue   .stat-icon { color: #287ef3; }
+        .stat-card.green  .stat-icon { color: #28a745; }
+        .stat-card.amber  .stat-icon { color: #e0a800; }
+        .stat-card.gray   .stat-icon { color: #6c757d; }
+        .stat-card.purple .stat-icon { color: var(--dtr-color); }
+        .stat-card        .stat-icon { color: var(--azure-blue); }
 
         .stat-number { font-size: 30px; font-weight: 700; color: #222; line-height: 1; }
         .stat-label  { font-size: 13px; color: #777; margin-top: 4px; font-weight: 500; }
@@ -446,8 +524,10 @@ try {
             align-items: center;
             gap: 6px;
         }
-        .tab-button.active { color: var(--azure-blue); border-bottom-color: var(--azure-blue); }
-        .tab-button:hover  { color: var(--azure-blue-dark); }
+        .tab-button.active       { color: var(--azure-blue); border-bottom-color: var(--azure-blue); }
+        .tab-button.tab-dtr.active { color: var(--dtr-color); border-bottom-color: var(--dtr-color); }
+        .tab-button:hover        { color: var(--azure-blue-dark); }
+        .tab-button.tab-dtr:hover { color: var(--dtr-color); }
         .tab-count {
             background: var(--azure-blue-lighter);
             color: var(--azure-blue-dark);
@@ -455,7 +535,9 @@ try {
             padding: 1px 8px;
             font-size: 12px;
         }
-        .tab-button.active .tab-count { background: var(--azure-blue); color: white; }
+        .tab-button.active .tab-count           { background: var(--azure-blue); color: white; }
+        .tab-button.tab-dtr.active .tab-count   { background: var(--dtr-color);  color: white; }
+        .tab-button.tab-dtr .tab-count          { background: var(--dtr-light);  color: var(--dtr-color); }
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -533,6 +615,16 @@ try {
             color: white;
             text-decoration: none;
         }
+        .btn-dtr {
+            background: linear-gradient(135deg, var(--dtr-color), #9d6fce);
+            color: white;
+        }
+        .btn-dtr:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(111,66,193,0.4);
+            color: white;
+            text-decoration: none;
+        }
         .btn-success  { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
         .btn-danger   { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
         .btn-warning  { background: linear-gradient(135deg, #ffc107, #e0a800); color: white; }
@@ -575,13 +667,18 @@ try {
             border-bottom: 2px solid #dee2e6;
             white-space: nowrap;
         }
+        .table-dtr th {
+            background: linear-gradient(135deg, var(--dtr-light), #ede7f6) !important;
+            color: var(--dtr-color) !important;
+        }
         .table td {
             padding: 13px 15px;
             border-bottom: 1px solid #f5f5f5;
             vertical-align: middle;
         }
-        .table tbody tr:hover { background: #fce4ec22; }
-        .table tbody tr:last-child td { border-bottom: none; }
+        .table tbody tr:hover           { background: #fce4ec22; }
+        .table-dtr tbody tr:hover       { background: #f5f0ff44 !important; }
+        .table tbody tr:last-child td   { border-bottom: none; }
 
         /* ── Badges ── */
         .badge-pill {
@@ -610,6 +707,9 @@ try {
         .badge-attend     { background: #cfe2ff; color: #084298; }
         .badge-leave      { background: #fff3cd; color: #664d03; }
         .badge-empinfo    { background: #f8d7da; color: #721c24; }
+        .badge-dtr        { background: var(--dtr-light); color: var(--dtr-color); }
+        .badge-certified  { background: #d1e7dd; color: #0f5132; }
+        .badge-pending-cert { background: #fff3cd; color: #664d03; }
 
         /* ── Sub-section title inside tabs ── */
         .sub-title {
@@ -635,6 +735,10 @@ try {
             padding-bottom: 6px;
             margin-bottom: 12px;
         }
+        .metric-group-title.dtr-title {
+            color: var(--dtr-color);
+            border-color: var(--dtr-light);
+        }
         .metric-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -644,6 +748,114 @@ try {
         .metric-label { font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; }
         .metric-value { font-size: 15px; font-weight: 600; color: #222; }
         .metric-value.big { font-size: 20px; color: var(--azure-blue-dark); }
+
+        /* ── DTR-specific styles ── */
+        .dtr-info-box {
+            background: var(--dtr-pale);
+            border: 1px solid var(--dtr-light);
+            border-left: 4px solid var(--dtr-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+        .dtr-info-box strong { color: var(--dtr-color); }
+
+        .dtr-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .dtr-summary-card {
+            background: var(--dtr-pale);
+            border-radius: 10px;
+            padding: 14px 16px;
+            border: 1px solid var(--dtr-light);
+            text-align: center;
+        }
+        .dtr-summary-card .val { font-size: 22px; font-weight: 700; color: var(--dtr-color); }
+        .dtr-summary-card .lbl { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; margin-top: 3px; }
+        .dtr-summary-card.red   .val { color: #dc3545; }
+        .dtr-summary-card.amber .val { color: #e0a800; }
+        .dtr-summary-card.green .val { color: #28a745; }
+
+        /* DTR daily records table inside view modal */
+        .dtr-table-wrap {
+            overflow-x: auto;
+            max-height: 380px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid var(--dtr-light);
+        }
+        .dtr-daily-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .dtr-daily-table th {
+            background: #ede7f6;
+            color: var(--dtr-color);
+            padding: 9px 12px;
+            text-align: left;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            white-space: nowrap;
+        }
+        .dtr-daily-table td { padding: 8px 12px; border-bottom: 1px solid #f3e8ff; white-space: nowrap; }
+        .dtr-daily-table tr:last-child td { border-bottom: none; }
+        .dtr-daily-table tr:hover td { background: #faf5ff; }
+        .status-present { color: #28a745; font-weight: 700; }
+        .status-absent  { color: #dc3545; font-weight: 700; }
+        .status-late    { color: #e0a800; font-weight: 700; }
+        .status-leave   { color: var(--dtr-color); font-weight: 700; }
+        .status-restday { color: #aaa; font-style: italic; }
+        .status-holiday { color: #17a2b8; font-weight: 700; }
+
+        /* ── Form ── */
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--azure-blue-dark);
+        }
+        .form-group label.dtr-label { color: var(--dtr-color); }
+        .form-control {
+            width: 100%;
+            padding: 9px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.25s ease;
+        }
+        .form-control:focus {
+            border-color: var(--azure-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(233,30,99,0.12);
+        }
+        .form-control.dtr-input:focus {
+            border-color: var(--dtr-color);
+            box-shadow: 0 0 0 3px rgba(111,66,193,0.12);
+        }
+        .form-row { display: flex; gap: 16px; }
+        .form-col { flex: 1; }
+        textarea.form-control { resize: vertical; }
+
+        .section-divider {
+            font-size: 12px; font-weight: 700; color: var(--azure-blue);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--azure-blue-lighter);
+            padding-bottom: 5px; margin: 22px 0 14px;
+        }
+        .section-divider.optional { color: #999; border-color: #eee; }
+        .section-divider.dtr-divider {
+            color: var(--dtr-color);
+            border: 1px solid var(--dtr-light);
+            border-radius: 6px;
+            background: var(--dtr-pale);
+            padding: 8px 12px;
+        }
 
         /* ── Modal ── */
         .modal {
@@ -667,7 +879,8 @@ try {
             box-shadow: 0 24px 50px rgba(0,0,0,0.3);
             animation: slideIn 0.28s ease;
         }
-        .modal-content-xl { max-width: 960px; }
+        .modal-content-xl  { max-width: 960px; }
+        .modal-content-xxl { max-width: 1100px; }
         @keyframes slideIn {
             from { transform: translateY(-40px); opacity: 0; }
             to   { transform: translateY(0);     opacity: 1; }
@@ -681,6 +894,9 @@ try {
             justify-content: space-between;
             align-items: center;
         }
+        .modal-header.dtr-header {
+            background: linear-gradient(135deg, var(--dtr-color), #9d6fce);
+        }
         .modal-header h2 { margin: 0; font-size: 20px; font-weight: 700; }
         .close {
             font-size: 26px; font-weight: bold; cursor: pointer;
@@ -689,40 +905,6 @@ try {
         }
         .close:hover { opacity: 1; }
         .modal-body { padding: 28px; }
-
-        /* ── Form ── */
-        .form-group { margin-bottom: 18px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--azure-blue-dark);
-        }
-        .form-control {
-            width: 100%;
-            padding: 9px 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.25s ease;
-        }
-        .form-control:focus {
-            border-color: var(--azure-blue);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(233,30,99,0.12);
-        }
-        .form-row { display: flex; gap: 16px; }
-        .form-col { flex: 1; }
-        textarea.form-control { resize: vertical; }
-
-        .section-divider {
-            font-size: 12px; font-weight: 700; color: var(--azure-blue);
-            text-transform: uppercase; letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--azure-blue-lighter);
-            padding-bottom: 5px; margin: 22px 0 14px;
-        }
-        .section-divider.optional { color: #999; border-color: #eee; }
 
         /* ── Alert ── */
         .alert {
@@ -749,6 +931,7 @@ try {
             .stats-grid { grid-template-columns: 1fr 1fr; }
             .table { font-size: 12px; }
             .table td, .table th { padding: 9px 10px; }
+            .dtr-summary-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
@@ -812,10 +995,10 @@ try {
                     <div class="stat-number"><?php echo count($attendanceReports) + count($leaveReports); ?></div>
                     <div class="stat-label">Attendance & Leave</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-users"></i></div>
-                    <div class="stat-number"><?php echo count($empInfoReports); ?></div>
-                    <div class="stat-label">Employee Info Reports</div>
+                <div class="stat-card purple">
+                    <div class="stat-icon"><i class="fas fa-id-card-alt"></i></div>
+                    <div class="stat-number"><?php echo count($dtrReports); ?></div>
+                    <div class="stat-label">DTR Reports</div>
                 </div>
             </div>
 
@@ -845,6 +1028,10 @@ try {
                     <i class="fas fa-id-badge"></i> Employee Info
                     <span class="tab-count"><?php echo count($empInfoReports); ?></span>
                 </button>
+                <button class="tab-button tab-dtr" onclick="switchTab(event,'tab-dtr')">
+                    <i class="fas fa-id-card-alt"></i> DTR
+                    <span class="tab-count"><?php echo count($dtrReports); ?></span>
+                </button>
             </div>
 
             <!-- ══════════════════════════════════════════════
@@ -867,6 +1054,7 @@ try {
                             <option>Leave Request Summary</option>
                             <option>Leave Balance Report</option>
                             <option>Employee Information Report</option>
+                            <option>DTR Report</option>
                         </select>
                         <select class="filter-select" id="filterStatusAll" onchange="filterTableCustom('tblAll','filterStatusAll',7)">
                             <option value="">All Statuses</option>
@@ -918,18 +1106,26 @@ try {
                                         <span style="color:#aaa;font-size:11px;">to</span><br>
                                         <?php echo date('M d, Y', strtotime($r['report_period_end'])); ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($r['department_name'] ?? 'All Depts'); ?></td>
+                                    <td>
+                                        <?php if ($r['report_type'] === 'DTR Report' && !empty($r['dtr_employee_name'])): ?>
+                                            <span style="color:var(--dtr-color);font-weight:600;font-size:13px;">
+                                                <?php echo htmlspecialchars($r['dtr_employee_number'].' – '.$r['dtr_employee_name']); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <?php echo htmlspecialchars($r['department_name'] ?? 'All Depts'); ?>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo renderFormatBadge($r['file_format']); ?></td>
                                     <td><?php echo renderStatusBadge($r['report_status']); ?></td>
                                     <td style="white-space:nowrap;font-size:12px;"><?php echo date('M d, Y', strtotime($r['created_at'])); ?></td>
                                     <td style="white-space:nowrap;">
-                                        <button class="btn btn-info btn-sm" onclick='openViewModal(<?php echo json_encode($r); ?>)' title="View">
+                                        <button class="btn btn-info btn-sm" onclick="openViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)" title="View">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-success btn-sm" onclick='openEditModal(<?php echo json_encode($r); ?>)' title="Edit">
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(<?php echo $r['report_id']; ?>, '<?php echo addslashes($r['report_code']); ?>')" title="Delete">
+                                        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -1014,9 +1210,9 @@ try {
                                     </td>
                                     <td><?php echo renderStatusBadge($r['report_status']); ?></td>
                                     <td style="white-space:nowrap;">
-                                        <button class="btn btn-info btn-sm"    onclick='openViewModal(<?php echo json_encode($r); ?>)'><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-success btn-sm" onclick='openEditModal(<?php echo json_encode($r); ?>)'><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo $r['report_id']; ?>, '<?php echo addslashes($r['report_code']); ?>')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-info btn-sm"    onclick="openViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1099,9 +1295,9 @@ try {
                                     </td>
                                     <td><?php echo renderStatusBadge($r['report_status']); ?></td>
                                     <td style="white-space:nowrap;">
-                                        <button class="btn btn-info btn-sm"    onclick='openViewModal(<?php echo json_encode($r); ?>)'><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-success btn-sm" onclick='openEditModal(<?php echo json_encode($r); ?>)'><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo $r['report_id']; ?>, '<?php echo addslashes($r['report_code']); ?>')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-info btn-sm"    onclick="openViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1180,9 +1376,9 @@ try {
                                     <td><?php echo $r['total_overtime_hours'] !== null ? number_format($r['total_overtime_hours'], 1).' hrs' : '—'; ?></td>
                                     <td><?php echo renderStatusBadge($r['report_status']); ?></td>
                                     <td style="white-space:nowrap;">
-                                        <button class="btn btn-info btn-sm"    onclick='openViewModal(<?php echo json_encode($r); ?>)'><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-success btn-sm" onclick='openEditModal(<?php echo json_encode($r); ?>)'><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo $r['report_id']; ?>, '<?php echo addslashes($r['report_code']); ?>')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-info btn-sm"    onclick="openViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1254,9 +1450,9 @@ try {
                                     </td>
                                     <td><?php echo renderStatusBadge($r['report_status']); ?></td>
                                     <td style="white-space:nowrap;">
-                                        <button class="btn btn-info btn-sm"    onclick='openViewModal(<?php echo json_encode($r); ?>)'><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-success btn-sm" onclick='openEditModal(<?php echo json_encode($r); ?>)'><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo $r['report_id']; ?>, '<?php echo addslashes($r['report_code']); ?>')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-info btn-sm"    onclick="openViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1326,9 +1522,9 @@ try {
                                     <td><?php echo renderStatusBadge($r['report_status']); ?></td>
                                     <td style="font-size:12px;"><?php echo date('M d, Y', strtotime($r['generated_at'])); ?></td>
                                     <td style="white-space:nowrap;">
-                                        <button class="btn btn-info btn-sm"    onclick='openViewModal(<?php echo json_encode($r); ?>)'><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-success btn-sm" onclick='openEditModal(<?php echo json_encode($r); ?>)'><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo $r['report_id']; ?>, '<?php echo addslashes($r['report_code']); ?>')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-info btn-sm"    onclick="openViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm"  onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1340,16 +1536,150 @@ try {
                 </div>
             </div>
 
+            <!-- ══════════════════════════════════════════════
+                 TAB 7 – DTR REPORTS  ← NEW
+            ══════════════════════════════════════════════ -->
+            <div id="tab-dtr" class="tab-content">
+
+                <div class="dtr-info-box">
+                    <i class="fas fa-info-circle" style="color:var(--dtr-color);margin-right:6px;"></i>
+                    <strong>Daily Time Records (DTR)</strong> — Individual employee time records with clock-in/out per working day.
+                    Click <strong>View</strong> on any row to see the full daily breakdown.
+                </div>
+
+                <div class="controls">
+                    <div class="controls-left">
+                        <div class="search-box">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="searchDtr" placeholder="Search DTR reports...">
+                        </div>
+                        <select class="filter-select" id="filterDtrStatus" onchange="filterTableCustom('tblDtr','filterDtrStatus',8)">
+                            <option value="">All Statuses</option>
+                            <option>Draft</option>
+                            <option>Generated</option>
+                            <option>Reviewed</option>
+                            <option>Approved</option>
+                            <option>Archived</option>
+                        </select>
+                    </div>
+                    <div class="controls-right">
+                        <button class="btn btn-dtr" onclick="openAddModal('DTR Report')">
+                            <i class="fas fa-plus"></i> New DTR Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="table table-dtr" id="tblDtr">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Employee</th>
+                                <th>Period</th>
+                                <th>Days Worked</th>
+                                <th>Days Absent</th>
+                                <th>Late (min)</th>
+                                <th>Undertime (min)</th>
+                                <th>OT Hours</th>
+                                <th>Status</th>
+                                <th>Certified?</th>
+                                <th>Supervisor</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($dtrReports)): ?>
+                                <?php foreach ($dtrReports as $r): ?>
+                                <tr>
+                                    <td><code style="font-size:12px;"><?php echo htmlspecialchars($r['report_code']); ?></code></td>
+                                    <td>
+                                        <?php if (!empty($r['dtr_employee_name'])): ?>
+                                            <strong style="color:var(--dtr-color);"><?php echo htmlspecialchars($r['dtr_employee_name']); ?></strong>
+                                            <div style="font-size:11px;color:#999;"><?php echo htmlspecialchars($r['dtr_employee_number'] ?? ''); ?></div>
+                                        <?php else: echo '<span style="color:#aaa;">—</span>'; endif; ?>
+                                    </td>
+                                    <td style="white-space:nowrap;font-size:12px;">
+                                        <?php echo date('M d, Y', strtotime($r['report_period_start'])); ?><br>
+                                        <span style="color:#aaa;">to</span><br>
+                                        <?php echo date('M d, Y', strtotime($r['report_period_end'])); ?>
+                                    </td>
+                                    <td>
+                                        <span style="color:#28a745;font-weight:700;font-size:16px;"><?php echo $r['dtr_total_days_worked'] ?? '—'; ?></span>
+                                        <?php if ($r['dtr_total_days_worked'] !== null): ?>
+                                            <div style="font-size:11px;color:#999;">days</div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($r['dtr_total_days_absent'] > 0): ?>
+                                            <span style="color:#dc3545;font-weight:700;"><?php echo $r['dtr_total_days_absent']; ?></span>
+                                        <?php else: ?>
+                                            <span style="color:#28a745;font-weight:600;"><?php echo $r['dtr_total_days_absent'] ?? '—'; ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($r['dtr_total_late_minutes'] > 0): ?>
+                                            <span style="color:#e0a800;font-weight:700;"><?php echo number_format($r['dtr_total_late_minutes'], 0); ?> min</span>
+                                        <?php else: ?>
+                                            <span style="color:#28a745;">0</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($r['dtr_total_undertime_minutes'] > 0): ?>
+                                            <span style="color:#fd7e14;font-weight:700;"><?php echo number_format($r['dtr_total_undertime_minutes'], 0); ?> min</span>
+                                        <?php else: ?>
+                                            <span style="color:#28a745;">0</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($r['dtr_total_overtime_hours'] > 0): ?>
+                                            <span style="color:var(--dtr-color);font-weight:700;"><?php echo number_format($r['dtr_total_overtime_hours'], 1); ?> hrs</span>
+                                        <?php else: ?>
+                                            <span style="color:#aaa;">0</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo renderStatusBadge($r['report_status']); ?></td>
+                                    <td>
+                                        <?php if ($r['dtr_is_certified']): ?>
+                                            <span class="badge-pill badge-certified"><i class="fas fa-check-circle"></i> Certified</span>
+                                            <?php if (!empty($r['dtr_certified_at'])): ?>
+                                                <div style="font-size:11px;color:#999;margin-top:2px;"><?php echo date('M d, Y', strtotime($r['dtr_certified_at'])); ?></div>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="badge-pill badge-pending-cert"><i class="fas fa-clock"></i> Pending</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="font-size:12px;"><?php echo htmlspecialchars($r['dtr_supervisor_name'] ?? '—'); ?></td>
+                                    <td style="white-space:nowrap;">
+                                        <button class="btn btn-dtr btn-sm" onclick="openDtrViewModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)" title="View DTR">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-success btn-sm" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($r), ENT_QUOTES, 'UTF-8'); ?>)" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(<?php echo (int)$r['report_id']; ?>, '<?php echo addslashes(htmlspecialchars($r['report_code'], ENT_QUOTES, 'UTF-8')); ?>')" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td colspan="12"><div class="no-data"><i class="fas fa-id-card-alt"></i> No DTR reports found. Create one to get started.</div></td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div><!-- /.main-content -->
     </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
-     MODAL: ADD / EDIT REPORT
+     MODAL: ADD / EDIT REPORT (with DTR section)
 ══════════════════════════════════════════════════════════ -->
 <div id="reportModal" class="modal">
     <div class="modal-content modal-content-xl">
-        <div class="modal-header">
+        <div class="modal-header" id="reportModalHeader">
             <h2 id="reportModalTitle"><i class="fas fa-file-alt"></i> Create Report</h2>
             <button class="close" onclick="closeModal('reportModal')">&times;</button>
         </div>
@@ -1364,7 +1694,7 @@ try {
                     <div class="form-col">
                         <div class="form-group">
                             <label>Report Code <span style="color:red;">*</span></label>
-                            <input type="text" class="form-control" name="report_code" id="fCode" required placeholder="e.g. RPT-PAY-2025-01">
+                            <input type="text" class="form-control" name="report_code" id="fCode" required placeholder="e.g. RPT-DTR-2026-01-EMP001">
                         </div>
                     </div>
                     <div class="form-col">
@@ -1380,6 +1710,7 @@ try {
                                 <option>Leave Request Summary</option>
                                 <option>Leave Balance Report</option>
                                 <option>Employee Information Report</option>
+                                <option>DTR Report</option>
                             </select>
                         </div>
                     </div>
@@ -1462,7 +1793,113 @@ try {
 
                 <div class="form-group">
                     <label>File Path <small style="color:#999;">(generated file location)</small></label>
-                    <input type="text" class="form-control" name="file_path" id="fFilePath" placeholder="e.g. /reports/payroll/RPT-PAY-2025-01.pdf">
+                    <input type="text" class="form-control" name="file_path" id="fFilePath" placeholder="e.g. /reports/dtr/RPT-DTR-2026-01-EMP001.pdf">
+                </div>
+
+                <!-- ══ DTR SECTION (shown only for DTR Report) ══ -->
+                <div id="secDtr" style="display:none;">
+                    <div class="section-divider dtr-divider"><i class="fas fa-id-card-alt"></i> Daily Time Record Details</div>
+
+                    <div class="form-group">
+                        <label class="dtr-label">DTR Employee <span style="color:red;">*</span>
+                            <small style="color:#999;font-weight:400;">(the individual whose time is being recorded)</small>
+                        </label>
+                        <select class="form-control dtr-input" name="dtr_employee_id" id="fDtrEmployee">
+                            <option value="">-- Select Employee --</option>
+                            <?php foreach ($employees as $e): ?>
+                                <option value="<?php echo $e['employee_id']; ?>"><?php echo htmlspecialchars($e['employee_number'].' – '.$e['full_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Total Days Worked</label>
+                                <input type="number" class="form-control dtr-input" name="dtr_total_days_worked" id="fDtrDaysWorked" min="0" placeholder="e.g. 22">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Total Days Absent</label>
+                                <input type="number" class="form-control dtr-input" name="dtr_total_days_absent" id="fDtrDaysAbsent" min="0" placeholder="e.g. 0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Total Late Minutes</label>
+                                <input type="number" class="form-control dtr-input" name="dtr_total_late_minutes" id="fDtrLateMin" min="0" step="0.01" placeholder="e.g. 35.00">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Total Undertime Minutes</label>
+                                <input type="number" class="form-control dtr-input" name="dtr_total_undertime_minutes" id="fDtrUndertimeMin" min="0" step="0.01" placeholder="e.g. 0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Total Overtime Hours</label>
+                                <input type="number" class="form-control dtr-input" name="dtr_total_overtime_hours" id="fDtrOtHrs" min="0" step="0.01" placeholder="e.g. 8.00">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Total Working Hours</label>
+                                <input type="number" class="form-control dtr-input" name="dtr_total_working_hours" id="fDtrWorkHrs" min="0" step="0.01" placeholder="e.g. 176.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Certification Officer</label>
+                                <input type="text" class="form-control dtr-input" name="dtr_certification_officer" id="fDtrCertOfficer" placeholder="e.g. Municipal HR Officer">
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label class="dtr-label">Supervisor / Verifier</label>
+                                <input type="text" class="form-control dtr-input" name="dtr_supervisor_name" id="fDtrSupervisor" placeholder="e.g. Department Head Name">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div style="display:flex;align-items:center;gap:10px;background:var(--dtr-pale);border:1px solid var(--dtr-light);border-radius:8px;padding:12px 16px;">
+                            <input type="checkbox" name="dtr_is_certified" id="fDtrIsCertified" style="width:18px;height:18px;accent-color:var(--dtr-color);cursor:pointer;">
+                            <label for="fDtrIsCertified" style="margin:0;cursor:pointer;color:var(--dtr-color);font-weight:600;">
+                                <i class="fas fa-certificate"></i> Mark as Certified / Signed
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="dtr-label">
+                            Daily Records <small style="color:#999;font-weight:400;">(JSON array — one entry per working day)</small>
+                        </label>
+                        <textarea class="form-control dtr-input" name="dtr_daily_records" id="fDtrDailyRecords" rows="8"
+                            placeholder='[
+  {
+    "date": "2026-01-02",
+    "day_of_week": "Friday",
+    "clock_in": "08:00:00",
+    "clock_out": "17:00:00",
+    "working_hours": 8.00,
+    "overtime_hours": 0,
+    "late_minutes": 0,
+    "undertime_minutes": 0,
+    "status": "Present",
+    "notes": ""
+  }
+]'></textarea>
+                        <small style="color:#888;font-size:11px;margin-top:4px;display:block;">
+                            Valid <code>status</code> values: <code>Present</code>, <code>Absent</code>, <code>Late</code>, <code>On Leave</code>, <code>Rest Day</code>, <code>Holiday</code>.
+                            Use <code>null</code> for clock_in/clock_out on absent or rest days.
+                        </small>
+                    </div>
                 </div>
 
                 <!-- ── Payroll Section ── -->
@@ -1584,7 +2021,7 @@ try {
                 </div>
 
                 <div style="display:flex;gap:10px;margin-top:10px;">
-                    <button type="submit" class="btn btn-primary" style="flex:1;">
+                    <button type="submit" class="btn btn-primary" id="btnSaveReport" style="flex:1;">
                         <i class="fas fa-save"></i> Save Report
                     </button>
                     <button type="button" class="btn btn-danger" onclick="closeModal('reportModal')" style="flex:1;">
@@ -1592,6 +2029,21 @@ try {
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: DTR VIEW (dedicated — shows daily records table)
+══════════════════════════════════════════════════════════ -->
+<div id="dtrViewModal" class="modal">
+    <div class="modal-content modal-content-xxl">
+        <div class="modal-header dtr-header">
+            <h2><i class="fas fa-id-card-alt"></i> <span id="dtrViewTitle">Daily Time Record</span></h2>
+            <button class="close" onclick="closeModal('dtrViewModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="dtrViewBody">
+            <!-- dynamically filled by openDtrViewModal() -->
         </div>
     </div>
 </div>
@@ -1636,7 +2088,7 @@ try {
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
-     PHP HELPERS (rendered inline)
+     PHP HELPERS (rendered inline — must come after HTML uses them)
 ══════════════════════════════════════════════════════════ -->
 <?php
 function renderStatusBadge(string $status): string {
@@ -1661,16 +2113,17 @@ function renderTypeBadge(string $type): string {
     if (strpos($type,'Performance') !== false) $cls = 'badge-perf';
     if (strpos($type,'Attendance') !== false)  $cls = 'badge-attend';
     if (strpos($type,'Leave') !== false)       $cls = 'badge-leave';
+    if ($type === 'DTR Report')                $cls = 'badge-dtr';
     return "<span class='badge-pill $cls'>" . htmlspecialchars($type) . "</span>";
 }
 ?>
 
 <script>
 // ── PHP data passed to JS ──────────────────────────────────────────────
-const departments  = <?= json_encode($departments) ?>;
-const employees    = <?= json_encode($employees) ?>;
-const perfCycles   = <?= json_encode($perfCycles) ?>;
-const payrollCycles= <?= json_encode($payrollCycles) ?>;
+const departments   = <?= json_encode($departments) ?>;
+const employees     = <?= json_encode($employees) ?>;
+const perfCycles    = <?= json_encode($perfCycles) ?>;
+const payrollCycles = <?= json_encode($payrollCycles) ?>;
 
 // ── Tab switching ──────────────────────────────────────────────────────
 function switchTab(event, tabId) {
@@ -1686,7 +2139,7 @@ function closeModal(id) {
 }
 
 window.addEventListener('click', function(e) {
-    ['reportModal','viewModal','deleteModal'].forEach(id => {
+    ['reportModal','viewModal','dtrViewModal','deleteModal'].forEach(id => {
         const m = document.getElementById(id);
         if (e.target === m) m.style.display = 'none';
     });
@@ -1713,52 +2166,75 @@ function openEditModal(r) {
     document.getElementById('reportModalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Report';
 
     // Basic
-    setVal('fCode',          r.report_code);
-    setVal('fType',          r.report_type);
-    setVal('fTitle',         r.report_title);
-    setVal('fDescription',   r.description     || '');
-    setVal('fPeriodStart',   r.report_period_start);
-    setVal('fPeriodEnd',     r.report_period_end);
-    setVal('fDept',          r.department_id   || '');
-    setVal('fEmployee',      r.employee_id     || '');
-    setVal('fStatus',        r.report_status);
-    setVal('fFileFormat',    r.file_format     || 'N/A');
-    setVal('fFilePath',      r.file_path       || '');
-    setVal('fNotes',         r.notes           || '');
+    setVal('fCode',        r.report_code);
+    setVal('fType',        r.report_type);
+    setVal('fTitle',       r.report_title);
+    setVal('fDescription', r.description     || '');
+    setVal('fPeriodStart', r.report_period_start);
+    setVal('fPeriodEnd',   r.report_period_end);
+    setVal('fDept',        r.department_id   || '');
+    setVal('fEmployee',    r.employee_id     || '');
+    setVal('fStatus',      r.report_status);
+    setVal('fFileFormat',  r.file_format     || 'N/A');
+    setVal('fFilePath',    r.file_path       || '');
+    setVal('fNotes',       r.notes           || '');
 
     // Payroll
-    setVal('fTotalEmp',      r.total_employees_included || '');
-    setVal('fPayrollCycle',  r.payroll_cycle_id || '');
-    setVal('fGross',         r.total_gross_pay  || '');
-    setVal('fTaxDed',        r.total_tax_deductions || '');
-    setVal('fStatDed',       r.total_statutory_deductions || '');
-    setVal('fOtherDed',      r.total_other_deductions || '');
-    setVal('fNetPay',        r.total_net_pay    || '');
+    setVal('fTotalEmp',    r.total_employees_included || '');
+    setVal('fPayrollCycle',r.payroll_cycle_id || '');
+    setVal('fGross',       r.total_gross_pay  || '');
+    setVal('fTaxDed',      r.total_tax_deductions || '');
+    setVal('fStatDed',     r.total_statutory_deductions || '');
+    setVal('fOtherDed',    r.total_other_deductions || '');
+    setVal('fNetPay',      r.total_net_pay    || '');
 
     // Performance
-    setVal('fCycleId',       r.cycle_id         || '');
-    setVal('fAvgRating',     r.average_overall_rating || '');
-    setVal('fRevSub',        r.total_reviews_submitted || '');
-    setVal('fRevFin',        r.total_reviews_finalized || '');
-    setVal('fHighRating',    r.highest_rating   || '');
-    setVal('fLowRating',     r.lowest_rating    || '');
+    setVal('fCycleId',     r.cycle_id         || '');
+    setVal('fAvgRating',   r.average_overall_rating || '');
+    setVal('fRevSub',      r.total_reviews_submitted || '');
+    setVal('fRevFin',      r.total_reviews_finalized || '');
+    setVal('fHighRating',  r.highest_rating   || '');
+    setVal('fLowRating',   r.lowest_rating    || '');
 
     // Attendance
-    setVal('fPresent',       r.total_present    || '');
-    setVal('fAbsent',        r.total_absent     || '');
-    setVal('fLate',          r.total_late       || '');
-    setVal('fOnLeave',       r.total_on_leave   || '');
-    setVal('fWorkHrs',       r.total_working_hours || '');
-    setVal('fOTHrs',         r.total_overtime_hours || '');
-    setVal('fAttRate',       r.attendance_rate_pct || '');
+    setVal('fPresent',     r.total_present    || '');
+    setVal('fAbsent',      r.total_absent     || '');
+    setVal('fLate',        r.total_late       || '');
+    setVal('fOnLeave',     r.total_on_leave   || '');
+    setVal('fWorkHrs',     r.total_working_hours || '');
+    setVal('fOTHrs',       r.total_overtime_hours || '');
+    setVal('fAttRate',     r.attendance_rate_pct || '');
 
     // Leave
-    setVal('fTotalLv',       r.total_leave_requests || '');
-    setVal('fApprovedLv',    r.approved_leave_requests || '');
-    setVal('fRejectedLv',    r.rejected_leave_requests || '');
-    setVal('fPendingLv',     r.pending_leave_requests || '');
-    setVal('fLvDays',        r.total_leave_days_taken || '');
-    setVal('fLvBreakdown',   r.leave_type_breakdown   || '');
+    setVal('fTotalLv',     r.total_leave_requests || '');
+    setVal('fApprovedLv',  r.approved_leave_requests || '');
+    setVal('fRejectedLv',  r.rejected_leave_requests || '');
+    setVal('fPendingLv',   r.pending_leave_requests || '');
+    setVal('fLvDays',      r.total_leave_days_taken || '');
+    setVal('fLvBreakdown', r.leave_type_breakdown   || '');
+
+    // DTR
+    setVal('fDtrEmployee',     r.dtr_employee_id            || '');
+    setVal('fDtrDaysWorked',   r.dtr_total_days_worked      || '');
+    setVal('fDtrDaysAbsent',   r.dtr_total_days_absent      !== null ? r.dtr_total_days_absent : '');
+    setVal('fDtrLateMin',      r.dtr_total_late_minutes     !== null ? r.dtr_total_late_minutes : '');
+    setVal('fDtrUndertimeMin', r.dtr_total_undertime_minutes !== null ? r.dtr_total_undertime_minutes : '');
+    setVal('fDtrOtHrs',        r.dtr_total_overtime_hours   || '');
+    setVal('fDtrWorkHrs',      r.dtr_total_working_hours    || '');
+    setVal('fDtrCertOfficer',  r.dtr_certification_officer  || '');
+    setVal('fDtrSupervisor',   r.dtr_supervisor_name        || '');
+
+    const cbCert = document.getElementById('fDtrIsCertified');
+    if (cbCert) cbCert.checked = (r.dtr_is_certified == 1);
+
+    // Pretty-print the JSON daily records
+    const drEl = document.getElementById('fDtrDailyRecords');
+    if (drEl) {
+        if (r.dtr_daily_records) {
+            try   { drEl.value = JSON.stringify(JSON.parse(r.dtr_daily_records), null, 2); }
+            catch (e) { drEl.value = r.dtr_daily_records; }
+        } else { drEl.value = ''; }
+    }
 
     toggleSections();
     document.getElementById('reportModal').style.display = 'block';
@@ -1771,23 +2247,191 @@ function setVal(id, val) {
 
 // ── Toggle conditional sections based on type ─────────────────────────
 function toggleSections() {
-    const type = document.getElementById('fType').value;
-    const isPayroll  = type.startsWith('Payroll') || type === 'Employee Information Report';
-    const isPerf     = type.startsWith('Performance');
-    const isAttend   = type === 'Attendance Report';
-    const isLeave    = type.includes('Leave');
+    const type    = document.getElementById('fType').value;
+    const isDtr   = type === 'DTR Report';
+    const isPayroll  = !isDtr && (type.startsWith('Payroll') || type === 'Employee Information Report');
+    const isPerf     = !isDtr && type.startsWith('Performance');
+    const isAttend   = !isDtr && type === 'Attendance Report';
+    const isLeave    = !isDtr && type.includes('Leave');
 
-    document.getElementById('secPayroll').style.display    = isPayroll  ? 'block' : 'none';
-    document.getElementById('secPerformance').style.display= isPerf     ? 'block' : 'none';
-    document.getElementById('secAttendance').style.display = isAttend   ? 'block' : 'none';
-    document.getElementById('secLeave').style.display      = isLeave    ? 'block' : 'none';
+    document.getElementById('secDtr').style.display         = isDtr      ? 'block' : 'none';
+    document.getElementById('secPayroll').style.display     = isPayroll  ? 'block' : 'none';
+    document.getElementById('secPerformance').style.display = isPerf     ? 'block' : 'none';
+    document.getElementById('secAttendance').style.display  = isAttend   ? 'block' : 'none';
+    document.getElementById('secLeave').style.display       = isLeave    ? 'block' : 'none';
+
+    // Tint modal header and save button for DTR
+    const hdr = document.getElementById('reportModalHeader');
+    const btn = document.getElementById('btnSaveReport');
+    if (isDtr) {
+        hdr.classList.add('dtr-header');
+        btn.className = 'btn btn-dtr';
+    } else {
+        hdr.classList.remove('dtr-header');
+        btn.className = 'btn btn-primary';
+    }
+    btn.style.flex = '1';
 }
 
-// ── Open View modal ────────────────────────────────────────────────────
+// ── Open DTR-specific view modal ───────────────────────────────────────
+function openDtrViewModal(r) {
+    const fmt = v => (v !== null && v !== undefined && v !== '') ? v : '—';
+    const certified = r.dtr_is_certified == 1;
+
+    // Meta strip
+    const metaHtml = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;
+                    padding:14px;background:var(--dtr-pale);border-radius:10px;border:1px solid var(--dtr-light);">
+            <div><div class="metric-label">Report Code</div><div style="font-weight:700;"><code>${r.report_code}</code></div></div>
+            <div><div class="metric-label">Employee</div>
+                 <div style="font-weight:700;color:var(--dtr-color);">
+                    ${fmt(r.dtr_employee_name)}
+                    <span style="color:#999;font-size:12px;">(${fmt(r.dtr_employee_number)})</span>
+                 </div></div>
+            <div><div class="metric-label">Period</div>
+                 <div style="font-weight:600;">${formatDate(r.report_period_start)} – ${formatDate(r.report_period_end)}</div></div>
+            <div><div class="metric-label">Certification Officer</div><div>${fmt(r.dtr_certification_officer)}</div></div>
+            <div><div class="metric-label">Supervisor / Verifier</div><div>${fmt(r.dtr_supervisor_name)}</div></div>
+            <div><div class="metric-label">Report Status</div><div>${renderStatusBadgeJS(r.report_status)}</div></div>
+        </div>`;
+
+    // Summary cards
+    const summaryHtml = `
+        <div class="dtr-summary-grid">
+            <div class="dtr-summary-card green">
+                <div class="val">${fmt(r.dtr_total_days_worked)}</div>
+                <div class="lbl">Days Worked</div>
+            </div>
+            <div class="dtr-summary-card ${r.dtr_total_days_absent > 0 ? 'red' : 'green'}">
+                <div class="val">${fmt(r.dtr_total_days_absent)}</div>
+                <div class="lbl">Days Absent</div>
+            </div>
+            <div class="dtr-summary-card ${r.dtr_total_late_minutes > 0 ? 'amber' : 'green'}">
+                <div class="val">${r.dtr_total_late_minutes ? parseFloat(r.dtr_total_late_minutes).toFixed(0)+' min' : '0'}</div>
+                <div class="lbl">Late Minutes</div>
+            </div>
+            <div class="dtr-summary-card ${r.dtr_total_undertime_minutes > 0 ? 'amber' : 'green'}">
+                <div class="val">${r.dtr_total_undertime_minutes ? parseFloat(r.dtr_total_undertime_minutes).toFixed(0)+' min' : '0'}</div>
+                <div class="lbl">Undertime Min</div>
+            </div>
+            <div class="dtr-summary-card">
+                <div class="val">${r.dtr_total_overtime_hours ? parseFloat(r.dtr_total_overtime_hours).toFixed(1)+' hrs' : '0'}</div>
+                <div class="lbl">Overtime Hours</div>
+            </div>
+            <div class="dtr-summary-card green">
+                <div class="val">${r.dtr_total_working_hours ? parseFloat(r.dtr_total_working_hours).toFixed(1)+' hrs' : '—'}</div>
+                <div class="lbl">Working Hours</div>
+            </div>
+            <div class="dtr-summary-card ${certified ? 'green' : 'amber'}" style="grid-column:span 2;">
+                <div class="val" style="font-size:16px;">${certified ? '✅ Certified' : '⏳ Pending Certification'}</div>
+                <div class="lbl">
+                    ${certified && r.dtr_certified_at ? 'Certified on ' + formatDate(r.dtr_certified_at) : 'Not yet certified / signed'}
+                </div>
+            </div>
+        </div>`;
+
+    // Daily records table
+    let dailyHtml = '';
+    if (r.dtr_daily_records) {
+        try {
+            const records = typeof r.dtr_daily_records === 'string'
+                          ? JSON.parse(r.dtr_daily_records)
+                          : r.dtr_daily_records;
+
+            const statusCls = s => {
+                if (!s) return '';
+                const sl = s.toLowerCase();
+                if (sl === 'present')           return 'status-present';
+                if (sl === 'absent')            return 'status-absent';
+                if (sl === 'late')              return 'status-late';
+                if (sl.includes('leave'))       return 'status-leave';
+                if (sl === 'rest day' || sl === 'rest_day') return 'status-restday';
+                if (sl === 'holiday')           return 'status-holiday';
+                return '';
+            };
+
+            const rows = records.map((d, i) => {
+                const bg       = i % 2 === 0 ? '' : 'background:#faf5ff;';
+                const lateCell = d.late_minutes > 0
+                    ? `<span style="color:#e0a800;font-weight:600;">${d.late_minutes} min</span>`
+                    : '<span style="color:#ccc;">—</span>';
+                const utCell   = d.undertime_minutes > 0
+                    ? `<span style="color:#fd7e14;font-weight:600;">${d.undertime_minutes} min</span>`
+                    : '<span style="color:#ccc;">—</span>';
+                const otCell   = d.overtime_hours > 0
+                    ? `<span style="color:var(--dtr-color);font-weight:600;">${d.overtime_hours} hrs</span>`
+                    : '<span style="color:#ccc;">—</span>';
+                const ciCell   = d.clock_in  ? `<strong>${String(d.clock_in).slice(0,5)}</strong>`  : '<span style="color:#ccc;">—</span>';
+                const coCell   = d.clock_out ? `<strong>${String(d.clock_out).slice(0,5)}</strong>` : '<span style="color:#ccc;">—</span>';
+                const whCell   = d.working_hours > 0 ? `${parseFloat(d.working_hours).toFixed(2)} hrs` : '<span style="color:#ccc;">—</span>';
+                return `<tr style="${bg}">
+                    <td style="font-weight:600;">${d.date || '—'}</td>
+                    <td style="color:#888;">${d.day_of_week || '—'}</td>
+                    <td>${ciCell}</td>
+                    <td>${coCell}</td>
+                    <td>${whCell}</td>
+                    <td>${otCell}</td>
+                    <td>${lateCell}</td>
+                    <td>${utCell}</td>
+                    <td><span class="${statusCls(d.status)}">${d.status || '—'}</span></td>
+                    <td style="font-size:11px;color:#999;">${d.notes || ''}</td>
+                </tr>`;
+            }).join('');
+
+            dailyHtml = `
+                <div class="metric-group-title dtr-title" style="margin-bottom:10px;">
+                    <i class="fas fa-table"></i> Daily Time Record — ${records.length} entries
+                </div>
+                <div class="dtr-table-wrap">
+                    <table class="dtr-daily-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Day</th><th>Clock In</th><th>Clock Out</th>
+                                <th>Working Hrs</th><th>Overtime</th><th>Late</th><th>Undertime</th>
+                                <th>Status</th><th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        } catch(e) {
+            dailyHtml = `<div style="color:#dc3545;padding:12px;background:#f8d7da;border-radius:6px;">
+                <i class="fas fa-exclamation-triangle"></i> Could not parse daily records JSON.
+                <pre style="font-size:11px;margin-top:8px;white-space:pre-wrap;">${r.dtr_daily_records}</pre>
+            </div>`;
+        }
+    } else {
+        dailyHtml = '<div class="no-data" style="padding:20px;"><i class="fas fa-calendar-times"></i> No daily records stored for this DTR.</div>';
+    }
+
+    const notesHtml = r.notes
+        ? `<div class="metric-group" style="margin-top:20px;">
+               <div class="metric-group-title dtr-title"><i class="fas fa-sticky-note"></i> Notes</div>
+               <div style="background:var(--dtr-pale);border-left:3px solid var(--dtr-color);padding:12px 14px;border-radius:6px;font-size:14px;">${r.notes}</div>
+           </div>`
+        : '';
+
+    document.getElementById('dtrViewTitle').textContent = `${r.report_code}`;
+    document.getElementById('dtrViewBody').innerHTML = metaHtml + summaryHtml + dailyHtml + notesHtml + `
+        <div style="display:flex;gap:10px;margin-top:22px;">
+            <button class="btn btn-dtr btn-sm" onclick='openEditModal(${JSON.stringify(r)}); closeModal("dtrViewModal");'>
+                <i class="fas fa-edit"></i> Edit DTR
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick='closeModal("dtrViewModal")'>
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>`;
+
+    document.getElementById('dtrViewModal').style.display = 'block';
+}
+
+// ── Open View modal (generic, routes DTR to dedicated modal) ──────────
 function openViewModal(r) {
+    if (r.report_type === 'DTR Report') { openDtrViewModal(r); return; }
+
     document.getElementById('viewModalTitle').textContent = r.report_code + ' – ' + r.report_title;
 
-    const fmt = (v) => v !== null && v !== undefined && v !== '' ? v : '—';
+    const fmt   = (v) => v !== null && v !== undefined && v !== '' ? v : '—';
     const money = (v) => v ? '₱' + parseFloat(v).toLocaleString('en-PH', {minimumFractionDigits:2}) : '—';
     const statusHtml = renderStatusBadgeJS(r.report_status);
     const typeHtml   = renderTypeBadgeJS(r.report_type);
@@ -1915,9 +2559,9 @@ function openViewModal(r) {
 
 // ── Open Delete modal ──────────────────────────────────────────────────
 function openDeleteModal(id, code) {
-    document.getElementById('deleteReportId').value       = id;
+    document.getElementById('deleteReportId').value        = id;
     document.getElementById('deleteReportCode').textContent = code;
-    document.getElementById('deleteModal').style.display  = 'block';
+    document.getElementById('deleteModal').style.display   = 'block';
 }
 
 // ── Search / filter helpers ────────────────────────────────────────────
@@ -1935,7 +2579,7 @@ function filterTable(tableId, val) {
 }
 function filterTableCustom(tableId, selectId, colIdx) {
     const val = document.getElementById(selectId).value.toLowerCase();
-    const searchInputId = { tblAll: 'searchAll' }[tableId];
+    const searchInputId = { tblAll: 'searchAll', tblDtr: 'searchDtr' }[tableId];
     const searchVal = searchInputId ? document.getElementById(searchInputId).value.toLowerCase() : '';
 
     document.querySelectorAll('#' + tableId + ' tbody tr').forEach(row => {
@@ -1952,12 +2596,17 @@ wireSearch('searchPerf',    'tblPerf');
 wireSearch('searchAttend',  'tblAttend');
 wireSearch('searchLeave',   'tblLeave');
 wireSearch('searchEmpInfo', 'tblEmpInfo');
+wireSearch('searchDtr',     'tblDtr');
 
-// Also re-apply text filter when dropdowns change
+// Re-apply text filter when dropdowns change
 document.getElementById('searchAll').addEventListener('input', function() {
     filterTableCustom('tblAll','filterTypeAll',1);
     filterTableCustom('tblAll','filterStatusAll',7);
     filterTable('tblAll', this.value);
+});
+document.getElementById('searchDtr').addEventListener('input', function() {
+    filterTableCustom('tblDtr','filterDtrStatus',8);
+    filterTable('tblDtr', this.value);
 });
 
 // ── JS badge helpers (mirroring PHP) ──────────────────────────────────
@@ -1968,10 +2617,11 @@ function renderStatusBadgeJS(status) {
 }
 function renderTypeBadgeJS(type) {
     let cls = 'badge-empinfo';
-    if (type && type.startsWith('Payroll'))      cls = 'badge-payroll';
-    if (type && type.startsWith('Performance'))  cls = 'badge-perf';
-    if (type && type === 'Attendance Report')    cls = 'badge-attend';
-    if (type && type.includes('Leave'))          cls = 'badge-leave';
+    if (type && type.startsWith('Payroll'))     cls = 'badge-payroll';
+    if (type && type.startsWith('Performance')) cls = 'badge-perf';
+    if (type && type === 'Attendance Report')   cls = 'badge-attend';
+    if (type && type.includes('Leave'))         cls = 'badge-leave';
+    if (type && type === 'DTR Report')          cls = 'badge-dtr';
     return `<span class="badge-pill ${cls}">${type}</span>`;
 }
 function renderFormatBadgeJS(fmt) {

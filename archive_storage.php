@@ -7,6 +7,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
+
 // Database connection (kept local to avoid impacting other includes)
 $host = getenv('DB_HOST') ?? 'localhost';
 $dbname = getenv('DB_NAME') ?? 'hr_system';
@@ -66,31 +67,16 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                     throw new Exception("Cannot restore: A record with this ID already exists in the system.");
                 }
                 
-                // Check for duplicate Tax ID or SSN before restoring
+                // Check for duplicate Tax ID before restoring
                 $taxId = $recordData['tax_id'] ?? null;
-                $ssn = $recordData['social_security_number'] ?? null;
                 
-                if (!empty($taxId) || !empty($ssn)) {
-                    $conditions = [];
-                    $checkParams = [];
+                if (!empty($taxId)) {
+                    $checkQuery = "SELECT COUNT(*) FROM personal_information WHERE tax_id = ?";
+                    $checkStmt = $pdo->prepare($checkQuery);
+                    $checkStmt->execute([$taxId]);
                     
-                    if (!empty($taxId)) {
-                        $conditions[] = "tax_id = ?";
-                        $checkParams[] = $taxId;
-                    }
-                    if (!empty($ssn)) {
-                        $conditions[] = "social_security_number = ?";
-                        $checkParams[] = $ssn;
-                    }
-                    
-                    if (!empty($conditions)) {
-                        $checkQuery = "SELECT COUNT(*) FROM personal_information WHERE " . implode(" OR ", $conditions);
-                        $checkStmt = $pdo->prepare($checkQuery);
-                        $checkStmt->execute($checkParams);
-                        
-                        if ($checkStmt->fetchColumn() > 0) {
-                            throw new Exception("Cannot restore: Tax ID or Social Security Number already exists in the system.");
-                        }
+                    if ($checkStmt->fetchColumn() > 0) {
+                        throw new Exception("Cannot restore: Tax ID already exists in the system.");
                     }
                 }
                 
@@ -98,11 +84,11 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                 $restoreStmt = $pdo->prepare("INSERT INTO personal_information 
                     (personal_info_id, first_name, last_name, date_of_birth, gender, marital_status, 
                      marital_status_date, spouse_name, marital_status_document, document_type, document_number, 
-                     issuing_authority, nationality, tax_id, social_security_number, gsis_id, pag_ibig_id, 
+                     issuing_authority, nationality, tax_id, gsis_id, pag_ibig_id, 
                      philhealth_id, phone_number, emergency_contact_name, emergency_contact_relationship, 
                      emergency_contact_phone, highest_education_level, field_of_study, institution_name, 
                      graduation_year, previous_job_experiences, certifications, additional_training) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
                 $restoreStmt->execute([
                     $recordData['personal_info_id'],
@@ -119,7 +105,6 @@ if (isset($_POST['restore']) && isset($_POST['archive_id'])) {
                     $recordData['issuing_authority'] ?? null,
                     $recordData['nationality'],
                     $recordData['tax_id'] ?? null,
-                    $recordData['social_security_number'] ?? null,
                     $recordData['gsis_id'] ?? null,
                     $recordData['pag_ibig_id'] ?? null,
                     $recordData['philhealth_id'] ?? null,

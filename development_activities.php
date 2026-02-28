@@ -622,6 +622,7 @@ if ($filter_plan_id > 0) {
                                         <option value="Project">Project</option>
                                         <option value="Certification">Certification</option>
                                         <option value="Assessment">Assessment</option>
+                                        <option value="Seminar">Seminar</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>

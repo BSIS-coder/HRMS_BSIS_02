@@ -17,6 +17,7 @@ try {
                 c.name,
                 c.description,
                 c.job_role_id,
+                c.category,
                 jr.title AS role
             FROM competencies c
             LEFT JOIN job_roles jr ON c.job_role_id = jr.job_role_id
@@ -44,6 +45,8 @@ try {
                 c.competency_id, 
                 c.name, 
                 c.description,
+                c.job_role_id,
+                c.category,
                 jr.title AS role
             FROM competencies c
             LEFT JOIN job_roles jr ON c.job_role_id = jr.job_role_id
@@ -64,6 +67,8 @@ try {
             c.competency_id, 
             c.name, 
             c.description,
+            c.job_role_id,
+            c.category,
             jr.title AS role
         FROM competencies c
         LEFT JOIN job_roles jr ON c.job_role_id = jr.job_role_id
