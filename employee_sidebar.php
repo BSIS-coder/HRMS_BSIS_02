@@ -148,11 +148,6 @@ if ($pdo_sb && $resolved_emp_id) {
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo isActiveMenu('employee_attendance.php'); ?>" href="employee_attendance.php">
-                <i class="fas fa-calendar-check"></i> My Attendance
-            </a>
-        </li>
-        <li class="nav-item">
             <a class="nav-link <?php echo isActiveMenu('payslips.php'); ?>" href="payslips.php">
                 <i class="fas fa-receipt"></i> My Payslips
             </a>

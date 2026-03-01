@@ -90,10 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $sql = "SELECT 
             p.*, 
             pt.gross_pay, pt.net_pay, pt.tax_deductions, 
-            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'gsis' THEN sd.deduction_amount END), 0) AS gsis_contribution,
-            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'philhealth' THEN sd.deduction_amount END), 0) AS philhealth_contribution,
-            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'pag-ibig' THEN sd.deduction_amount END), 0) AS pagibig_contribution,
-            COALESCE(SUM(sd.deduction_amount), 0) AS statutory_deductions,
+            COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'gsis' THEN sd.deduction_amount / 2 END), 0) AS gsis_contribution,
+COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'philhealth' THEN sd.deduction_amount / 2 END), 0) AS philhealth_contribution,
+COALESCE(SUM(CASE WHEN LOWER(sd.deduction_type) = 'pag-ibig' THEN sd.deduction_amount / 2 END), 0) AS pagibig_contribution,
+COALESCE(SUM(sd.deduction_amount) / 2, 0) AS statutory_deductions,
             ep.employee_number, pi.first_name, pi.last_name,
             jr.title AS job_title, d.department_name, 
             pc.cycle_name, pc.pay_period_start, pc.pay_period_end
@@ -749,6 +749,7 @@ try {
         <div class="text-center my-3">
           <h5 class="font-weight-bold text-dark">Net Pay</h5>
           <h3 id="detail_net_pay" class="font-weight-bold text-success">₱0.00</h3>
+          
           <small class="text-muted">(After all deductions)</small>
         </div>
 
@@ -804,26 +805,36 @@ try {
             
             $('#detail_gross_pay').text('₱' + parseFloat(payslip.gross_pay).toLocaleString('en-US', {minimumFractionDigits: 2}));
             $('#detail_net_pay').text('₱' + parseFloat(payslip.net_pay).toLocaleString('en-US', {minimumFractionDigits: 2}));
+            // Treat gross_pay as basic pay (semi-monthly already computed)
+let gross = parseFloat(payslip.gross_pay || 0);
+let tax = parseFloat(payslip.tax_deductions || 0);
+let statutory = parseFloat(payslip.statutory_deductions || 0);
+let other = parseFloat(payslip.other_deductions || 0);
+
+let totalDeductions = tax + statutory + other;
+
+// Set earnings
+$('#detail_basic_pay').text(gross.toLocaleString('en-US', {minimumFractionDigits: 2}));
+$('#detail_allowances').text('0.00');
+$('#detail_overtime').text('0.00');
+$('#detail_gross_total').text(gross.toLocaleString('en-US', {minimumFractionDigits: 2}));
+
+// Set total deductions correctly
+$('#detail_total_deductions').text(totalDeductions.toLocaleString('en-US', {minimumFractionDigits: 2}));
             $('#detail_tax').text('₱' + (payslip.tax_deductions ? parseFloat(payslip.tax_deductions).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#detail_gsis').text('₱' + (payslip.gsis_contribution ? parseFloat(payslip.gsis_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#detail_philhealth').text('₱' + (payslip.philhealth_contribution ? parseFloat(payslip.philhealth_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
             $('#detail_pagibig').text('₱' + (payslip.pagibig_contribution ? parseFloat(payslip.pagibig_contribution).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
-            $('#detail_total_deductions').text('₱' + (payslip.statutory_deductions ? parseFloat(payslip.statutory_deductions).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00'));
-            $('#modal_download_btn').onclick = function() { viewPayslip(payslip.payslip_id); };
+           $('#detail_total_deductions').text('₱' + totalDeductions.toLocaleString('en-US', {minimumFractionDigits: 2}));
+            $('#modal_download_btn').off('click').on('click', function() { viewPayslip(payslip.payslip_id); });
             
             $('#payslipDetailsModal').modal('show');
         }
 
-        function viewPayslip(payslipId) {
-            // In a real implementation, this would open/download the actual PDF payslip
-            // For now, we'll show an alert
-            alert('Payslip download functionality would be implemented here.\n\nThis would generate and download a PDF payslip for ID: ' + payslipId);
-            
-            // Mark as viewed if it's the current user's payslip
-            <?php if ($current_user_role === 'employee'): ?>
-                // You could add AJAX call here to mark the payslip as "Viewed"
-            <?php endif; ?>
-        }
+       function viewPayslip(payslipId) {
+    // Open the PDF in a new tab
+    window.open('generate_payslip_pdf.php?payslip_id=' + payslipId, '_blank');
+}
 
         function exportPayslipsToCSV() {
             const table = document.getElementById('payslipsTable');
@@ -850,5 +861,7 @@ try {
             document.body.removeChild(link);
         }
     </script>
+    
+    
 </body>
 </html>

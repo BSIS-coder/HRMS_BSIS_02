@@ -115,6 +115,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
             $message = "No active shift found for today. Please contact HR to assign a shift.";
             $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
             if ($isAjax) {
+                header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $message]);
                 exit;
             } else {
@@ -127,6 +128,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
             $message = "You can only clock in between {$shiftStartFormatted} and {$shiftEndFormatted}. Your shift ({$employeeShift['shift_name']}): {$shiftStartFormatted} - {$shiftEndFormatted}";
             $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
             if ($isAjax) {
+                header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $message]);
                 exit;
             } else {
@@ -171,6 +173,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 }
 
                 if ($isAjax) {
+                    header('Content-Type: application/json');
                     if ($result) {
                         echo json_encode(['success' => true, 'message' => $message]);
                     } else {
@@ -201,6 +204,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                     error_log("Clock-in PDO error: " . $e->getMessage());
                     $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
                     if ($isAjax) {
+                        header('Content-Type: application/json');
                         echo json_encode(['success' => false, 'message' => $errorMsg]);
                         exit;
                     } else {
@@ -232,6 +236,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
             $message = "No active shift found for today. Cannot process clock-out.";
             $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
             if ($isAjax) {
+                header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $message]);
                 exit;
             } else {
@@ -244,6 +249,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
             $message = "You can only clock out between {$shiftStartFormatted} and {$shiftEndFormatted}. Your shift ({$employeeShift['shift_name']}): {$shiftStartFormatted} - {$shiftEndFormatted}";
             $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
             if ($isAjax) {
+                header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $message]);
                 exit;
             } else {
@@ -276,6 +282,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                         }
 
                 if ($isAjax) {
+                    header('Content-Type: application/json');
                     if ($result) {
                         echo json_encode(['success' => true, 'message' => $message]);
                     } else {
@@ -305,6 +312,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
                     error_log("Clock-out PDO error: " . $e->getMessage());
                     $isAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
                     if ($isAjax) {
+                        header('Content-Type: application/json');
                         echo json_encode(['success' => false, 'message' => $errorMsg]);
                         exit;
                     } else {
@@ -377,8 +385,8 @@ foreach ($attendanceHistory as $record) {
     }
 }
 
-$attendanceRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0;
-$avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
+$attendanceRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100) : 0;
+$avgHours = $presentDays > 0 ? round($totalHours / $presentDays) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -598,7 +606,7 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
                     <div class="col-md-4">
                         <div class="stats-card">
                             <h5 class="text-center mb-3">Total Hours</h5>
-                            <div class="stats-value text-center"><?php echo round($totalHours, 1); ?>h</div>
+                            <div class="stats-value text-center"><?php echo round($totalHours); ?>h</div>
                             <small class="text-muted text-center d-block">This month</small>
                         </div>
                     </div>
@@ -638,7 +646,7 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
                                                     <td><?php echo htmlspecialchars(date('M d, Y', strtotime($record['attendance_date']))); ?></td>
     <td><?php echo ($record['clock_in'] && $record['clock_in'] !== '00:00:00' && $record['clock_in'] !== '0000-00-00 00:00:00') ? date('h:i A', strtotime($record['clock_in'])) : '-'; ?></td>
     <td><?php echo ($record['clock_out'] && $record['clock_out'] !== '00:00:00' && $record['clock_out'] !== '0000-00-00 00:00:00') ? date('h:i A', strtotime($record['clock_out'])) : '-'; ?></td>
-                                                    <td><?php echo $record['working_hours'] ? $record['working_hours'] . 'h' : '-'; ?></td>
+                                                    <td><?php echo $record['working_hours'] ? ((int)$record['working_hours']) . 'h' : '-'; ?></td>
                                                     <td>
                                                         <span class="badge badge-<?php echo strtolower($record['status'] ?? 'secondary'); ?>">
                                                             <?php echo htmlspecialchars($record['status'] ?? 'Not Recorded'); ?>
@@ -658,7 +666,7 @@ $avgHours = $presentDays > 0 ? round($totalHours / $presentDays, 1) : 0;
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>

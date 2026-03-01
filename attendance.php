@@ -77,25 +77,6 @@ require_once 'dp.php';
             <div class="main-content">
                 <h2 class="section-title">Attendance Management</h2>
                 
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 6727</strong> - Wage Order: Enforces 8-hour work day (08:00 AM standard). Overtime tracked and regulated.</li>
-                                <li><strong>RA 8799</strong> - Employee benefits and compensation provisions apply.</li>
-                                <li><strong>RA 10173</strong> - Data Privacy Act: Only authorized HR/Admin personnel can access this information.</li>
-                            </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">
@@ -112,8 +93,6 @@ require_once 'dp.php';
                                             <tr>
                                                 <th>Employee</th>
                                                 <th>Date</th>
-                                                <th>Check In</th>
-                                                <th>Check Out</th>
                                                 <th>Hours Worked</th>
                                                 <th>Overtime Hours</th>
                                                 <th>Late Minutes</th>
@@ -124,25 +103,6 @@ require_once 'dp.php';
                                             <!-- Attendance data will be loaded here via AJAX -->
                                         </tbody>
                                         <script>
-                                            // Function to update clock in/out times dynamically
-                                            function updateAttendanceTimes() {
-                                                const rows = document.querySelectorAll('#attendanceTableBody tr');
-                                                rows.forEach(row => {
-                                                    const clockInCell = row.querySelector('td:nth-child(3)');
-                                                    const clockOutCell = row.querySelector('td:nth-child(4)');
-
-                                                    if (clockInCell && clockInCell.textContent !== '-' && !clockInCell.querySelector('.live-time')) {
-                                                        const clockInTime = clockInCell.textContent;
-                                                        clockInCell.innerHTML = '<span class="live-time">' + clockInTime + '</span>';
-                                                    }
-
-                                                    if (clockOutCell && clockOutCell.textContent !== '-' && !clockOutCell.querySelector('.live-time')) {
-                                                        const clockOutTime = clockOutCell.textContent;
-                                                        clockOutCell.innerHTML = '<span class="live-time">' + clockOutTime + '</span>';
-                                                    }
-                                                });
-                                            }
-
                                             // Update times when data is loaded
                                             function loadAttendanceData() {
                                                 console.log('Loading attendance data...');
@@ -152,7 +112,6 @@ require_once 'dp.php';
                                                     success: function(data) {
                                                         console.log('Attendance data loaded successfully:', data);
                                                         $('#attendanceTableBody').html(data);
-                                                        updateAttendanceTimes();
                                                     },
                                                     error: function(xhr, status, error) {
                                                         console.error('AJAX Error:', {status: xhr.status, error: error});
@@ -162,7 +121,7 @@ require_once 'dp.php';
                                                         } else if (xhr.status === 500) {
                                                             errorMsg = 'Server error. Check PHP logs.';
                                                         }
-                                                        $('#attendanceTableBody').html('<tr><td colspan="8" class="text-center text-danger">' + errorMsg + '</td></tr>');
+                                                        $('#attendanceTableBody').html('<tr><td colspan="6" class="text-center text-danger">' + errorMsg + '</td></tr>');
                                                     }
                                                 });
                                             }
@@ -315,14 +274,6 @@ require_once 'dp.php';
                             <input type="date" class="form-control" id="attendanceDate" name="attendanceDate" required>
                         </div>
                         <div class="form-group">
-                            <label for="checkInTime">Check In Time</label>
-                            <input type="time" class="form-control" id="checkInTime" name="checkInTime" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="checkOutTime">Check Out Time</label>
-                            <input type="time" class="form-control" id="checkOutTime" name="checkOutTime">
-                        </div>
-                        <div class="form-group">
                             <label for="attendanceStatus">Status</label>
                             <select class="form-control" id="attendanceStatus" name="attendanceStatus" required>
                                 <option value="present">Present</option>
@@ -337,8 +288,7 @@ require_once 'dp.php';
                         </div>
                         <div class="form-group">
                             <label for="lateMinutes">Late Minutes</label>
-                            <input type="number" step="0.01" class="form-control" id="lateMinutes" name="lateMinutes" placeholder="0.00" readonly>
-                            <small class="form-text text-muted">Automatically calculated based on check-in time (8:00 AM start)</small>
+                            <input type="number" step="0.01" class="form-control" id="lateMinutes" name="lateMinutes" placeholder="0.00">
                         </div>
                     </form>
                 </div>
@@ -373,7 +323,7 @@ require_once 'dp.php';
                         } else if (xhr.status === 500) {
                             errorMsg = 'Server error. Check PHP logs.';
                         }
-                        $('#attendanceTableBody').html('<tr><td colspan="8" class="text-center text-danger">' + errorMsg + '</td></tr>');
+                        $('#attendanceTableBody').html('<tr><td colspan="6" class="text-center text-danger">' + errorMsg + '</td></tr>');
                     }
                 });
             }
@@ -386,32 +336,6 @@ require_once 'dp.php';
                 console.log('Auto-refreshing attendance data...');
                 loadAttendanceData();
             }, 30000);
-
-            // Function to calculate late minutes
-            function calculateLateMinutes() {
-                var checkInTime = $('#checkInTime').val();
-                if (checkInTime) {
-                    var startTime = '08:00'; // Standard start time
-                    var checkIn = new Date('1970-01-01T' + checkInTime + ':00');
-                    var start = new Date('1970-01-01T' + startTime + ':00');
-                    var diffMs = checkIn - start;
-                    var diffMins = diffMs / (1000 * 60);
-                    var lateMinutes = diffMins > 0 ? diffMins : 0;
-                    $('#lateMinutes').val(lateMinutes.toFixed(2));
-                } else {
-                    $('#lateMinutes').val('0.00');
-                }
-            }
-
-            // Calculate late minutes when check-in time changes
-            $('#checkInTime').on('change', function() {
-                calculateLateMinutes();
-            });
-
-            // Also calculate on modal show in case time is pre-filled
-            $('#addAttendanceModal').on('shown.bs.modal', function() {
-                calculateLateMinutes();
-            });
 
             // Handle refresh button click
             $('#refreshBtn').on('click', function() {

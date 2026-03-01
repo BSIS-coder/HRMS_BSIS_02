@@ -1,27 +1,6 @@
 <?php
 /**
  * SHIFTS MANAGEMENT PAGE
- * 
- * Applicable Philippine Republic Acts:
- * - RA 6727 (Implementing Rules and Regulations of the Wage Order)
- *   - Mandates 8-hour work day (as implemented in shift scheduling)
- *   - Overtime regulations beyond 8 hours per day
- *   - Shift duration limitations
- *   - Rest day and meal period requirements
- *   - Compensation for night shift work (night differential)
- * 
- * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
- *   - Shift schedules contain employee personal information
- *   - Working hours and shift assignments reveal employee work patterns
- *   - Secure shift schedule data with appropriate access controls
- *   - Only authorized management/HR should access shift configurations
- *   - Employees have right to know their shift assignments
- *   - Protect shift schedule audit trails and modification history
- * 
- * Compliance Note: Shifts should not exceed 8 hours regular work day.
- * Any scheduling beyond 8 hours constitutes overtime with mandatory compensation.
- * Night shifts (typically 10 PM - 6 AM) require night differential pay per wage order.
- * All shift data must be protected as personal information under RA 10173.
  */
 
 session_start();
@@ -147,30 +126,6 @@ $shifts = getShifts();
             <div class="main-content">
                 <h2 class="section-title">Shifts Management</h2>
                 
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 6727</strong> - Wage Order: 8-hour work day standard. Overtime beyond 8 hours regulated and compensated.</li>
-                                <li><strong>RA 10173</strong> - Data Privacy Act: Shift schedules contain personal work pattern information.</li>
-                            </ul>
-                            <strong>Data Privacy Notice:</strong>
-                            <ul class="mb-0">
-                                <li>Shift configurations affect employee work schedules - access restricted to authorized management/HR only</li>
-                                <li>Night shift designations are tracked for night differential compensation calculation</li>
-                                <li>All shift configuration modifications are logged for audit purposes</li>
-                                <li>Protect shift schedule data with appropriate access controls and encryption</li>
-                            </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
                 
                 <?php if (isset($error)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -265,4 +220,138 @@ $shifts = getShifts();
                                         <h4 class="text-success"><?php echo count($shifts); ?></h4>
                                         <small class="text-muted">Active Shifts</small>
                                     </div>
-                                    <div class
+                                    <div class="col-4">
+                                        <h4 class="text-info"><?php echo count($shifts); ?></h4>
+                                        <small class="text-muted">Configured</small>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-light border mb-0">
+                                    <small class="text-muted">
+                                        Tip: Deleting a shift may fail if it is assigned to employees.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Shift Notes</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="mb-0">
+                                    <li>Configure shifts according to company policies.</li>
+                                    <li>Ensure proper shift scheduling for coverage.</li>
+                                    <li>Restrict shift configuration access to authorized roles.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Shift Modal -->
+                <div class="modal fade" id="addShiftModal" tabindex="-1" role="dialog" aria-labelledby="addShiftModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addShiftModalLabel">Add Shift</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form method="POST" action="shifts.php">
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="shiftName">Shift Name</label>
+                                        <input type="text" name="shiftName" id="shiftName" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="startTime">Start Time</label>
+                                        <input type="time" name="startTime" id="startTime" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="endTime">End Time</label>
+                                        <input type="time" name="endTime" id="endTime" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="shiftDescription">Description</label>
+                                        <textarea name="shiftDescription" id="shiftDescription" class="form-control" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" name="addShift" class="btn btn-primary">Save Shift</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Shift Modal -->
+                <div class="modal fade" id="editShiftModal" tabindex="-1" role="dialog" aria-labelledby="editShiftModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editShiftModalLabel">Edit Shift</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form method="POST" action="shifts.php">
+                                <div class="modal-body">
+                                    <input type="hidden" name="shiftId" id="editShiftId">
+                                    <div class="form-group">
+                                        <label for="editShiftName">Shift Name</label>
+                                        <input type="text" name="shiftName" id="editShiftName" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editStartTime">Start Time</label>
+                                        <input type="time" name="startTime" id="editStartTime" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editEndTime">End Time</label>
+                                        <input type="time" name="endTime" id="editEndTime" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editShiftDescription">Description</label>
+                                        <textarea name="shiftDescription" id="editShiftDescription" class="form-control" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" name="editShift" class="btn btn-primary">Update Shift</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        $('#editShiftModal').on('show.bs.modal', function (event) {
+            const button = $(event.relatedTarget);
+            const id = button.data('id');
+            const name = button.data('name');
+            const startTime = button.data('starttime');
+            const endTime = button.data('endtime');
+            const description = button.data('description');
+
+            const modal = $(this);
+            modal.find('#editShiftId').val(id);
+            modal.find('#editShiftName').val(name);
+            modal.find('#editStartTime').val(startTime);
+            modal.find('#editEndTime').val(endTime);
+            modal.find('#editShiftDescription').val(description || '');
+        });
+    </script>
+</body>
+</html>

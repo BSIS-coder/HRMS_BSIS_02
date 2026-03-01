@@ -56,7 +56,7 @@ try {
         $debugResult = $debugStmt->fetch(PDO::FETCH_ASSOC);
         $totalEmployees = $debugResult['total'] ?? 0;
         error_log("fetch_attendance_overview: No employees fetched, but total active employees: $totalEmployees");
-        echo '<tr><td colspan="8" class="text-center">No employee records found. (Debug: ' . $totalEmployees . ' active employees in DB)</td></tr>';
+        echo '<tr><td colspan="6" class="text-center">No employee records found. (Debug: ' . $totalEmployees . ' active employees in DB)</td></tr>';
     } else {
         // Debug: Log what we're getting
         error_log("fetch_attendance_overview: Processing " . count($employees) . " employees");
@@ -126,8 +126,6 @@ try {
                     </div>
                 </td>
                 <td>" . date('Y-m-d') . "</td>
-                <td>{$clockIn}</td>
-                <td>{$clockOut}</td>
                 <td>{$hours}</td>
                 <td>{$overtime}</td>
                 <td>{$late}</td>
@@ -137,7 +135,7 @@ try {
     }
 } catch (PDOException $e) {
     error_log("fetch_attendance_overview: PDO error - " . $e->getMessage());
-    echo '<tr><td colspan="8" class="text-center text-danger">Error loading attendance data: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
+    echo '<tr><td colspan="6" class="text-center text-danger">Error loading attendance data: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
 }
 
 // Debug mode: Output JSON if ?debug=1

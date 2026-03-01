@@ -1,24 +1,6 @@
 <?php
 /**
  * PUBLIC HOLIDAYS MANAGEMENT PAGE
- * 
- * Applicable Philippine Republic Acts:
- * - RA 7322 (Philippine Holidays Law)
- *   - Defines Regular Holidays (national holidays)
- *   - Special Non-Working Days (special occasions)
- *   - Special Holidays and Commemorative Days
- *   - Governs compensation for work on holidays
- * 
- * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
- *   - Holiday policies may contain employee personal data
- *   - Ensure secure storage and restricted access to holiday schedules
- *   - Only authorized personnel (HR/admin) should manage holidays
- *   - Any holiday preference data must comply with privacy requirements
- *   - Protect employee information in audit logs and history
- * 
- * Compliance Note: All holidays must comply with RA 7322 requirements.
- * Holiday types (National, Regional, Special) are managed per law.
- * All holiday-related data must be protected under RA 10173.
  */
 
 session_start();
@@ -87,6 +69,24 @@ require_once 'dp.php';
             z-index: 1050;
             min-width: 300px;
         }
+
+        .holiday-view-toggle .btn {
+            min-width: 110px;
+        }
+
+        #holidaysCalendar {
+            min-height: 620px;
+        }
+
+        /* Improve spacing in FullCalendar inside Bootstrap card */
+        .fc .fc-toolbar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .fc .fc-button {
+            box-shadow: none !important;
+        }
     </style>
 </head>
 <body>
@@ -97,23 +97,6 @@ require_once 'dp.php';
             <div class="main-content">
                 <h2 class="section-title">Public Holidays Management</h2>
                 
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 7322</strong> - Philippine Holidays Law: Governs all regular, special non-working, and special holidays recognition and compensation.</li>
-                                <li><strong>RA 10173</strong> - Data Privacy Act: Holiday schedules must be stored securely with restricted access to authorized personnel.</li>
-                            </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="row mb-4">
                     <div class="col-md-12">
@@ -121,6 +104,14 @@ require_once 'dp.php';
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0"><i class="fas fa-calendar-day mr-2"></i>Public Holidays List</h5>
                                     <div>
+                                        <div class="btn-group mr-3 holiday-view-toggle" role="group" aria-label="Holiday view toggle">
+                                            <button type="button" class="btn btn-outline-secondary" id="calendarViewBtn">
+                                                <i class="fas fa-calendar-alt mr-2"></i>Calendar
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" id="listViewBtn">
+                                                <i class="fas fa-list mr-2"></i>List
+                                            </button>
+                                        </div>
                                         <button class="btn btn-info mr-2" id="syncHolidaysBtn" onclick="syncHolidays()">
                                             <i class="fas fa-sync-alt mr-2"></i>Sync from API
                                         </button>
@@ -130,28 +121,41 @@ require_once 'dp.php';
                                     </div>
                                 </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped" id="holidaysTable">
-                                        <thead>
-                                            <tr>
-                                                <th>Holiday Name</th>
-                                                <th>Date</th>
-                                                <th>Type</th>
-                                                <th>Description</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="holidaysTableBody">
-                                            <tr>
-                                                <td colspan="4" class="text-center">
-                                                    <div class="spinner-border text-primary" role="status">
-                                                        <span class="sr-only">Loading...</span>
-                                                    </div>
-                                                    <p class="mt-2">Loading holidays...</p>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div id="holidaysCalendarView">
+                                    <div id="holidaysCalendar">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                            <p class="mt-2">Loading calendar...</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="holidaysListView" style="display: none;">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="holidaysTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Holiday Name</th>
+                                                    <th>Date</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="holidaysTableBody">
+                                                <tr>
+                                                    <td colspan="5" class="text-center">
+                                                        <div class="spinner-border text-primary" role="status">
+                                                            <span class="sr-only">Loading...</span>
+                                                        </div>
+                                                        <p class="mt-2">Loading holidays...</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -237,7 +241,7 @@ require_once 'dp.php';
                                 <option value="Special Working Holiday">Special Working Holiday - Regular pay, work as usual</option>
                                 <option value="Local Special Holiday">Local Special Holiday - Regional/local holiday</option>
                             </select>
-                            <small class="form-text text-muted">Philippine official holiday classification per DOLE</small>
+                            <small class="form-text text-muted">Official holiday classification</small>
                         </div>
                         <div class="form-group">
                             <label for="holidayDescription">Description</label>
@@ -282,7 +286,7 @@ require_once 'dp.php';
                                 <option value="Special Working Holiday">Special Working Holiday - Regular pay, work as usual</option>
                                 <option value="Local Special Holiday">Local Special Holiday - Regional/local holiday</option>
                             </select>
-                            <small class="form-text text-muted">Philippine official holiday classification per DOLE</small>
+                            <small class="form-text text-muted">Official holiday classification</small>
                         </div>
                         <div class="form-group">
                             <label for="editHolidayDescription">Description</label>
@@ -298,16 +302,57 @@ require_once 'dp.php';
         </div>
     </div>
 
+    <!-- Holiday Action Modal (Edit/Delete from calendar) -->
+    <div class="modal fade" id="holidayActionModal" tabindex="-1" role="dialog" aria-labelledby="holidayActionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="holidayActionModalLabel">Holiday</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="holidayActionId">
+                    <p class="mb-0">What would you like to do with this holiday?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-danger" id="holidayActionDeleteBtn">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                    <button type="button" class="btn btn-primary" id="holidayActionEditBtn">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
     
     <div class="alert-container" id="alertContainer"></div>
     
     <script>
+    let holidayCalendar = null;
+
     $(document).ready(function() {
         // Load holidays on page load
         loadHolidays();
+
+        // Default view: calendar
+        setHolidayView('calendar');
+
+        // View toggles
+        $('#calendarViewBtn').on('click', function() {
+            setHolidayView('calendar');
+        });
+        $('#listViewBtn').on('click', function() {
+            setHolidayView('list');
+        });
 
         // Handle add holiday form submission
         $('#saveHolidayBtn').click(function() {
@@ -327,7 +372,39 @@ require_once 'dp.php';
         $('#editHolidayModal').on('hidden.bs.modal', function() {
             $(this).find('form')[0].reset();
         });
+
+        // Holiday action modal: Edit
+        $('#holidayActionEditBtn').on('click', function() {
+            const holidayId = $('#holidayActionId').val();
+            $('#holidayActionModal').modal('hide');
+            if (holidayId) editHoliday(parseInt(holidayId, 10));
+        });
+
+        // Holiday action modal: Delete
+        $('#holidayActionDeleteBtn').on('click', function() {
+            const holidayId = $('#holidayActionId').val();
+            $('#holidayActionModal').modal('hide');
+            if (holidayId) deleteHoliday(parseInt(holidayId, 10));
+        });
     });
+
+    function setHolidayView(view) {
+        const isCalendar = view === 'calendar';
+        $('#holidaysCalendarView').toggle(isCalendar);
+        $('#holidaysListView').toggle(!isCalendar);
+
+        $('#calendarViewBtn')
+            .toggleClass('btn-secondary', isCalendar)
+            .toggleClass('btn-outline-secondary', !isCalendar);
+        $('#listViewBtn')
+            .toggleClass('btn-secondary', !isCalendar)
+            .toggleClass('btn-outline-secondary', isCalendar);
+
+        // If switching to calendar after it exists, ensure it sizes correctly.
+        if (isCalendar && holidayCalendar) {
+            setTimeout(() => holidayCalendar.updateSize(), 0);
+        }
+    }
 
     function loadHolidays() {
         $.ajax({
@@ -338,6 +415,7 @@ require_once 'dp.php';
             success: function(response) {
                 if (response.success) {
                     populateHolidaysTable(response.holidays);
+                    renderHolidayCalendar(response.holidays);
                     updateHolidayStats(response.holidays);
                     loadUpcomingHolidays(); // Load upcoming holidays after main holidays are loaded
                 } else {
@@ -348,6 +426,83 @@ require_once 'dp.php';
                 showAlert('Error connecting to server. Please try again.', 'danger');
             }
         });
+    }
+
+    function renderHolidayCalendar(holidays) {
+        const calendarEl = document.getElementById('holidaysCalendar');
+        if (!calendarEl) return;
+
+        const events = (holidays || []).map(h => {
+            const type = h.holiday_type || 'Regular Holiday';
+            const colors = getHolidayTypeColors(type);
+            return {
+                id: String(h.holiday_id),
+                title: h.holiday_name || 'Holiday',
+                start: h.holiday_date,
+                allDay: true,
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                textColor: colors.text,
+                extendedProps: {
+                    holiday_id: h.holiday_id,
+                    holiday_type: type,
+                    description: h.description || ''
+                }
+            };
+        });
+
+        if (!holidayCalendar) {
+            holidayCalendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,listMonth'
+                },
+                navLinks: true,
+                dayMaxEvents: true,
+                events,
+                eventClick: function(info) {
+                    const holidayId = info.event.extendedProps && info.event.extendedProps.holiday_id;
+                    const holidayName = info.event.title || 'Holiday';
+                    if (holidayId) {
+                        $('#holidayActionId').val(holidayId);
+                        $('#holidayActionModalLabel').text(holidayName);
+                        $('#holidayActionModal').modal('show');
+                    }
+                },
+                dateClick: function(info) {
+                    // Quick add: prefill the selected date
+                    $('#holidayDate').val(info.dateStr);
+                    $('#addHolidayModal').modal('show');
+                },
+                eventDidMount: function(info) {
+                    // Add a simple tooltip via native title attribute
+                    const desc = info.event.extendedProps && info.event.extendedProps.description;
+                    if (desc) info.el.setAttribute('title', desc);
+                }
+            });
+            holidayCalendar.render();
+        } else {
+            holidayCalendar.removeAllEvents();
+            events.forEach(e => holidayCalendar.addEvent(e));
+        }
+    }
+
+    function getHolidayTypeColors(type) {
+        // Keep colors consistent with badges but readable on calendar
+        const map = {
+            'Regular Holiday': { bg: '#0d6efd', border: '#0b5ed7', text: '#ffffff' },
+            'Special Non-Working Holiday': { bg: '#ffc107', border: '#ffb300', text: '#212529' },
+            'Special Working Holiday': { bg: '#17a2b8', border: '#138496', text: '#ffffff' },
+            'Local Special Holiday': { bg: '#6c757d', border: '#5a6268', text: '#ffffff' },
+            // Backward compatibility
+            'National': { bg: '#0d6efd', border: '#0b5ed7', text: '#ffffff' },
+            'Regional': { bg: '#6c757d', border: '#5a6268', text: '#ffffff' },
+            'Special': { bg: '#ffc107', border: '#ffb300', text: '#212529' }
+        };
+        return map[type] || { bg: '#e9ecef', border: '#ced4da', text: '#212529' };
     }
 
     function loadUpcomingHolidays() {
@@ -475,8 +630,8 @@ require_once 'dp.php';
         const hasHolidayType = holidays.length > 0 && holidays[0].hasOwnProperty('holiday_type');
         
         if (hasHolidayType) {
-            // Count holidays by Philippine official types
-            const regularHolidays = holidays.filter(h => 
+            // Count holidays by official types
+            const regularHolidays = holidays.filter(h =>
                 h.holiday_type === 'Regular Holiday' || h.holiday_type === 'National'
             ).length;
             const specialNonWorking = holidays.filter(h => 
@@ -706,12 +861,12 @@ require_once 'dp.php';
     function escapeHtml(text) {
         const map = {
             '&': '&amp;',
-            '<': '<',
-            '>': '>',
-            '"': '"',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
 

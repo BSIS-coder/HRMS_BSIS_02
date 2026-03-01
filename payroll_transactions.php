@@ -137,13 +137,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $sql = "SELECT 
             pt.*, 
             pc.cycle_name, 
+            pc.pay_period_start,
+            pc.pay_period_end,
             ep.employee_number, 
             pi.first_name, 
             pi.last_name,
             jr.title as job_title, 
             d.department_name,
             ps.payslip_id, 
-            ps.status as payslip_status
+            ps.status as payslip_status,
+            ss.basic_salary as struct_basic,
+            ss.allowances as struct_allowance,
+            (SELECT COUNT(*) FROM attendance a WHERE a.employee_id = pt.employee_id AND a.attendance_date BETWEEN pc.pay_period_start AND pc.pay_period_end AND a.status = 'Present') as days_worked,
+            (SELECT COALESCE(SUM(overtime_hours), 0) FROM attendance a WHERE a.employee_id = pt.employee_id AND a.attendance_date BETWEEN pc.pay_period_start AND pc.pay_period_end) as total_ot_hours,
+            DATEDIFF(pc.pay_period_end, pc.pay_period_start) + 1 as total_days_period
         FROM payroll_transactions pt
         JOIN payroll_cycles pc ON pt.payroll_cycle_id = pc.payroll_cycle_id
         JOIN employee_profiles ep ON pt.employee_id = ep.employee_id
@@ -151,6 +158,7 @@ $sql = "SELECT
         LEFT JOIN job_roles jr ON ep.job_role_id = jr.job_role_id
         LEFT JOIN departments d ON jr.department = d.department_name
         LEFT JOIN payslips ps ON pt.payroll_transaction_id = ps.payroll_transaction_id
+        LEFT JOIN salary_structures ss ON ep.employee_id = ss.employee_id
         WHERE 1=1";
 
 $params = [];
@@ -467,15 +475,41 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                             Payroll Transactions (<?php echo count($transactions); ?> records)
                         </span>
                         <div>
-                            <?php if ($cycle_id && !empty($transactions)): ?>
+                            <!-- Always show Generate Payslips button when cycle is selected -->
+                            <?php if ($cycle_id): ?>
+                                <?php 
+                                // Check if there are processed transactions
+                                $processed_count = 0;
+                                foreach($transactions as $t) {
+                                    if($t['status'] === 'Processed') $processed_count++;
+                                }
+                                ?>
+                                <?php if ($processed_count > 0): ?>
                                 <form method="post" style="display: inline;" onsubmit="return confirm('Generate payslips for all employees in this cycle?');">
                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                     <input type="hidden" name="action" value="generate_payslips">
                                     <input type="hidden" name="cycle_id" value="<?php echo $cycle_id; ?>">
                                     <button type="submit" class="btn btn-success btn-sm mr-2">
-                                        <i class="fas fa-file-invoice"></i> Generate Payslips
+                                        <i class="fas fa-file-invoice"></i> Generate Payslips (<?php echo $processed_count; ?>)
                                     </button>
                                 </form>
+                                <?php else: ?>
+                                <button type="button" class="btn btn-secondary btn-sm mr-2" disabled title="No processed transactions">
+                                    <i class="fas fa-file-invoice"></i> Generate Payslips (0)
+                                </button>
+                                <?php endif; ?>
+                                
+                                <?php if (in_array($_SESSION['role'], ['admin', 'hr'])): ?>
+                                <form method="post" action="payroll_approval.php" style="display: inline;" 
+                                      onsubmit="return confirm('Submit this payroll cycle for approval by Accounting and Mayor?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                    <input type="hidden" name="action" value="submit_for_approval">
+                                    <input type="hidden" name="cycle_id" value="<?php echo $cycle_id; ?>">
+                                    <button type="submit" class="btn btn-warning btn-sm mr-2">
+                                        <i class="fas fa-paper-plane"></i> Submit for Approval
+                                    </button>
+                                </form>
+                                <?php endif; ?>
                             <?php endif; ?>
                             <button type="button" class="btn btn-primary btn-sm" onclick="exportToCSV()">
                                 <i class="fas fa-download"></i> Export CSV
@@ -488,22 +522,54 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                 <thead>
                                     <tr>
                                         <th>Employee</th>
-                                        <th>Emp. #</th>
-                                        <th>Department</th>
                                         <th>Cycle</th>
+                                        <th>Days Worked</th>
+                                        <th>Rate/Day</th>
+                                        <th>Basic Pay</th>
+                                        <th>Allowance</th>
+                                        <th>OT Pay</th>
+                                        <th>Gross Pay</th>
+                                        <th>Deductions</th>
+                                        <th>Net Pay</th>
                                         <th>Status</th>
-                                        <th>Payslip</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!empty($transactions)): ?>
                                         <?php foreach ($transactions as $transaction): ?>
+                                            <?php
+                                                $is_half = (strpos($transaction['cycle_name'], 'Half') !== false);
+                                                $monthly_basic = $transaction['struct_basic'] ?? 0;
+                                                $monthly_allowance = $transaction['struct_allowance'] ?? 0;
+                                                
+                                                // Set days worked to 11 for half-month periods
+                                                $days_worked = $is_half ? 11 : $transaction['days_worked'];
+                                                
+                                                // Rate per day = (Monthly Basic ÷ 2) ÷ 11 = Monthly Basic ÷ 22
+                                                $rate_per_day = $monthly_basic / 22;
+                                                
+                                                // Basic & Allowance for this period
+                                                $period_basic = $is_half ? $monthly_basic / 2 : $monthly_basic;
+                                                $period_allowance = $is_half ? $monthly_allowance / 2 : $monthly_allowance;
+                                                
+                                                // Overtime calculation (Rate/hr * 1.25 * hours)
+                                                $hourly_rate = $rate_per_day / 8;
+                                                $ot_pay = $transaction['total_ot_hours'] * ($hourly_rate * 1.25);
+                                                
+                                                $total_deductions = $transaction['tax_deductions'] + $transaction['statutory_deductions'] + $transaction['other_deductions'];
+                                            ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($transaction['first_name'] . ' ' . $transaction['last_name']); ?></td>
-                                                <td><?php echo htmlspecialchars($transaction['employee_number']); ?></td>
-                                                <td><?php echo htmlspecialchars($transaction['department_name'] ?? 'N/A'); ?></td>
                                                 <td><?php echo htmlspecialchars($transaction['cycle_name']); ?></td>
+                                                <td><?php echo $days_worked; ?></td>
+                                                <td>₱<?php echo number_format($rate_per_day, 2); ?></td>
+                                                <td>₱<?php echo number_format($period_basic, 2); ?></td>
+                                                <td>₱<?php echo number_format($period_allowance, 2); ?></td>
+                                                <td>₱<?php echo number_format($ot_pay, 2); ?></td>
+                                                <td>₱<?php echo number_format($transaction['gross_pay'], 2); ?></td>
+                                                <td>₱<?php echo number_format($total_deductions, 2); ?></td>
+                                                <td><strong>₱<?php echo number_format($transaction['net_pay'], 2); ?></strong></td>
                                                 <td>
                                                     <?php 
                                                     $status = strtolower($transaction['status']);
@@ -512,15 +578,6 @@ $total_statutory = array_sum(array_column($transactions, 'statutory_deductions')
                                                     <span class="badge <?php echo $badge_class; ?>">
                                                         <?php echo htmlspecialchars($transaction['status']); ?>
                                                     </span>
-                                                </td>
-                                                <td>
-                                                    <?php if ($transaction['payslip_id']): ?>
-                                                        <span class="badge badge-success">
-                                                            <?php echo htmlspecialchars($transaction['payslip_status']); ?>
-                                                        </span>
-                                                    <?php else: ?>
-                                                        <span class="text-muted">Not Generated</span>
-                                                    <?php endif; ?>
                                                 </td>
                                                 <td>
                                                     <div class="btn-group" role="group">

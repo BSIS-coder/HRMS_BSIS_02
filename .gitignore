@@ -1,3 +1,5 @@
 .env
 ai_keys.php
 config.php
+db_connect.php
+login.php

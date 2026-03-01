@@ -212,36 +212,6 @@ $specialLeaveTotal = [
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
                 <h2 class="section-title">Leave Balances</h2>
-                
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-shield-alt mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 10911</strong> - 15 days vacation + 15 days sick leave minimum</li>
-                                <li><strong>RA 11210</strong> - Maternity Leave: 120 days for female employees</li>
-                                <li><strong>RA 11165</strong> - Paternity Leave: 7-14 days for male employees</li>
-                                <li><strong>RA 9403</strong> - Solo Parent: Additional 5 days</li>
-                                <li><strong>RA 10173 (CRITICAL)</strong> - Data Privacy Act: <strong>Leave balances are SENSITIVE PERSONAL INFORMATION</strong></li>
-                            </ul>
-                            <strong style="color: #d32f2f;">⚠️ SENSITIVE DATA HANDLING:</strong>
-                            <ul class="mb-2">
-                                <li>Maternity/Paternity leave balances reveal health/family status - CONFIDENTIAL</li>
-                                <li>Solo parent status is sensitive personal data - access restricted to authorized HR only</li>
-                                <li>Gender-based leave balances are protected information</li>
-                                <li>Restrict visibility to authorized HR personnel only</li>
-                                <li>Maintain comprehensive audit logs for all balance queries and modifications</li>
-                                <li>Do not share individual leave balances without legitimate business purpose</li>
-                            </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="row mb-4">
                     <div class="col-md-12">
@@ -260,7 +230,6 @@ $specialLeaveTotal = [
                                                     <th><?= htmlspecialchars($lt['leave_type_name']); ?></th>
                                                 <?php endforeach; ?>
                                                 <th>Total Balance</th>
-                                                <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -278,7 +247,7 @@ $specialLeaveTotal = [
                                                                      alt="Profile" class="profile-image mr-2">
                                                                 <div>
                                                                     <h6 class="mb-0"><?= htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']) ?></h6>
-                                                                    <small class="text-muted"><?= htmlspecialchars($employee['employee_number'] ?? 'N/A') ?></small>
+                                                                    <small class="text-dark font-weight-bold"><?= htmlspecialchars($employee['employee_number'] ?? 'N/A') ?></small>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -333,16 +302,11 @@ $specialLeaveTotal = [
                                                         <td>
                                                             <strong><?= (int)$totalBalance ?> days</strong>
                                                         </td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary">
-                                                                <i class="fas fa-eye"></i> View
-                                                            </button>
-                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <tr>
-                                                    <td colspan="8" class="text-center text-muted py-4">
+                                                    <td colspan="<?= 3 + count($leaveTypesData) ?>" class="text-center text-muted py-4">
                                                         <i class="fas fa-info-circle mr-2"></i>
                                                         No leave balance data found
                                                     </td>

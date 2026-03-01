@@ -132,31 +132,6 @@ $shifts = getShifts();
             <div class="main-content">
                 <h2 class="section-title">Employee Shifts Management</h2>
 
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 6727</strong> - Wage Order: Maximum 8-hour regular work day. Overtime tracked and regulated with mandatory compensation (1.25x-1.5x rates).</li>
-                                <li><strong>RA 10173</strong> - Data Privacy Act: <strong>Employee shift assignments are PERSONAL INFORMATION</strong></li>
-                            </ul>
-                            <strong>Data Privacy Notice:</strong>
-                            <ul class="mb-2">
-                                <li>Employee shift assignments reveal work schedules and patterns - access restricted to authorized management/HR</li>
-                                <li>Overtime assignments indicate workload - tracked for compensation calculation and labor compliance</li>
-                                <li>Only authorized managers and HR can assign/modify employee shifts</li>
-                                <li>All assignment changes are logged and audited for security and compliance</li>
-                            </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 <h2 class="section-title">Employee Shifts Management</h2>
 
                 <?php if (isset($error)): ?>

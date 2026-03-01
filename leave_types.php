@@ -1,40 +1,6 @@
 <?php
 /**
  * LEAVE TYPES MANAGEMENT PAGE
- * 
- * Applicable Philippine Republic Acts:
- * - RA 10911 (Paid Leave Bill of 2016)
- *   - Establishes 15 days vacation leave entitlement
- *   - Establishes 15 days sick leave entitlement
- *   - Leave carry-forward and conversion rules
- *   - Pro-rata benefits for new employees
- * 
- * - RA 11210 (Expanded Maternity Leave Law of 2018)
- *   - 120 days maternity leave for female employees
- *   - Extends to 120 days for solo parents (female)
- *   - Application and benefits administration
- * 
- * - RA 11165 (Paternity Leave Bill of 2018)
- *   - 7 days paternity leave (or 14 for solo parents)
- *   - Solo parent father entitlements
- * 
- * - RA 9403 (Leave Benefits for Solo Parents)
- *   - Additional 5 days leave for solo parents
- *   - Integration with maternity and paternity leave
- * 
- * - RA 11058 (Sick Leave Benefits for Women with Menstrual Disorder)
- *   - Additional sick leave considerations for eligible female employees
- * 
- * - RA 10173 (Data Privacy Act of 2012) - APPLIES TO ALL PAGES
- *   - Leave types configuration contains sensitive information
- *   - Maternity/Paternity/Menstrual Disorder leaves are SENSITIVE PI
- *   - Extra security required for health-related leave type data
- *   - Only authorized HR personnel should configure leave types
- *   - Protect medical information in leave type descriptions
- *   - Restrict visibility of sensitive leave type details
- * 
- * Compliance Note: Default days and leave types must align with statutory requirements.
- * Sensitive personal information about health-related leaves must comply with RA 10173.
  */
 
 if (session_status() == PHP_SESSION_NONE) {
@@ -177,39 +143,6 @@ $leaveTypes = getLeaveTypes();
             <?php include 'sidebar.php'; ?>
             <div class="main-content">
                 <h2 class="section-title">Leave Types Management</h2>
-                
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 10911</strong> - Paid Leave Bill: 15 days vacation + 15 days sick leave minimum entitlement</li>
-                                <li><strong>RA 11210</strong> - Maternity Leave: 120 days for female employees</li>
-                                <li><strong>RA 11165</strong> - Paternity Leave: 7-14 days for male employees</li>
-                                <li><strong>RA 9403</strong> - Solo Parent Benefits: Additional 5 days</li>
-                                <li><strong>RA 11058</strong> - Menstrual Disorder Leave: For eligible female employees</li>
-                                <li><strong>RA 10173 (CRITICAL)</strong> - Data Privacy Act: <strong>Health-related leave types are SENSITIVE PERSONAL INFORMATION</strong></li>
-                            </ul>
-                            <strong style="color: #d32f2f;">⚠️ SENSITIVE DATA HANDLING:</strong>
-                            <ul class="mb-0">
-                                <li>Maternity/Paternity/Menstrual Disorder leaves reveal health status - must be confidential</li>
-                                <li>Solo parent information is sensitive - restricted access only</li>
-                                <li>Access to this page requires authorization - only HR personnel</li>
-                                <li>All modifications are logged for audit purposes</li>
-                            </ul>
-                            <hr class="mt-3 mb-2">
-                            <a href="PHILIPPINES_LEAVE_LAWS_COMPLIANCE.md" class="btn btn-sm btn-info" target="_blank" download>
-                                <i class="fas fa-download mr-2"></i>Download Compliance Guide
-                            </a>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
                 
                 <?php if (isset($error)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">

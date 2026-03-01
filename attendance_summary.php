@@ -80,35 +80,9 @@ require_once 'dp.php';
             <div class="main-content">
                 <h2 class="section-title">Attendance Summary</h2>
                 
-                <!-- Compliance Information -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-info-circle mr-2"></i>Applicable Philippine Laws & Data Privacy Notice</h5>
-                            <hr>
-                            <strong>Philippine Republic Acts:</strong>
-                            <ul class="mb-2">
-                                <li><strong>RA 6727</strong> - Wage Order: 8-hour work day baseline (08:00 AM). On-time vs. Late tracking for wage compliance and overtime calculation.</li>
-                                <li><strong>RA 10173</strong> - Data Privacy Act: <strong>Attendance data is PERSONAL INFORMATION</strong></li>
-                            </ul>
-                            <strong>Data Privacy Notice:</strong>
-                            <ul class="mb-2">
-                                <li>Attendance summary shows aggregate employee attendance patterns - access restricted to authorized HR/supervisory personnel</li>
-                                <li>Individual employee attendance percentages are confidential - cannot be shared publicly</li>
-                                <li>Late arrival information is protected personal data subject to confidentiality requirements</li>
-                                <li>All access to this summary is logged and audited for security and compliance</li>
-                                <li>Use attendance data only for legitimate HR purposes (payroll, compliance, performance management)</li>
-                            </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="row mb-4">
                     <div class="col-md-12">
-                <h2 class="section-title">Attendance Summary</h2>
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Attendance Overview</h5>
@@ -364,6 +338,253 @@ require_once 'dp.php';
                                 </div>
                                 <div class="alert alert-warning">
                                     <strong>Warning:</strong> Follow up with absent employees as needed.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance by Department -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card summary-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-building mr-2"></i>Attendance by Department (This Month)</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $deptAttendance = [];
+                                try {
+                                    $stmt = $conn->query("
+                                        SELECT d.department_name,
+                                            COUNT(DISTINCT eh.employee_id) as total_emp,
+                                            COALESCE(SUM(asum.total_present), 0) as total_present,
+                                            COALESCE(SUM(asum.total_absent), 0) as total_absent,
+                                            COALESCE(SUM(asum.total_late), 0) as total_late,
+                                            COALESCE(SUM(asum.total_leave), 0) as total_leave
+                                        FROM departments d
+                                        LEFT JOIN employment_history eh ON eh.department_id = d.department_id
+                                            AND eh.history_id = (SELECT MAX(history_id) FROM employment_history e2 WHERE e2.employee_id = eh.employee_id)
+                                            AND (eh.employment_status = 'Active' OR eh.employment_status IS NULL)
+                                        LEFT JOIN attendance_summary asum ON eh.employee_id = asum.employee_id
+                                            AND asum.month = MONTH(CURRENT_DATE()) AND asum.year = YEAR(CURRENT_DATE())
+                                        GROUP BY d.department_id, d.department_name
+                                        ORDER BY total_emp DESC
+                                    ");
+                                    $deptAttendance = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                } catch (PDOException $e) {
+                                    error_log("Error fetching dept attendance: " . $e->getMessage());
+                                }
+                                ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Department</th>
+                                                <th class="text-center">Employees</th>
+                                                <th class="text-center">Present</th>
+                                                <th class="text-center">Absent</th>
+                                                <th class="text-center">Late Days</th>
+                                                <th class="text-center">On Leave</th>
+                                                <th class="text-center">Att. Rate</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($deptAttendance as $row): 
+                                                $tot = ($row['total_present'] ?? 0) + ($row['total_absent'] ?? 0);
+                                                $rate = $tot > 0 ? round((($row['total_present'] ?? 0) / $tot) * 100) : 0;
+                                            ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['department_name'] ?? 'N/A'); ?></td>
+                                                <td class="text-center"><?php echo (int)($row['total_emp'] ?? 0); ?></td>
+                                                <td class="text-center text-success"><?php echo (int)($row['total_present'] ?? 0); ?></td>
+                                                <td class="text-center text-danger"><?php echo (int)($row['total_absent'] ?? 0); ?></td>
+                                                <td class="text-center text-warning"><?php echo (int)($row['total_late'] ?? 0); ?></td>
+                                                <td class="text-center text-info"><?php echo (int)($row['total_leave'] ?? 0); ?></td>
+                                                <td class="text-center"><strong><?php echo $rate; ?>%</strong></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            <?php if (empty($deptAttendance)): ?>
+                                            <tr><td colspan="7" class="text-center text-muted">No department data available.</td></tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overtime & Working Hours / Late Arrivals / Status Breakdown -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card summary-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-clock mr-2"></i>Monthly Hours Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $hoursSummary = ['working' => 0, 'overtime' => 0];
+                                try {
+                                    $stmt = $conn->query("
+                                        SELECT COALESCE(SUM(total_working_hours), 0) as total_working,
+                                               COALESCE(SUM(total_overtime_hours), 0) as total_overtime
+                                        FROM attendance_summary
+                                        WHERE month = MONTH(CURRENT_DATE()) AND year = YEAR(CURRENT_DATE())
+                                    ");
+                                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    $hoursSummary['working'] = $row['total_working'] ?? 0;
+                                    $hoursSummary['overtime'] = $row['total_overtime'] ?? 0;
+                                } catch (PDOException $e) { error_log($e->getMessage()); }
+                                ?>
+                                <div class="text-center">
+                                    <h4 class="text-primary"><?php echo number_format($hoursSummary['working'], 1); ?></h4>
+                                    <small class="text-muted">Total Working Hours</small>
+                                </div>
+                                <hr>
+                                <div class="text-center">
+                                    <h4 class="text-info"><?php echo number_format($hoursSummary['overtime'], 1); ?></h4>
+                                    <small class="text-muted">Total Overtime Hours</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card summary-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Top Late Arrivals (This Month)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <?php
+                                $topLate = [];
+                                try {
+                                    $stmt = $conn->query("
+                                        SELECT CONCAT(pi.first_name, ' ', pi.last_name) as name, asum.total_late
+                                        FROM attendance_summary asum
+                                        JOIN employee_profiles ep ON asum.employee_id = ep.employee_id
+                                        JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+                                        WHERE asum.month = MONTH(CURRENT_DATE()) AND asum.year = YEAR(CURRENT_DATE())
+                                        AND asum.total_late > 0
+                                        ORDER BY asum.total_late DESC
+                                        LIMIT 5
+                                    ");
+                                    $topLate = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                } catch (PDOException $e) { error_log($e->getMessage()); }
+                                ?>
+                                <ul class="list-group list-group-flush">
+                                    <?php foreach ($topLate as $r): ?>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <?php echo htmlspecialchars($r['name'] ?? 'N/A'); ?>
+                                        <span class="badge badge-warning"><?php echo (int)($r['total_late'] ?? 0); ?> late</span>
+                                    </li>
+                                    <?php endforeach; ?>
+                                    <?php if (empty($topLate)): ?>
+                                    <li class="list-group-item text-muted">No late arrivals this month.</li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card summary-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Status Breakdown (This Month)</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $statusBreakdown = [];
+                                try {
+                                    $stmt = $conn->query("
+                                        SELECT status, COUNT(*) as cnt
+                                        FROM attendance
+                                        WHERE MONTH(attendance_date) = MONTH(CURRENT_DATE()) AND YEAR(attendance_date) = YEAR(CURRENT_DATE())
+                                        GROUP BY status
+                                    ");
+                                    $statusBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                } catch (PDOException $e) { error_log($e->getMessage()); }
+                                $statusLabels = ['Present' => 'success', 'Absent' => 'danger', 'Late' => 'warning', 'Half Day' => 'info', 'On Leave' => 'secondary'];
+                                ?>
+                                <ul class="list-group list-group-flush">
+                                    <?php foreach ($statusBreakdown as $s): 
+                                        $badge = $statusLabels[$s['status']] ?? 'secondary';
+                                    ?>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <?php echo htmlspecialchars($s['status']); ?>
+                                        <span class="badge badge-<?php echo $badge; ?>"><?php echo (int)$s['cnt']; ?></span>
+                                    </li>
+                                    <?php endforeach; ?>
+                                    <?php if (empty($statusBreakdown)): ?>
+                                    <li class="list-group-item text-muted">No attendance records this month.</li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Trend -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card summary-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-line mr-2"></i>Attendance Trend (Last 6 Months)</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $monthlyTrend = [];
+                                try {
+                                    $stmt = $conn->query("
+                                        SELECT year, month,
+                                            SUM(total_present) as present,
+                                            SUM(total_absent) as absent,
+                                            SUM(total_present + total_absent) as total
+                                        FROM attendance_summary
+                                        GROUP BY year, month
+                                        ORDER BY year DESC, month DESC
+                                        LIMIT 6
+                                    ");
+                                    $monthlyTrend = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
+                                } catch (PDOException $e) {
+                                    error_log("Error fetching monthly trend: " . $e->getMessage());
+                                }
+                                $monthNames = ['', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Month</th>
+                                                <th class="text-center">Present</th>
+                                                <th class="text-center">Absent</th>
+                                                <th class="text-center">Total Days</th>
+                                                <th class="text-center">Attendance Rate</th>
+                                                <th>Trend</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($monthlyTrend as $m): 
+                                                $tot = (int)($m['total'] ?? 0);
+                                                $rate = $tot > 0 ? round((($m['present'] ?? 0) / $tot) * 100) : 0;
+                                                $barW = min(100, max(0, $rate));
+                                            ?>
+                                            <tr>
+                                                <td><?php echo $monthNames[(int)($m['month'] ?? 0)] . ' ' . ($m['year'] ?? ''); ?></td>
+                                                <td class="text-center"><?php echo (int)($m['present'] ?? 0); ?></td>
+                                                <td class="text-center"><?php echo (int)($m['absent'] ?? 0); ?></td>
+                                                <td class="text-center"><?php echo $tot; ?></td>
+                                                <td class="text-center"><strong><?php echo $rate; ?>%</strong></td>
+                                                <td>
+                                                    <div class="progress" style="height: 8px; min-width: 80px;">
+                                                        <div class="progress-bar bg-success" style="width: <?php echo $barW; ?>%"></div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            <?php if (empty($monthlyTrend)): ?>
+                                            <tr><td colspan="6" class="text-center text-muted">No trend data available.</td></tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
