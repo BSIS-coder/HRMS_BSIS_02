@@ -14,10 +14,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 require_once 'dp.php';
 
 // Database connection
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+$host = 'localhost';
+$dbname = 'hr_system';
+$username = 'root';
+$password = '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -36,13 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add':
                 // Add new job role
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO job_roles (title, description, department, min_salary, max_salary) VALUES (?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO job_roles (title, description, department) VALUES (?, ?, ?)");
                     $stmt->execute([
                         $_POST['title'],
                         $_POST['description'],
-                        $_POST['department'],
-                        $_POST['min_salary'],
-                        $_POST['max_salary']
+                        $_POST['department']
                     ]);
                     $message = "Job role added successfully!";
                     $messageType = "success";
@@ -55,13 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'update':
                 // Update job role
                 try {
-                    $stmt = $pdo->prepare("UPDATE job_roles SET title=?, description=?, department=?, min_salary=?, max_salary=? WHERE job_role_id=?");
+                    $stmt = $pdo->prepare("UPDATE job_roles SET title=?, description=?, department=? WHERE job_role_id=?");
                     $stmt->execute([
                         $_POST['title'],
                         $_POST['description'],
                         $_POST['department'],
-                        $_POST['min_salary'],
-                        $_POST['max_salary'],
                         $_POST['job_role_id']
                     ]);
                     $message = "Job role updated successfully!";
@@ -296,10 +292,7 @@ $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
             color: #388e3c;
         }
 
-        .salary-range {
-            font-size: 14px;
-            color: #666;
-        }
+
 
         .employee-count {
             background: #e9ecef;
@@ -494,7 +487,6 @@ $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
                                     <th>Job Title</th>
                                     <th>Department</th>
                                     <th>Description</th>
-                                    <th>Salary Range</th>
                                     <th>Employees</th>
                                     <th>Actions</th>
                                 </tr>
@@ -520,12 +512,7 @@ $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
                                         </div>
                                     </td>
                                     <td>
-                                        <div>
-                                            <strong>₱<?= number_format($role['min_salary'], 0) ?> - ₱<?= number_format($role['max_salary'], 0) ?></strong><br>
-                                            <span class="salary-range">Range: ₱<?= number_format($role['max_salary'] - $role['min_salary'], 0) ?></span>
-                                        </div>
-                                    </td>
-                                    <td>
+
                                         <span class="employee-count">
                                             <?= $role['employee_count'] ?> <?= $role['employee_count'] == 1 ? 'employee' : 'employees' ?>
                                         </span>
@@ -598,20 +585,7 @@ $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
                         <textarea id="description" name="description" class="form-control" placeholder="Describe the job responsibilities and requirements..."></textarea>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="min_salary">Minimum Salary (₱) *</label>
-                                <input type="number" id="min_salary" name="min_salary" class="form-control" step="500" min="0" required>
-                            </div>
-                        </div>
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="max_salary">Maximum Salary (₱) *</label>
-                                <input type="number" id="max_salary" name="max_salary" class="form-control" step="500" min="0" required>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="button" class="btn" style="background: #6c757d; color: white; margin-right: 10px;" onclick="closeModal()">Cancel</button>
@@ -800,25 +774,7 @@ function getDepartmentClass($department) {
                 });
             });
 
-            // Real-time salary range calculation
-            const minSalaryInput = document.getElementById('min_salary');
-            const maxSalaryInput = document.getElementById('max_salary');
 
-            function updateSalaryValidation() {
-                const minVal = parseFloat(minSalaryInput.value) || 0;
-                const maxVal = parseFloat(maxSalaryInput.value) || 0;
-
-                if (minVal > 0 && maxVal > 0) {
-                    if (minVal >= maxVal) {
-                        maxSalaryInput.setCustomValidity('Maximum salary must be greater than minimum salary');
-                    } else {
-                        maxSalaryInput.setCustomValidity('');
-                    }
-                }
-            }
-
-            minSalaryInput.addEventListener('input', updateSalaryValidation);
-            maxSalaryInput.addEventListener('input', updateSalaryValidation);
         });
     </script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

@@ -909,13 +909,13 @@ CREATE TABLE `employee_skills` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `employment_history`
---
+-- ============================================================
+-- EXPANDED EMPLOYMENT HISTORY (INTERNAL)
+-- Added new columns to support richer internal tracking
+-- ============================================================
 
 CREATE TABLE `employment_history` (
-  `history_id` int(11) NOT NULL,
+  `history_id` int(11) NOT NULL AUTO_INCREMENT,
   `employee_id` int(11) NOT NULL,
   `job_title` varchar(150) NOT NULL,
   `salary_grade` varchar(50) DEFAULT NULL,
@@ -945,29 +945,557 @@ CREATE TABLE `employment_history` (
   `contract_details` text DEFAULT NULL,
   `remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`history_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `employment_history`
---
-
+-- (Original INSERT data retained as-is — no changes needed to internal history)
 INSERT INTO `employment_history` (`history_id`, `employee_id`, `job_title`, `salary_grade`, `department_id`, `employment_type`, `start_date`, `end_date`, `employment_status`, `reporting_manager_id`, `location`, `base_salary`, `allowances`, `bonuses`, `salary_adjustments`, `salary_effective_date`, `salary_increase_amount`, `salary_increase_percentage`, `previous_salary`, `position_sequence`, `is_current_position`, `promotion_type`, `reason_for_change`, `promotions_transfers`, `duties_responsibilities`, `performance_evaluations`, `training_certifications`, `contract_details`, `remarks`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Municipal Treasurer', 'Grade 32', 3, 'Full-time', '2019-07-01', NULL, 'Active', NULL, 'City Hall - 1st Floor', 65000.00, 5000.00, 0.00, 0.00, '2019-07-01', 15000.00, 30.00, 50000.00, 2, 1, 'Promotion', 'Appointed as Municipal Treasurer', 'Promoted from Administrative Aide', 'Oversees treasury operations, municipal revenue collection, and financial management.', 'Consistently rated \"Excellent\" in financial audits', 'CPA Certification, Treasury Management Training', 'Appointed by Mayor, renewable 6-year term', 'Key finance official', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(2, 2, 'Municipal Engineer', 'Grade 33', 7, 'Full-time', '2018-06-15', NULL, 'Active', NULL, 'Engineering Building', 75000.00, 6000.00, 0.00, 0.00, '2018-06-15', 20000.00, 36.36, 55000.00, 2, 1, 'Promotion', 'Appointed as Municipal Engineer', 'Promoted from CAD Operator', 'Supervises infrastructure projects, designs municipal roads and buildings.', 'Rated \"Very Satisfactory\" in infrastructure project completion', 'PRC Civil Engineer License, Project Management Certification', 'Appointed by Mayor, renewable 6-year term', 'Head of engineering department', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(1, 1, 'Municipal Treasurer', 'Grade 32', 3, 'Full-time', '2019-07-01', NULL, 'Active', NULL, 'City Hall - 1st Floor', 65000.00, 5000.00, 0.00, 0.00, '2019-07-01', 15000.00, 30.00, 50000.00, 2, 1, 'Promotion', 'Appointed as Municipal Treasurer', 'Promoted from Administrative Aide', 'Oversees treasury operations, municipal revenue collection, and financial management.', 'Consistently rated "Excellent" in financial audits', 'CPA Certification, Treasury Management Training', 'Appointed by Mayor, renewable 6-year term', 'Key finance official', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(2, 2, 'Municipal Engineer', 'Grade 33', 7, 'Full-time', '2018-06-15', NULL, 'Active', NULL, 'Engineering Building', 75000.00, 6000.00, 0.00, 0.00, '2018-06-15', 20000.00, 36.36, 55000.00, 2, 1, 'Promotion', 'Appointed as Municipal Engineer', 'Promoted from CAD Operator', 'Supervises infrastructure projects, designs municipal roads and buildings.', 'Rated "Very Satisfactory" in infrastructure project completion', 'PRC Civil Engineer License, Project Management Certification', 'Appointed by Mayor, renewable 6-year term', 'Head of engineering department', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
 (3, 3, 'Nurse', 'Grade 16', 9, 'Full-time', '2020-01-20', NULL, 'Active', 10, 'Municipal Health Office', 42000.00, 3000.00, 0.00, 0.00, '2020-01-20', 0.00, 0.00, 42000.00, 1, 1, 'Initial Hire', 'Hired as Nurse', NULL, 'Provides nursing care, assists doctors, administers vaccinations.', 'Highly commended during pandemic response', 'PRC Nursing License, Basic Life Support Training', 'Contract renewable every 3 years', 'Dedicated health staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
 (4, 4, 'CAD Operator', 'Grade 14', 7, 'Full-time', '2019-03-10', NULL, 'Active', 2, 'Municipal Engineer\'s Office', 38000.00, 2000.00, 0.00, 0.00, '2019-03-10', 0.00, 0.00, 38000.00, 1, 1, 'Initial Hire', 'Hired as CAD Operator', NULL, 'Prepares AutoCAD drawings and engineering plans.', 'Satisfactory performance in multiple LGU projects', 'AutoCAD Certification', 'Fixed-term renewable contract', 'Key engineering support', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(5, 5, 'Social Worker', 'Grade 17', 10, 'Full-time', '2021-09-05', NULL, 'Active', NULL, 'Municipal Social Welfare & Development Office', 45000.00, 3000.00, 0.00, 0.00, '2021-09-05', 10000.00, 28.57, 35000.00, 2, 1, 'Promotion', 'Hired as Social Worker', 'Promoted from Administrative Aide', 'Handles casework, provides assistance to indigent families.', 'Rated \"Very Good\" in community outreach', 'Social Work License, Community Development Training', 'Regular plantilla position', 'Handles social services cases', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(5, 5, 'Social Worker', 'Grade 17', 10, 'Full-time', '2021-09-05', NULL, 'Active', NULL, 'Municipal Social Welfare & Development Office', 45000.00, 3000.00, 0.00, 0.00, '2021-09-05', 10000.00, 28.57, 35000.00, 2, 1, 'Promotion', 'Hired as Social Worker', 'Promoted from Administrative Aide', 'Handles casework, provides assistance to indigent families.', 'Rated "Very Good" in community outreach', 'Social Work License, Community Development Training', 'Regular plantilla position', 'Handles social services cases', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
 (6, 6, 'Accounting Staff', 'Grade 12', 5, 'Full-time', '2020-11-12', NULL, 'Active', NULL, 'Municipal Accountant\'s Office', 28000.00, 1500.00, 0.00, 0.00, '2020-11-12', 0.00, 0.00, 28000.00, 1, 1, 'Initial Hire', 'Hired as Accounting Staff', NULL, 'Processes vouchers, prepares reports, assists in bookkeeping.', 'Satisfactory audit reviews', 'Bookkeeping Certification', 'Regular plantilla position', 'Junior accounting role', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
-(7, 7, 'Clerk', 'Grade 10', 8, 'Full-time', '2022-02-28', NULL, 'Active', NULL, 'Municipal Civil Registrar\'s Office', 30000.00, 1000.00, 0.00, 0.00, '2022-02-28', 0.00, 0.00, 30000.00, 1, 1, 'Initial Hire', 'Hired as Clerk', NULL, 'Maintains registry records, assists clients with civil documents.', 'Rated \"Good\" by supervisor', 'Civil Registration Training', 'Contract renewable every 2 years', 'Support staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
+(7, 7, 'Clerk', 'Grade 10', 8, 'Full-time', '2022-02-28', NULL, 'Active', NULL, 'Municipal Civil Registrar\'s Office', 30000.00, 1000.00, 0.00, 0.00, '2022-02-28', 0.00, 0.00, 30000.00, 1, 1, 'Initial Hire', 'Hired as Clerk', NULL, 'Maintains registry records, assists clients with civil documents.', 'Rated "Good" by supervisor', 'Civil Registration Training', 'Contract renewable every 2 years', 'Support staff', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
 (8, 8, 'Maintenance Worker', 'Grade 11', 15, 'Full-time', '2021-05-18', NULL, 'Active', NULL, 'General Services Office', 22000.00, 1000.00, 0.00, 0.00, '2021-05-18', 0.00, 0.00, 22000.00, 1, 1, 'Initial Hire', 'Hired as Maintenance Worker', NULL, 'Performs facility maintenance and minor repairs.', 'Satisfactory in safety inspections', 'Electrical Safety Training', 'Casual employment converted to regular', 'Assigned to city hall facilities', '2025-09-09 02:00:16', '2025-09-09 02:00:16'),
 (9, 9, 'Cashier', 'Grade 13', 3, 'Full-time', '2020-09-10', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 32000.00, 2000.00, 0.00, 0.00, '2020-09-10', 8000.00, 33.33, 24000.00, 2, 1, 'Promotion', 'Hired as Cashier', 'Promoted from Clerk', 'Handles cash collection, prepares daily receipts.', 'Commended for accurate handling of cash', 'Financial Management Training', 'Regular plantilla position', 'Treasury office staff', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(10, 10, 'Collection Officer', 'Grade 15', 3, 'Full-time', '2019-12-01', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 35000.00, 2000.00, 0.00, 0.00, '2019-12-01', 10000.00, 40.00, 25000.00, 2, 1, 'Promotion', 'Hired as Collection Officer', 'Promoted from Clerk', 'Collects taxes and fees, manages accounts receivables.', 'Rated \"Very Good\" in collection efficiency', 'Revenue Collection Procedures Training', 'Regular plantilla position', 'Handles revenue collection', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(11, 1, 'Administrative Aide', 'Grade 8', 13, 'Full-time', '2017-03-01', '2019-06-30', 'Promoted', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, '2017-03-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Administrative Aide', 'Later promoted to Treasurer', 'Clerical and administrative support tasks.', 'Rated \"Good\"', NULL, 'Fixed-term appointment', 'Entry-level HR support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(12, 2, 'CAD Operator', 'Grade 14', 7, 'Full-time', '2015-08-01', '2018-06-14', 'Promoted', NULL, 'Engineering Building', 32000.00, 1500.00, 0.00, 0.00, '2015-08-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as CAD Operator', 'Later promoted to Municipal Engineer', 'Drafting technical drawings.', 'Rated \"Good\"', 'AutoCAD Certification', 'Contract ended due to promotion', 'Junior engineering support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(13, 5, 'Administrative Aide', 'Grade 8', 13, 'Full-time', '2019-01-15', '2021-09-04', 'Promoted', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, '2019-01-15', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Administrative Aide', 'Later promoted to Social Worker', 'Handled clerical support for social welfare programs.', 'Rated \"Good\"', NULL, 'Casual contract converted to plantilla', 'Support role before promotion', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(14, 9, 'Clerk', 'Grade 9', 8, 'Full-time', '2018-05-01', '2020-09-09', 'Promoted', NULL, 'Municipal Civil Registrar\'s Office', 22000.00, 500.00, 0.00, 0.00, '2018-05-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Clerk', 'Later promoted to Cashier', 'Maintained registry documents, clerical tasks.', 'Rated \"Good\"', NULL, 'Contract ended due to transfer', 'Civil registrar support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
-(15, 10, 'Clerk', 'Grade 9', 8, 'Full-time', '2017-10-01', '2019-11-30', 'Promoted', NULL, 'Municipal Civil Registrar\'s Office', 20000.00, 500.00, 0.00, 0.00, '2017-10-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Clerk', 'Later promoted to Collection Officer', 'Clerical tasks, processing records.', 'Rated \"Satisfactory\"', NULL, 'Contract ended due to promotion', 'Civil registrar support role', '2025-09-09 02:00:16', '2026-02-23 05:30:00');
+(10, 10, 'Collection Officer', 'Grade 15', 3, 'Full-time', '2019-12-01', NULL, 'Active', 1, 'Municipal Treasurer\'s Office', 35000.00, 2000.00, 0.00, 0.00, '2019-12-01', 10000.00, 40.00, 25000.00, 2, 1, 'Promotion', 'Hired as Collection Officer', 'Promoted from Clerk', 'Collects taxes and fees, manages accounts receivables.', 'Rated "Very Good" in collection efficiency', 'Revenue Collection Procedures Training', 'Regular plantilla position', 'Handles revenue collection', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(11, 1, 'Administrative Aide', 'Grade 8', 13, 'Full-time', '2017-03-01', '2019-06-30', 'Promoted', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, '2017-03-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Administrative Aide', 'Later promoted to Treasurer', 'Clerical and administrative support tasks.', 'Rated "Good"', NULL, 'Fixed-term appointment', 'Entry-level HR support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(12, 2, 'CAD Operator', 'Grade 14', 7, 'Full-time', '2015-08-01', '2018-06-14', 'Promoted', NULL, 'Engineering Building', 32000.00, 1500.00, 0.00, 0.00, '2015-08-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as CAD Operator', 'Later promoted to Municipal Engineer', 'Drafting technical drawings.', 'Rated "Good"', 'AutoCAD Certification', 'Contract ended due to promotion', 'Junior engineering support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(13, 5, 'Administrative Aide', 'Grade 8', 13, 'Full-time', '2019-01-15', '2021-09-04', 'Promoted', NULL, 'City Hall - 2nd Floor', 25000.00, 1000.00, 0.00, 0.00, '2019-01-15', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Administrative Aide', 'Later promoted to Social Worker', 'Handled clerical support for social welfare programs.', 'Rated "Good"', NULL, 'Casual contract converted to plantilla', 'Support role before promotion', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(14, 9, 'Clerk', 'Grade 9', 8, 'Full-time', '2018-05-01', '2020-09-09', 'Promoted', NULL, 'Municipal Civil Registrar\'s Office', 22000.00, 500.00, 0.00, 0.00, '2018-05-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Clerk', 'Later promoted to Cashier', 'Maintained registry documents, clerical tasks.', 'Rated "Good"', NULL, 'Contract ended due to transfer', 'Civil registrar support', '2025-09-09 02:00:16', '2026-02-23 05:30:00'),
+(15, 10, 'Clerk', 'Grade 9', 8, 'Full-time', '2017-10-01', '2019-11-30', 'Promoted', NULL, 'Municipal Civil Registrar\'s Office', 20000.00, 500.00, 0.00, 0.00, '2017-10-01', 0.00, 0.00, NULL, 1, 0, 'Initial Hire', 'Started as Clerk', 'Later promoted to Collection Officer', 'Clerical tasks, processing records.', 'Rated "Satisfactory"', NULL, 'Contract ended due to promotion', 'Civil registrar support role', '2025-09-09 02:00:16', '2026-02-23 05:30:00');
+
+
+-- ============================================================
+-- NEW TABLE: external_employment_history
+-- Tracks work experience OUTSIDE the current organization
+-- ============================================================
+
+CREATE TABLE `external_employment_history` (
+  `ext_history_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `employer_name` varchar(200) NOT NULL COMMENT 'Name of previous employer or organization',
+  `employer_type` enum('Government','Private','NGO/Non-Profit','Self-Employed/Freelance','International Organization','Academic Institution','Military/Uniformed Service') NOT NULL,
+  `employer_address` varchar(300) DEFAULT NULL,
+  `job_title` varchar(150) NOT NULL,
+  `department_or_division` varchar(150) DEFAULT NULL,
+  `employment_type` enum('Full-time','Part-time','Contractual','Project-based','Casual','Intern','Volunteer','Consultant') NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL COMMENT 'NULL if currently employed there',
+  `is_current` tinyint(1) DEFAULT 0,
+  `years_of_experience` decimal(4,1) DEFAULT NULL COMMENT 'Auto-computed or manually entered years in this role',
+  `monthly_salary` decimal(10,2) DEFAULT NULL,
+  `currency` varchar(10) DEFAULT 'PHP',
+  `reason_for_leaving` enum('Resigned','End of Contract','Terminated','Promoted','Transferred','Retired','Business Closure','Personal Reasons','Better Opportunity','Migration','Other') DEFAULT NULL,
+  `key_responsibilities` text DEFAULT NULL,
+  `achievements` text DEFAULT NULL,
+  `immediate_supervisor` varchar(150) DEFAULT NULL,
+  `supervisor_contact` varchar(100) DEFAULT NULL COMMENT 'Phone or email of supervisor for reference',
+  `reference_available` tinyint(1) DEFAULT 1 COMMENT '1 = yes, 0 = no',
+  `skills_gained` text DEFAULT NULL COMMENT 'Comma-separated or narrative list of competencies gained',
+  `verified` tinyint(1) DEFAULT 0 COMMENT '1 = HR has verified this record',
+  `verification_date` date DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`ext_history_id`),
+  KEY `fk_ext_emp` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Records of employee work experience outside the current organization';
+
+
+-- ============================================================
+-- NEW TABLE: employee_seminars_trainings
+-- Tracks external seminars, training programs, webinars, etc.
+-- ============================================================
+
+CREATE TABLE `employee_seminars_trainings` (
+  `seminar_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL COMMENT 'Title of the seminar, training, or workshop',
+  `category` enum(
+    'Technical/Skills Training',
+    'Leadership & Management',
+    'Legal & Compliance',
+    'Health & Safety',
+    'Financial Management',
+    'Information Technology',
+    'Customer Service',
+    'Communication & Soft Skills',
+    'Civil Service & Governance',
+    'Disaster Risk Reduction',
+    'Gender & Development',
+    'Ethics & Anti-Corruption',
+    'Environmental Management',
+    'Other'
+  ) NOT NULL,
+  `organizer` varchar(200) DEFAULT NULL COMMENT 'Organization or institution that hosted the event',
+  `venue` varchar(255) DEFAULT NULL,
+  `modality` enum('Face-to-Face','Online/Virtual','Blended','Self-paced') DEFAULT 'Face-to-Face',
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
+  `duration_hours` decimal(6,1) DEFAULT NULL COMMENT 'Total number of training hours',
+  `certificate_received` tinyint(1) DEFAULT 0,
+  `certificate_number` varchar(100) DEFAULT NULL,
+  `certificate_expiry` date DEFAULT NULL COMMENT 'For certifications with validity periods',
+  `funded_by` enum('Employee','LGU Budget','Scholarship/Grant','CSC','DILG','DOH','DepEd','Other Agency') DEFAULT 'LGU Budget',
+  `amount_spent` decimal(10,2) DEFAULT 0.00 COMMENT 'Training cost or registration fee',
+  `learning_outcomes` text DEFAULT NULL COMMENT 'Skills, knowledge, or competencies gained',
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`seminar_id`),
+  KEY `fk_seminar_emp` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Seminars, trainings, workshops, and webinars attended by employees';
+
+
+-- ============================================================
+-- NEW TABLE: employee_licenses_certifications
+-- Tracks professional licenses, board exams, certifications
+-- ============================================================
+
+CREATE TABLE `employee_licenses_certifications` (
+  `license_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `license_name` varchar(200) NOT NULL,
+  `license_type` enum('Professional License','Board Exam Passer','Civil Service Eligibility','Government Certification','Industry Certification','Academic Credential','Other') NOT NULL,
+  `issuing_body` varchar(200) DEFAULT NULL COMMENT 'E.g., PRC, CSC, TESDA, CHED, industry bodies',
+  `license_number` varchar(100) DEFAULT NULL,
+  `date_issued` date DEFAULT NULL,
+  `date_of_exam` date DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL COMMENT 'NULL if lifetime/no expiry',
+  `rating` decimal(5,2) DEFAULT NULL COMMENT 'Exam rating if applicable',
+  `status` enum('Active','Expired','Suspended','Revoked','Pending Renewal') DEFAULT 'Active',
+  `renewal_date` date DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`license_id`),
+  KEY `fk_license_emp` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Professional licenses, board exam results, and certifications of employees';
+
+
+-- ============================================================
+-- NEW TABLE: employee_awards_recognition
+-- Tracks awards, commendations, and recognition received
+-- ============================================================
+
+CREATE TABLE `employee_awards_recognition` (
+  `award_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `award_title` varchar(255) NOT NULL,
+  `award_type` enum('Internal Award','External Award','Presidential/National','Regional','Provincial','Municipal/City','Academic','Community') NOT NULL,
+  `awarding_body` varchar(200) DEFAULT NULL,
+  `date_received` date DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`award_id`),
+  KEY `fk_award_emp` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Awards, commendations, and recognitions received by employees';
+
+
+-- ============================================================
+-- NEW TABLE: employee_voluntary_work
+-- Community involvement, volunteer experience
+-- ============================================================
+
+CREATE TABLE `employee_voluntary_work` (
+  `voluntary_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `organization` varchar(200) NOT NULL,
+  `position_nature_of_work` varchar(255) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `hours_per_week` int(11) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`voluntary_id`),
+  KEY `fk_vol_emp` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Voluntary or community work records of employees';
+
+
+-- ============================================================
+-- SAMPLE DATA: external_employment_history
+-- ============================================================
+
+INSERT INTO `external_employment_history` (
+  `employee_id`, `employer_name`, `employer_type`, `employer_address`, `job_title`,
+  `department_or_division`, `employment_type`, `start_date`, `end_date`, `is_current`,
+  `years_of_experience`, `monthly_salary`, `currency`, `reason_for_leaving`,
+  `key_responsibilities`, `achievements`, `immediate_supervisor`, `supervisor_contact`,
+  `reference_available`, `skills_gained`, `verified`, `verification_date`, `remarks`
+) VALUES
+
+-- Employee 1: Municipal Treasurer — prior work in private banking and BIR
+(1, 'BDO Unibank, Inc.', 'Private', 'Makati City, Metro Manila', 'Bank Teller',
+ 'Branch Operations', 'Full-time', '2011-06-01', '2014-07-31', 0,
+ 3.2, 18000.00, 'PHP', 'Better Opportunity',
+ 'Processed daily cash transactions, reconciled till, handled client inquiries.',
+ 'Consistent zero-variance cash handling for 24 consecutive months.',
+ 'Branch Manager Santos', 'santos.bdo@example.com',
+ 1, 'Cash management, financial reconciliation, customer service', 1, '2017-04-01',
+ 'Left to pursue government career'),
+
+(1, 'Bureau of Internal Revenue - Region 8', 'Government', 'Tacloban City, Leyte', 'Revenue Officer I',
+ 'Collection Division', 'Full-time', '2014-09-01', '2017-02-28', 0,
+ 2.5, 28000.00, 'PHP', 'Transferred',
+ 'Conducted tax assessments, issued notices of delinquency, filed enforcement actions.',
+ 'Exceeded collection targets by 18% in FY 2016.',
+ 'Asst. Regional Director Cruz', 'cruz.bir@example.com',
+ 1, 'Tax law, collection enforcement, government accounting', 1, '2017-04-01',
+ 'Transferred to LGU to be closer to family'),
+
+-- Employee 2: Municipal Engineer — prior work in private construction firm
+(2, 'DMCI Project Developers, Inc.', 'Private', 'Mandaluyong City, Metro Manila', 'Junior Civil Engineer',
+ 'Construction Management', 'Full-time', '2010-03-01', '2013-05-31', 0,
+ 3.3, 22000.00, 'PHP', 'Personal Reasons',
+ 'Supervised residential high-rise construction; prepared engineering estimates and progress reports.',
+ 'Completed Phase 1 of Torre de Manila ahead of schedule by 2 months.',
+ 'Engr. Reyes', 'reyes.dmci@example.com',
+ 1, 'Construction management, structural design, project estimation', 1, '2016-01-10',
+ 'Returned to province to serve local community'),
+
+(2, 'Department of Public Works and Highways - Region 8', 'Government', 'Tacloban City, Leyte', 'Civil Engineer II',
+ 'Planning & Design Division', 'Full-time', '2013-07-01', '2015-07-31', 0,
+ 2.1, 35000.00, 'PHP', 'Better Opportunity',
+ 'Designed road alignments, reviewed drainage plans, prepared project feasibility studies.',
+ 'Led design of 12 km farm-to-market road funded under DPWH-GAA 2014.',
+ 'District Engineer Lim', 'lim.dpwh@example.com',
+ 1, 'Structural design, feasibility studies, government infrastructure planning', 1, '2016-01-10',
+ 'Joined LGU for broader leadership role'),
+
+-- Employee 3: Nurse — prior hospital work
+(3, 'Eastern Visayas Regional Medical Center', 'Government', 'Tacloban City, Leyte', 'Staff Nurse',
+ 'Medical-Surgical Ward', 'Full-time', '2016-03-01', '2018-12-31', 0,
+ 2.8, 20000.00, 'PHP', 'Personal Reasons',
+ 'Provided bedside nursing care, administered medications, monitored patient vitals.',
+ 'Recognized as Best Nurse of the Quarter - Q3 2017.',
+ 'Head Nurse Soriano', 'soriano.evrmc@example.com',
+ 1, 'Patient care, medication administration, emergency triage', 1, '2020-02-15',
+ 'Transferred to community health setting'),
+
+(3, 'Doctors Without Borders (MSF) — Philippines', 'NGO/Non-Profit', 'Marawi City, Lanao del Sur', 'Field Nurse',
+ 'Emergency Medical Team', 'Contractual', '2019-01-15', '2019-10-31', 0,
+ 0.8, 35000.00, 'PHP', 'End of Contract',
+ 'Delivered emergency healthcare to displaced populations during Marawi rehabilitation; conducted health screenings.',
+ 'Administered care to over 1,200 displaced persons during assignment.',
+ 'Field Coordinator Alvarez', 'alvarez.msf@example.com',
+ 1, 'Humanitarian healthcare, triage, public health field operations', 1, '2020-02-15',
+ 'Short-term humanitarian assignment'),
+
+-- Employee 4: CAD Operator — prior drafting work
+(4, 'Palafox Associates', 'Private', 'Quezon City, Metro Manila', 'Architectural Draftsman',
+ 'Design Studio', 'Full-time', '2015-06-01', '2017-09-30', 0,
+ 2.3, 17500.00, 'PHP', 'Personal Reasons',
+ 'Produced 2D and 3D AutoCAD drawings for commercial and residential projects.',
+ 'Contributed to award-winning commercial complex design in Cebu City (2016).',
+ 'Senior Architect Gutierrez', 'gutierrez.palafox@example.com',
+ 1, 'AutoCAD, 3D modeling, architectural drafting, blueprint reading', 1, '2019-04-01',
+ 'Returned to province to be near family'),
+
+(4, 'LGU Baybay City Engineering Office', 'Government', 'Baybay City, Leyte', 'CAD Draftsman (Contractual)',
+ 'Infrastructure Division', 'Contractual', '2017-11-01', '2019-02-28', 0,
+ 1.3, 15000.00, 'PHP', 'End of Contract',
+ 'Prepared plans for school buildings, evacuation centers, and barangay halls under local fund projects.',
+ 'Completed CAD output for 8 BDRRMC evacuation centers within 3-month deadline.',
+ 'City Engineer Manalo', 'manalo.baybay@example.com',
+ 1, 'Government drafting, engineering plan preparation, infrastructure documentation', 1, '2019-04-01',
+ 'Contract ended; transitioned to current LGU position'),
+
+-- Employee 5: Social Worker — prior NGO and DSWD work
+(5, 'Gawad Kalinga Community Development Foundation', 'NGO/Non-Profit', 'Pasig City, Metro Manila', 'Community Development Officer',
+ 'Livelihood Programs', 'Full-time', '2016-06-01', '2018-01-31', 0,
+ 1.7, 19000.00, 'PHP', 'Personal Reasons',
+ 'Conducted community needs assessments, organized livelihood seminars, managed beneficiary records.',
+ 'Organized 3 productive livelihood fairs reaching 500+ beneficiaries.',
+ 'Program Director Macaraeg', 'macaraeg.gk@example.com',
+ 1, 'Community organizing, case management, stakeholder coordination', 1, '2019-02-01',
+ 'Returned to home province'),
+
+(5, 'DSWD Field Office VIII', 'Government', 'Tacloban City, Leyte', 'Social Welfare Assistant',
+ 'Pantawid Pamilyang Pilipino Program', 'Contractual', '2018-03-01', '2019-01-14', 0,
+ 0.9, 16000.00, 'PHP', 'End of Contract',
+ 'Conducted home visits, validated 4Ps beneficiaries, encoded case data into DSWD system.',
+ 'Validated and updated records of 430 4Ps families in assigned barangays.',
+ 'Municipal Link Flores', 'flores.dswd@example.com',
+ 1, 'Social case work, beneficiary validation, government social programs', 1, '2019-02-01',
+ 'Contract ended before transfer to current LGU role'),
+
+-- Employee 6: Accounting Staff — prior bookkeeping work
+(6, 'Leyte Integrated Cooperative', 'Private', 'Ormoc City, Leyte', 'Bookkeeper',
+ 'Finance Department', 'Full-time', '2017-05-01', '2019-09-30', 0,
+ 2.4, 14000.00, 'PHP', 'Better Opportunity',
+ 'Maintained general ledger, prepared financial statements, reconciled bank accounts.',
+ 'Helped reduce month-end closing time by 3 days through process improvements.',
+ 'Finance Manager Tabbal', 'tabbal.lic@example.com',
+ 1, 'Bookkeeping, financial statement preparation, bank reconciliation', 1, '2021-01-15',
+ 'Moved to government sector for job security'),
+
+(6, 'BIR-Revenue District Office 83', 'Government', 'Baybay City, Leyte', 'Job Order Accounting Aide',
+ 'Assessment Division', 'Contractual', '2019-10-01', '2020-10-31', 0,
+ 1.1, 11000.00, 'PHP', 'End of Contract',
+ 'Assisted in encoding tax returns, tracking TIN applications, and filing compliance documents.',
+ 'Maintained 99% accuracy in taxpayer encoding over 12-month period.',
+ 'Revenue Officer Sabalberino', 'sabalberino.bir@example.com',
+ 1, 'Tax compliance, data encoding, government accounting procedures', 1, '2021-01-15',
+ 'Job order contract ended; immediately hired by current LGU'),
+
+-- Employee 7: Clerk — fresh with minimal experience; part-time and volunteer
+(7, 'Samahang Kabataan ng Barangay Cogon', 'NGO/Non-Profit', 'Barangay Cogon, Leyte', 'Youth Secretary (Volunteer)',
+ 'SK Secretariat', 'Volunteer', '2019-06-01', '2021-12-31', 0,
+ 2.6, NULL, 'PHP', 'Personal Reasons',
+ 'Recorded minutes of meetings, maintained barangay youth files, coordinated community events.',
+ 'Organized annual youth leadership camp attended by 120 youth from 5 barangays.',
+ 'SK Chairperson Delgado', 'delgado.sk@example.com',
+ 1, 'Records management, event coordination, community service', 1, '2022-03-10',
+ 'Voluntary work; served as foundation for civil registrar career'),
+
+(7, 'Leyte Normal University', 'Academic Institution', 'Tacloban City, Leyte', 'Student Library Assistant (Part-time)',
+ 'Library Services', 'Part-time', '2018-06-01', '2019-05-31', 0,
+ 1.0, 5000.00, 'PHP', 'End of Contract',
+ 'Catalogued library materials, assisted students and faculty, maintained borrowing records.',
+ 'Digitized card catalog index of over 3,000 titles within one semester.',
+ 'Head Librarian Bacsal', 'bacsal.lnu@example.com',
+ 1, 'Records keeping, cataloguing, data encoding, customer assistance', 1, '2022-03-10',
+ 'Part-time student employment'),
+
+-- Employee 8: Maintenance Worker — prior private sector and construction labor
+(8, 'Jollibee Foods Corporation - Tacloban Franchise', 'Private', 'Tacloban City, Leyte', 'Utility/Maintenance Staff',
+ 'Operations', 'Full-time', '2014-03-01', '2016-11-30', 0,
+ 2.8, 11000.00, 'PHP', 'Personal Reasons',
+ 'Maintained cleanliness of restaurant, performed basic electrical and plumbing repairs, assisted in equipment upkeep.',
+ 'Awarded Employee of the Month - May 2015 for exemplary maintenance performance.',
+ 'Store Manager Chua', 'chua.jfc@example.com',
+ 1, 'Electrical maintenance, plumbing, sanitation, equipment servicing', 1, '2021-06-01',
+ 'Resigned to pursue work closer to home municipality'),
+
+(8, 'Montinola Construction Supply & Services', 'Private', 'Palo, Leyte', 'Construction Laborer / Leadman',
+ 'Field Operations', 'Project-based', '2017-01-01', '2021-04-30', 0,
+ 4.3, 12000.00, 'PHP', 'Better Opportunity',
+ 'Led team of 5 laborers in building construction; managed daily material requisitions and site safety.',
+ 'Led completion of 3 school buildings funded under DepEd BDCP without safety incidents.',
+ 'Foreman Magbanua', 'magbanua.mcs@example.com',
+ 1, 'Construction supervision, materials management, team leadership, occupational safety', 1, '2021-06-01',
+ 'Project contract ended; hired by LGU as maintenance worker'),
+
+-- Employee 9: Cashier — prior retail and banking cashier work
+(9, 'SM Savemore Market - Tacloban', 'Private', 'Tacloban City, Leyte', 'Cashier',
+ 'Retail Operations', 'Full-time', '2014-07-01', '2016-06-30', 0,
+ 2.0, 12000.00, 'PHP', 'Better Opportunity',
+ 'Processed point-of-sale transactions, managed cash register, handled customer concerns.',
+ 'Achieved zero cash shortage record for full 2-year tenure.',
+ 'Store Supervisor Bongon', 'bongon.sm@example.com',
+ 1, 'Cash handling, POS system operation, customer service, financial accountability', 1, '2018-06-01',
+ 'Left retail for public sector cashiering role'),
+
+(9, 'Leyte Cooperative Bank', 'Private', 'Palo, Leyte', 'Bank Teller',
+ 'Branch Operations', 'Full-time', '2016-08-01', '2018-04-30', 0,
+ 1.8, 16000.00, 'PHP', 'Better Opportunity',
+ 'Processed deposits, withdrawals, and loan releases; balanced daily cash position.',
+ 'Commended for assisting in system migration to digital banking platform.',
+ 'Branch Head Sabio', 'sabio.lcb@example.com',
+ 1, 'Banking operations, cash balancing, financial transactions, cooperative principles', 1, '2018-06-01',
+ 'Transferred to government for career advancement'),
+
+-- Employee 10: Collection Officer — prior private collections and LGU work
+(10, 'Pag-IBIG Fund (HDMF) - Tacloban Branch', 'Government', 'Tacloban City, Leyte', 'Collection Specialist (Contractual)',
+ 'Loans & Collections Division', 'Contractual', '2014-02-01', '2016-09-30', 0,
+ 2.7, 17000.00, 'PHP', 'End of Contract',
+ 'Processed housing loan payments, issued SOAs, followed up delinquent accounts.',
+ 'Reduced delinquency rate in assigned portfolio by 22% within 6 months.',
+ 'Division Head Delos Santos', 'delossantos.hdmf@example.com',
+ 1, 'Collections management, account monitoring, credit analysis, loan processing', 1, '2019-12-15',
+ 'Contract ended; moved to LGU for permanent plantilla position'),
+
+(10, 'Provincial Government of Leyte - Treasurer\'s Office', 'Government', 'Tacloban City, Leyte', 'Revenue Collection Clerk',
+ 'Revenue Collection Division', 'Casual', '2016-11-01', '2017-09-30', 0,
+ 0.9, 14000.00, 'PHP', 'Better Opportunity',
+ 'Collected real property taxes, issued official receipts, updated taxpayer ledgers.',
+ 'Pioneered use of simplified collection summary form adopted province-wide.',
+ 'Provincial Treasurer Obediencia', 'obediencia.pgt@example.com',
+ 1, 'Real property tax collection, official receipt management, taxpayer relations', 1, '2019-12-15',
+ 'Left provincial government for municipal position');
+
+
+-- ============================================================
+-- SAMPLE DATA: employee_seminars_trainings
+-- ============================================================
+
+INSERT INTO `employee_seminars_trainings` (
+  `employee_id`, `title`, `category`, `organizer`, `venue`, `modality`,
+  `start_date`, `end_date`, `duration_hours`, `certificate_received`,
+  `certificate_number`, `certificate_expiry`, `funded_by`, `amount_spent`,
+  `learning_outcomes`, `remarks`
+) VALUES
+
+-- Employee 1 (Treasurer)
+(1, 'New Government Accounting System (NGAS) for LGUs', 'Financial Management', 'Commission on Audit (COA)', 'COA Regional Office, Tacloban City', 'Face-to-Face', '2020-03-02', '2020-03-06', 40.0, 1, 'COA-2020-NGAS-0412', NULL, 'LGU Budget', 5000.00, 'Revised chart of accounts, journal entries, financial reporting under NGAS', 'Mandatory for all treasury officials'),
+(1, 'Anti-Money Laundering Act (AMLA) Updates for LGUs', 'Legal & Compliance', 'AMLC Secretariat', 'Online via Zoom', 'Online/Virtual', '2022-07-14', '2022-07-14', 8.0, 1, 'AMLC-2022-007', NULL, 'LGU Budget', 0.00, 'LGU obligations under AMLA, reporting suspicious transactions, beneficial ownership', 'Mandatory for treasure officers'),
+(1, 'Real Property Tax Administration Seminar', 'Financial Management', 'Bureau of Local Government Finance (BLGF)', 'BLGF Central Office, Quezon City', 'Face-to-Face', '2023-05-15', '2023-05-19', 40.0, 1, 'BLGF-RPT-2023-089', NULL, 'LGU Budget', 8000.00, 'RPT assessment, collection procedures, exemptions, disposition', 'Part of BLGF LGU Finance Officers training series'),
+(1, 'Gender and Development (GAD) Planning and Budgeting', 'Gender & Development', 'NCRFW / PCW', 'Cebu City', 'Face-to-Face', '2024-02-07', '2024-02-09', 24.0, 1, 'PCW-GAD-2024-034', NULL, 'LGU Budget', 4500.00, 'GAD budget attribution, GPB preparation, HGDG tool', 'Required for all department heads'),
+
+-- Employee 2 (Municipal Engineer)
+(2, 'Project Management for Infrastructure Projects', 'Leadership & Management', 'Project Management Institute Philippines', 'Cebu City', 'Face-to-Face', '2019-08-05', '2019-08-09', 40.0, 1, 'PMI-PH-2019-112', NULL, 'LGU Budget', 12000.00, 'Project lifecycle management, risk assessment, stakeholder management, Gantt charting', 'Sponsored by LGU for department head development'),
+(2, 'National Building Code of the Philippines – Implementing Rules and Regulations', 'Legal & Compliance', 'DPWH Bureau of Construction', 'Manila', 'Face-to-Face', '2021-03-22', '2021-03-26', 40.0, 1, 'DPWH-NBC-2021-045', NULL, 'LGU Budget', 7500.00, 'Updated IRC provisions, accessibilities standards, structural requirements', 'Mandatory for licensed engineers in government'),
+(2, 'Disaster-Resilient Infrastructure Design', 'Disaster Risk Reduction', 'OCD Region 8', 'Tacloban City', 'Face-to-Face', '2022-10-03', '2022-10-05', 24.0, 1, 'OCD-DRI-2022-028', NULL, 'LGU Budget', 2000.00, 'Typhoon-resilient structural design, flood-proofing, slope protection', 'Post-Typhoon Odette response capacity building'),
+(2, 'Public Procurement Law (RA 9184) for Engineers', 'Legal & Compliance', 'Government Procurement Policy Board (GPPB)', 'Online via MS Teams', 'Online/Virtual', '2023-11-20', '2023-11-22', 24.0, 1, 'GPPB-2023-ENG-061', NULL, 'LGU Budget', 0.00, 'PhilGEPS registration, BAC functions, technical specifications preparation', 'Mandatory for engineers involved in procurement'),
+
+-- Employee 3 (Nurse)
+(3, 'Basic Life Support (BLS) with AED Training', 'Health & Safety', 'Philippine Heart Association', 'Tacloban City', 'Face-to-Face', '2020-06-15', '2020-06-16', 16.0, 1, 'PHA-BLS-2020-203', '2022-06-15', 'LGU Budget', 3000.00, 'CPR techniques, AED use, choking management, BLS protocol updates', 'Certification renewed biennially'),
+(3, 'COVID-19 Case Management and IPC Protocol Training', 'Health & Safety', 'Department of Health Region 8', 'DOH-CHD VIII, Tacloban City', 'Face-to-Face', '2020-09-07', '2020-09-11', 40.0, 1, 'DOH-COVID-2020-IPC-019', NULL, 'DOH', 0.00, 'Standard precautions, PPE donning/doffing, isolation protocols, contact tracing', 'Emergency training during pandemic'),
+(3, 'Maternal and Child Health Nursing Update', 'Technical/Skills Training', 'Philippine Nurses Association', 'Cebu City', 'Face-to-Face', '2022-03-16', '2022-03-18', 24.0, 1, 'PNA-MCH-2022-087', NULL, 'LGU Budget', 5000.00, 'Antenatal care protocols, EINC, newborn screening, IMCI algorithm updates', 'CPE units credited for PRC renewal'),
+(3, 'Mental Health in Primary Care Settings', 'Health & Safety', 'National Center for Mental Health', 'Online via Zoom', 'Online/Virtual', '2023-08-23', '2023-08-25', 24.0, 1, 'NCMH-2023-MH-055', NULL, 'LGU Budget', 0.00, 'mhGAP protocols, suicide risk assessment basics, referral pathways', 'In response to post-disaster mental health concerns'),
+
+-- Employee 4 (CAD Operator)
+(4, 'AutoCAD Civil 3D Advanced Training', 'Technical/Skills Training', 'Autodesk Philippines Training Center', 'Cebu City', 'Face-to-Face', '2020-07-13', '2020-07-17', 40.0, 1, 'AUTODESK-C3D-2020-041', NULL, 'LGU Budget', 9500.00, 'Civil 3D surface modelling, grading, corridor design, drainage analysis', 'Sponsored by Engineering Dept for capability upgrade'),
+(4, 'GIS Mapping for LGUs using QGIS', 'Technical/Skills Training', 'NAMRIA / HLURB', 'Tacloban City', 'Face-to-Face', '2021-09-20', '2021-09-24', 40.0, 1, 'NAMRIA-GIS-2021-017', NULL, 'LGU Budget', 3000.00, 'QGIS navigation, georeferencing, land use mapping, LGU zoning overlay production', 'Part of Local Shelter Plan preparation'),
+(4, 'Occupational Health and Safety (OSH) for Construction Site Workers', 'Health & Safety', 'DOLE - Bureau of Working Conditions', 'Ormoc City', 'Face-to-Face', '2023-02-08', '2023-02-09', 16.0, 1, 'DOLE-OSH-2023-089', NULL, 'LGU Budget', 1500.00, 'Hazard identification, PPE standards, safe work practices, accident reporting', 'Mandatory for field engineering staff'),
+
+-- Employee 5 (Social Worker)
+(5, 'Social Case Work: Theories and Practice', 'Technical/Skills Training', 'DSWD Human Resource Development Center', 'Manila', 'Face-to-Face', '2021-11-08', '2021-11-12', 40.0, 1, 'DSWD-SCW-2021-034', NULL, 'LGU Budget', 6000.00, 'Assessment frameworks, intervention planning, case documentation, closure protocols', 'Standard for newly hired social workers'),
+(5, 'Persons with Disability (PWD) Rights and Services', 'Legal & Compliance', 'NCDA', 'Online via Zoom', 'Online/Virtual', '2022-06-08', '2022-06-10', 24.0, 1, 'NCDA-PWD-2022-019', NULL, 'LGU Budget', 0.00, 'RA 7277, PWD ID system, inclusive programming, reasonable accommodation', 'Required for MSWDO staff'),
+(5, 'Trauma-Informed Care Approach for Social Workers', 'Technical/Skills Training', 'IASC MHPSS Reference Group Philippines', 'Tacloban City', 'Face-to-Face', '2023-03-13', '2023-03-15', 24.0, 1, 'IASC-TIC-2023-006', NULL, 'LGU Budget', 2500.00, 'Trauma recognition, TIC principles, self-care strategies for frontline workers', 'Post-disaster MHPSS programming'),
+(5, 'Responsible Parenthood and Family Planning (RPFP) Counseling', 'Technical/Skills Training', 'Commission on Population', 'Cebu City', 'Face-to-Face', '2024-01-29', '2024-01-31', 24.0, 1, 'POPCOM-RPFP-2024-011', NULL, 'LGU Budget', 3000.00, 'Family planning methods, counseling skills, referral system, RPFP law provisions', 'Linked to MSWDO and health office programs'),
+
+-- Employee 6 (Accounting Staff)
+(6, 'Government Bookkeeping and Journal Entry Workshop', 'Financial Management', 'COA Region 8 Training Unit', 'Tacloban City', 'Face-to-Face', '2021-04-19', '2021-04-23', 40.0, 1, 'COA-JE-2021-008', NULL, 'LGU Budget', 2000.00, 'Journal entries under NGAS, subsidiary ledgers, trial balance preparation, adjustments', 'Required for all accounting section staff'),
+(6, 'National Tax Research Center (NTRC) - Basic Tax Seminar', 'Financial Management', 'NTRC - DOF', 'Online via Zoom', 'Online/Virtual', '2022-08-17', '2022-08-18', 16.0, 1, 'NTRC-TAX-2022-041', NULL, 'LGU Budget', 0.00, 'Income tax basics, VAT, withholding tax obligations of LGUs', 'Webinar open to all LGU finance staff'),
+(6, 'Certified Government Financial Analyst (CGFA) Review Program', 'Financial Management', 'Association of Government Accountants Philippines', 'Cebu City', 'Face-to-Face', '2023-07-10', '2023-07-14', 40.0, 1, 'AGAP-CGFA-2023-027', NULL, 'Employee', 15000.00, 'Government financial management framework, financial analysis, internal audit', 'Self-funded; currently pursuing CGFA certification'),
+
+-- Employee 7 (Clerk)
+(7, 'Civil Registration Laws and Procedures', 'Legal & Compliance', 'Philippine Statistics Authority (PSA)', 'PSA Regional Office, Tacloban City', 'Face-to-Face', '2022-04-04', '2022-04-08', 40.0, 1, 'PSA-CRL-2022-014', NULL, 'LGU Budget', 1500.00, 'RA 3753, COLB registration, late registration, annotation, OCRG forms and procedures', 'Mandatory orientation for new civil registry staff'),
+(7, 'Records Management and Archiving for LGUs', 'Technical/Skills Training', 'National Archives of the Philippines (NAP)', 'Online via Google Meet', 'Online/Virtual', '2023-01-25', '2023-01-27', 24.0, 1, 'NAP-RMA-2023-033', NULL, 'LGU Budget', 0.00, 'Filing systems, retention schedules, digitization basics, archival security', 'Capacity building for civil registrar staff'),
+(7, 'Customer Service Excellence in Government', 'Customer Service', 'Civil Service Commission (CSC)', 'CSC Regional Office, Tacloban City', 'Face-to-Face', '2023-09-11', '2023-09-12', 16.0, 1, 'CSC-CSE-2023-058', NULL, 'LGU Budget', 500.00, 'ARTA provisions, Mamamayan Muna program, frontline service standards, client charter', 'Required for client-facing government employees'),
+
+-- Employee 8 (Maintenance Worker)
+(8, 'Electrical Safety and Basic Wiring for Government Facilities', 'Health & Safety', 'DOLE-BWC', 'Tacloban City', 'Face-to-Face', '2021-08-09', '2021-08-11', 24.0, 1, 'DOLE-ES-2021-044', NULL, 'LGU Budget', 1000.00, 'Electrical hazard identification, grounding, circuit breaker maintenance, LOTO procedures', 'Mandatory for all maintenance workers'),
+(8, 'Plumbing and Sanitation Maintenance Workshop', 'Technical/Skills Training', 'TESDA Regional Office VIII', 'Ormoc City', 'Face-to-Face', '2022-05-16', '2022-05-20', 40.0, 1, 'TESDA-PSM-2022-012', NULL, 'LGU Budget', 1500.00, 'Pipe fitting, valve repair, drainage unclogging, sanitary facility maintenance', 'Aligned with TESDA plumbing NC II competencies'),
+(8, 'Occupational Safety and Health Standards (OSHS) Orientation', 'Health & Safety', 'DOLE Region 8', 'Tacloban City', 'Face-to-Face', '2023-06-05', '2023-06-05', 8.0, 1, 'DOLE-OSHS-2023-071', NULL, 'LGU Budget', 0.00, 'Workplace hazard recognition, PPE usage, accident reporting, emergency response basics', 'Annual safety orientation for utility staff'),
+
+-- Employee 9 (Cashier)
+(9, 'Cash Management and Disbursement Controls for LGUs', 'Financial Management', 'Bureau of Local Government Finance (BLGF)', 'Cebu City', 'Face-to-Face', '2021-02-22', '2021-02-26', 40.0, 1, 'BLGF-CMD-2021-017', NULL, 'LGU Budget', 5500.00, 'Cash flow forecasting, disbursement controls, petty cash fund management, trust funds', 'Sponsored for treasury cashier staff'),
+(9, 'Anti-Corruption and Accountability in Government Finance', 'Ethics & Anti-Corruption', 'Office of the Ombudsman', 'Online via Zoom', 'Online/Virtual', '2022-09-19', '2022-09-20', 16.0, 1, 'OMB-ACAG-2022-028', NULL, 'LGU Budget', 0.00, 'Graft and corruption laws, accountability of accountable officers, whistleblower protection', 'Required for all accountable officers'),
+(9, 'Digital Payment Systems and E-Governance for LGU Cashiers', 'Information Technology', 'DICT / BLGF', 'Online via MS Teams', 'Online/Virtual', '2024-03-04', '2024-03-06', 24.0, 1, 'DICT-DPS-2024-009', NULL, 'LGU Budget', 0.00, 'LGU e-payment platforms, QR code collection, online official receipts, cybersecurity basics', 'Capacity building for LGU digital transition'),
+
+-- Employee 10 (Collection Officer)
+(10, 'Real Property Tax Assessment and Collection Workshop', 'Financial Management', 'BLGF and LGU League of Treasurers', 'Tacloban City', 'Face-to-Face', '2020-02-17', '2020-02-21', 40.0, 1, 'BLGF-RPT-2020-031', NULL, 'LGU Budget', 4000.00, 'RPTA procedures, tax delinquency measures, tax mapping, collection efficiency strategies', 'Core training for collection officers'),
+(10, 'Revenue Enhancement Strategies for LGUs', 'Financial Management', 'DILG Region 8', 'Tacloban City', 'Face-to-Face', '2022-04-25', '2022-04-27', 24.0, 1, 'DILG-RES-2022-019', NULL, 'LGU Budget', 2000.00, 'Revenue code review, tax ordinance updating, fee schedule rationalisation, enforcement', 'Conducted as part of DILG LGU performance challenge'),
+(10, 'Public Financial Management (PFM) for Revenue Officers', 'Financial Management', 'DBM and DOF Joint Program', 'Online via Zoom', 'Online/Virtual', '2023-10-09', '2023-10-11', 24.0, 1, 'DBM-PFM-2023-044', NULL, 'LGU Budget', 0.00, 'Budget-revenue linkage, PFM reform agenda, fiscal transparency tools, performance-based budgeting', 'Part of national PFM reform capacity building');
+
+
+-- ============================================================
+-- SAMPLE DATA: employee_licenses_certifications
+-- ============================================================
+
+INSERT INTO `employee_licenses_certifications` (
+  `employee_id`, `license_name`, `license_type`, `issuing_body`,
+  `license_number`, `date_issued`, `date_of_exam`, `expiry_date`,
+  `rating`, `status`, `renewal_date`, `remarks`
+) VALUES
+
+-- Employee 1 (Treasurer)
+(1, 'Certified Public Accountant (CPA)', 'Professional License', 'Professional Regulation Commission (PRC)', 'CPA-0112345', '2011-05-20', '2011-05-10', NULL, 88.25, 'Active', '2025-05-20', 'Lifetime license; PRC ID renewed every 3 years'),
+(1, 'Civil Service Eligibility - Career Service Professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-CSP-2010-08734', '2010-08-15', '2010-06-20', NULL, 82.50, 'Active', NULL, 'Required for all permanent government employees'),
+
+-- Employee 2 (Municipal Engineer)
+(2, 'Civil Engineer Licensure', 'Professional License', 'Professional Regulation Commission (PRC)', 'CE-0234567', '2010-07-10', '2010-07-01', NULL, 85.40, 'Active', '2026-07-10', 'Required for all licensed civil engineers in practice'),
+(2, 'Civil Service Eligibility - Career Service Professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-CSP-2012-04412', '2012-09-10', '2012-08-05', NULL, 79.80, 'Active', NULL, 'Required for permanent government appointments'),
+(2, 'Project Management Professional (PMP)', 'Industry Certification', 'Project Management Institute (PMI)', 'PMP-PH-2019-88234', '2019-10-01', NULL, '2022-10-01', NULL, 'Expired', '2022-10-01', 'Lapsed; eligible for renewal via PDU submission'),
+
+-- Employee 3 (Nurse)
+(3, 'Registered Nurse Licensure', 'Professional License', 'Professional Regulation Commission (PRC)', 'RN-0345678', '2015-08-20', '2015-08-15', NULL, 82.60, 'Active', '2025-08-20', 'Renewed every 3 years with CPE units'),
+(3, 'Basic Life Support (BLS) Certification', 'Industry Certification', 'Philippine Heart Association', 'PHA-BLS-2022-0567', '2022-06-16', NULL, '2024-06-16', NULL, 'Expired', '2024-06-16', 'Expired; renewal scheduled'),
+(3, 'Civil Service Eligibility - Sub-professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-SUB-2019-11234', '2019-10-05', '2019-09-01', NULL, 75.20, 'Active', NULL, 'Eligible for contractual/casual government positions'),
+
+-- Employee 4 (CAD Operator)
+(4, 'AutoCAD Certified User (ACU)', 'Industry Certification', 'Autodesk Authorized Training Center', 'ACU-2020-PH-04127', '2020-07-17', NULL, '2023-07-17', NULL, 'Expired', '2023-07-17', 'Lapsed; rescheduled for re-certification'),
+(4, 'Civil Service Eligibility - Sub-professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-SUB-2018-23341', '2018-12-01', '2018-11-04', NULL, 78.00, 'Active', NULL, 'Passed prior to LGU employment'),
+
+-- Employee 5 (Social Worker)
+(5, 'Registered Social Worker (RSW)', 'Professional License', 'Professional Regulation Commission (PRC)', 'RSW-0445231', '2018-09-05', '2018-08-28', NULL, 77.50, 'Active', '2024-09-05', 'Renewable every 3 years with CPE credits'),
+(5, 'Civil Service Eligibility - Career Service Professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-CSP-2018-33876', '2018-12-15', '2018-11-11', NULL, 80.10, 'Active', NULL, 'Required for plantilla social worker position'),
+
+-- Employee 6 (Accounting Staff)
+(6, 'Civil Service Eligibility - Career Service Professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-CSP-2020-44178', '2020-09-15', '2020-08-02', NULL, 76.40, 'Active', NULL, 'Required for permanent accounting position'),
+(6, 'TESDA National Certificate II in Bookkeeping (NC II)', 'Government Certification', 'TESDA', 'TESDA-BKNCII-2019-07781', '2019-07-20', '2019-07-15', NULL, NULL, 'Active', NULL, 'Passed practical competency assessment'),
+
+-- Employee 7 (Clerk)
+(7, 'Civil Service Eligibility - Sub-professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-SUB-2021-55432', '2021-11-10', '2021-10-03', NULL, 74.50, 'Active', NULL, 'Required for entry-level clerical government positions'),
+
+-- Employee 8 (Maintenance Worker)
+(8, 'TESDA National Certificate II in Electrical Installation and Maintenance (NC II)', 'Government Certification', 'TESDA', 'TESDA-EIMNC2-2021-02341', '2021-08-25', '2021-08-20', NULL, NULL, 'Active', NULL, 'Competency-based assessment passed at TESDA Regional Center'),
+(8, 'Civil Service Eligibility - Sub-professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-SUB-2019-66431', '2019-10-05', '2019-09-01', NULL, 71.00, 'Active', NULL, 'Passed before casual appointment was regularized'),
+
+-- Employee 9 (Cashier)
+(9, 'Civil Service Eligibility - Career Service Professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-CSP-2019-77821', '2019-08-12', '2019-06-09', NULL, 78.80, 'Active', NULL, 'Required for cashier plantilla position'),
+(9, 'TESDA National Certificate II in Bookkeeping (NC II)', 'Government Certification', 'TESDA', 'TESDA-BKNCII-2017-04512', '2017-05-15', '2017-05-10', NULL, NULL, 'Active', NULL, 'Certification obtained prior to LGU entry'),
+
+-- Employee 10 (Collection Officer)
+(10, 'Civil Service Eligibility - Career Service Professional', 'Civil Service Eligibility', 'Civil Service Commission (CSC)', 'CSC-CSP-2017-88143', '2017-06-20', '2017-05-07', NULL, 81.30, 'Active', NULL, 'Required for collection officer plantilla position'),
+(10, 'TESDA National Certificate III in Business Management (NC III)', 'Government Certification', 'TESDA', 'TESDA-BMNC3-2016-00871', '2016-09-05', '2016-09-01', NULL, NULL, 'Active', NULL, 'Acquired while working at Pag-IBIG');
+
+
+-- ============================================================
+-- SAMPLE DATA: employee_awards_recognition
+-- ============================================================
+
+INSERT INTO `employee_awards_recognition` (
+  `employee_id`, `award_title`, `award_type`, `awarding_body`, `date_received`, `description`, `remarks`
+) VALUES
+(1, 'Most Outstanding LGU Treasurer', 'Regional', 'BLGF Region 8', '2023-11-10', 'Awarded for excellence in revenue generation and fiscal management, posting the highest collection efficiency rate among municipalities in the region.', 'Voted by peers and evaluated by BLGF'),
+(1, 'Gawad sa Pinakamahusay na Manggagawa (Best Employee)', 'Internal Award', 'Municipal Government', '2022-04-27', 'Recognized as the Most Outstanding Employee of the Municipal Government for FY 2021.', 'Annual service award'),
+(2, 'Best Infrastructure Project Award', 'Municipal/City', 'Sangguniang Bayan', '2022-06-12', 'Recognized for spearheading the construction of a resilient multi-purpose evacuation center completed under budget and ahead of schedule.', 'Awarded during the municipality\'s foundation anniversary'),
+(3, 'Bayaning Frontliner Award', 'External Award', 'Provincial Government of Leyte', '2021-09-08', 'Recognized for exemplary service during the COVID-19 pandemic as part of the rapid deployment health team.', 'Province-wide recognition for health workers'),
+(5, 'Outstanding Social Worker of the Year', 'Municipal/City', 'Municipal Government / MSWDO', '2023-10-19', 'Awarded for exceptional delivery of social services and community outreach programs benefitting over 800 families.', 'Annual MSWDO awards night'),
+(6, 'Certificate of Commendation for Financial Accuracy', 'Internal Award', 'Municipal Accountant\'s Office', '2024-01-30', 'Recognized for maintaining zero discrepancy in voucher processing for FY 2023.', 'Issued during office performance review'),
+(9, 'Zero Cash Variance Awardee', 'Internal Award', 'Municipal Treasurer\'s Office', '2023-04-15', 'Awarded for maintaining perfect cash balance accuracy for 3 consecutive fiscal years (2020–2022).', 'Annual treasury performance awards'),
+(10, 'Best Collection Officer', 'Municipal/City', 'Municipal Government', '2023-12-01', 'Awarded for achieving 112% of the annual revenue collection target for FY 2023, the highest in the municipality\'s history.', 'Annual performance recognition program');
+
+
+-- ============================================================
+-- SAMPLE DATA: employee_voluntary_work
+-- ============================================================
+
+INSERT INTO `employee_voluntary_work` (
+  `employee_id`, `organization`, `position_nature_of_work`, `start_date`, `end_date`, `hours_per_week`, `description`
+) VALUES
+(1, 'Parish Finance Council - St. Joseph Parish', 'Finance Council Member', '2016-01-01', NULL, 2, 'Assists in reviewing parish financial statements, budget planning, and audit of church funds.'),
+(2, 'Gawad Kalinga - Tacloban Chapter', 'Volunteer Builder', '2014-06-01', '2018-12-31', 4, 'Participated in Bagong Tahanan housing construction drives; provided engineering layout guidance for volunteer builders.'),
+(3, 'Philippine Red Cross - Leyte Chapter', 'Volunteer Nurse / Blood Donor Coordinator', '2017-03-01', NULL, 3, 'Assists during blood donation drives, disaster response operations, and first aid training for community volunteers.'),
+(4, 'Engineers Without Borders Philippines', 'Technical Volunteer', '2020-01-01', '2022-06-30', 2, 'Provided pro-bono CAD drafting services for rural school rehabilitation projects in far-flung barangays.'),
+(5, 'Federation of Senior Citizens - Local Chapter', 'Social Services Volunteer', '2022-03-01', NULL, 3, 'Facilitates DSWD program orientation and benefit claiming assistance for senior citizen beneficiaries.'),
+(7, 'Barangay VAWC Desk', 'VAWC Volunteer Paralegal', '2022-06-01', NULL, 2, 'Assists barangay VAWC desk officer with documentation and initial intake interviews for VAWC cases.'),
+(8, 'Barangay Disaster Risk Reduction and Management Council (BDRRMC)', 'Volunteer Maintenance / Logistics Member', '2021-09-01', NULL, 3, 'Supports BDRRMC in maintaining evacuation center facilities, checking emergency equipment, and assisting during drills.'),
+(9, 'Parish Youth Ministry - San Lorenzo Ruiz Parish', 'Youth Finance Secretary', '2016-01-01', '2020-12-31', 2, 'Managed youth group funds, prepared financial reports for parish activities and fund-raising events.'),
+(10, 'Homeowners Association - Mabini Subd.', 'Association Treasurer', '2018-01-01', NULL, 2, 'Manages HOA dues collection, budget preparation, and disbursement reporting for subdivision common area maintenance.');
+
+
+
+
+ALTER TABLE `external_employment_history`
+  ADD CONSTRAINT `fk_ext_emp_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `employee_seminars_trainings`
+  ADD CONSTRAINT `fk_seminar_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `employee_licenses_certifications`
+  ADD CONSTRAINT `fk_license_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `employee_awards_recognition`
+  ADD CONSTRAINT `fk_award_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `employee_voluntary_work`
+  ADD CONSTRAINT `fk_vol_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 
 -- --------------------------------------------------------
 --
@@ -2570,15 +3098,6 @@ ALTER TABLE `employee_skills`
   ADD PRIMARY KEY (`employee_skill_id`),
   ADD KEY `employee_id` (`employee_id`),
   ADD KEY `skill_id` (`skill_id`);
-
---
--- Indexes for table `employment_history`
---
-ALTER TABLE `employment_history`
-  ADD PRIMARY KEY (`history_id`),
-  ADD KEY `employee_id` (`employee_id`),
-  ADD KEY `department_id` (`department_id`),
-  ADD KEY `reporting_manager_id` (`reporting_manager_id`);
 
 --
 -- Indexes for table `exits`

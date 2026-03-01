@@ -231,6 +231,66 @@ $stmt = $pdo->query("
     ORDER BY dm.created_at DESC
 ");
 $allDocuments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch external employment history
+$stmt = $pdo->query("
+    SELECT eeh.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number
+    FROM external_employment_history eeh
+    LEFT JOIN employee_profiles ep ON eeh.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY eeh.start_date DESC
+");
+$externalHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch seminars & trainings
+$stmt = $pdo->query("
+    SELECT est.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number
+    FROM employee_seminars_trainings est
+    LEFT JOIN employee_profiles ep ON est.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY est.start_date DESC
+");
+$seminars = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch licenses & certifications
+$stmt = $pdo->query("
+    SELECT elc.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number
+    FROM employee_licenses_certifications elc
+    LEFT JOIN employee_profiles ep ON elc.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY elc.date_issued DESC
+");
+$licenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch awards & recognition
+$stmt = $pdo->query("
+    SELECT ear.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number
+    FROM employee_awards_recognition ear
+    LEFT JOIN employee_profiles ep ON ear.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY ear.date_received DESC
+");
+$awards = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch voluntary work
+$stmt = $pdo->query("
+    SELECT evw.*,
+        CONCAT(pi.first_name, ' ', pi.last_name) as employee_name,
+        ep.employee_number
+    FROM employee_voluntary_work evw
+    LEFT JOIN employee_profiles ep ON evw.employee_id = ep.employee_id
+    LEFT JOIN personal_information pi ON ep.personal_info_id = pi.personal_info_id
+    ORDER BY evw.start_date DESC
+");
+$voluntaryWork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -1068,6 +1128,11 @@ $allDocuments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         let employmentHistoryData = <?= json_encode($allEmploymentHistory) ?>;
         let documentsData = <?= json_encode($allDocuments) ?>;
         let salaryGradesData = <?= json_encode($salaryGrades) ?>;
+        let externalHistoryData = <?= json_encode($externalHistory) ?>;
+        let seminarsData = <?= json_encode($seminars) ?>;
+        let licensesData = <?= json_encode($licenses) ?>;
+        let awardsData = <?= json_encode($awards) ?>;
+        let voluntaryWorkData = <?= json_encode($voluntaryWork) ?>;
         let currentViewingEmployeeId = null;
         let currentViewingDocumentId = null;
 
@@ -1416,8 +1481,14 @@ $allDocuments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         // View Employment History for employee
         function viewEmploymentHistory(employeeId) {
             const histories = employmentHistoryData.filter(h => h.employee_id == employeeId);
+            const external = externalHistoryData.filter(e => e.employee_id == employeeId);
+            const seminars = seminarsData.filter(s => s.employee_id == employeeId);
+            const licenses = licensesData.filter(l => l.employee_id == employeeId);
+            const awards = awardsData.filter(a => a.employee_id == employeeId);
+            const voluntary = voluntaryWorkData.filter(v => v.employee_id == employeeId);
             
-            if (histories.length === 0) {
+            if (histories.length === 0 && external.length === 0 && seminars.length === 0 && 
+                licenses.length === 0 && awards.length === 0 && voluntary.length === 0) {
                 alert('No employment history found for this employee');
                 return;
             }
@@ -1426,107 +1497,242 @@ $allDocuments = $stmt->fetchAll(PDO::FETCH_ASSOC);
             const title = document.getElementById('detailsTitle');
             const content = document.getElementById('detailsContent');
 
-            const firstHistory = histories[0];
-            title.textContent = `${firstHistory.employee_name} - Employment History`;
+            const employee = employeesData.find(e => e.employee_id == employeeId);
+            title.textContent = `${employee?.full_name || 'Employee'} - Complete Employment History`;
 
-            let html = '';
-            
-            histories.forEach((history, index) => {
-                const startDate = new Date(history.start_date).toLocaleDateString('en-US', { 
-                    year: 'numeric', month: 'long', day: 'numeric' 
-                });
-                const endDate = history.end_date ? 
-                    new Date(history.end_date).toLocaleDateString('en-US', { 
-                        year: 'numeric', month: 'long', day: 'numeric' 
-                    }) : 'Present';
+            let html = '<div style="padding: 20px;">';
+            const fmt = d => d ? new Date(d).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : '—';
+            const peso = v => v ? '₱' + parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2}) : '—';
 
-                if (index === 0) {
+            // INTERNAL EMPLOYMENT HISTORY SECTION
+            if (histories.length > 0) {
+                html += `<div style="font-size:18px;font-weight:700;color:var(--azure-blue-dark);margin:25px 0 20px 0;padding-bottom:12px;border-bottom:3px solid var(--azure-blue-lighter);display:inline-block;">📋 Internal Employment History</div>`;
+                
+                histories.forEach((history, index) => {
+                    const total = (parseFloat(history.base_salary||0)+parseFloat(history.allowances||0)+parseFloat(history.bonuses||0)+parseFloat(history.salary_adjustments||0));
                     html += `
-                        <div class="history-container">
-                            <div class="history-grid">
-                                <div class="history-section">
-                                    <h4>📋 Basic Information</h4>
-                                    <div class="history-item"><strong>Employee</strong><p>${history.employee_name || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Employee Number</strong><p>#${history.employee_number || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Job Title</strong><p>${history.job_title || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Salary Grade</strong><p>${history.salary_grade || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Department</strong><p>${history.department_name || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Employment Type</strong><p>${history.employment_type || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Employment Period</strong><p>${startDate} - ${endDate}</p></div>
-                                    <div class="history-item"><strong>Status</strong><p><span class="status-badge status-${(history.employment_status || '').toLowerCase()}">${history.employment_status || 'N/A'}</span></p></div>
-                                    <div class="history-item"><strong>Promotion Type</strong><p>${history.promotion_type || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Position Sequence</strong><p>#${history.position_sequence || '1'}</p></div>
-                                    <div class="history-item"><strong>Current Position</strong><p>${history.is_current_position ? '✓ Yes' : 'No'}</p></div>
-                                    <div class="history-item"><strong>Location</strong><p>${history.location || 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Reporting Manager</strong><p>${history.manager_name || 'N/A'}</p></div>
+                        <div style="background:white;border-radius:12px;padding:24px;margin-bottom:25px;box-shadow:0 3px 12px rgba(0,0,0,0.08);">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+                                <div style="background:linear-gradient(135deg,#f0f4ff 0%,#f8faff 100%);padding:20px;border-radius:10px;border-left:5px solid var(--azure-blue);">
+                                    <h5 style="color:var(--azure-blue-dark);margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">📋 Position (Record #${index + 1})</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(233,30,99,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Job Title</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.job_title||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(233,30,99,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Department</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.department_name||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(233,30,99,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Employment Type</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.employment_type||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(233,30,99,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Salary Grade</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.salary_grade||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Location</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.location||'—'}</p></div>
+                                    </div>
                                 </div>
-                                <div class="history-section">
-                                    <h4>💰 Compensation & Salary History</h4>
-                                    <div class="history-item"><strong>Base Salary</strong><p>₱${parseFloat(history.base_salary || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
-                                    <div class="history-item"><strong>Previous Salary</strong><p>${history.previous_salary ? '₱' + parseFloat(history.previous_salary).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'N/A'}</p></div>
-                                    ${history.salary_increase_amount ? `<div class="history-item"><strong>Salary Increase</strong><p>₱${parseFloat(history.salary_increase_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})} (${parseFloat(history.salary_increase_percentage || 0).toFixed(2)}%)</p></div>` : ''}
-                                    <div class="history-item"><strong>Allowances</strong><p>₱${parseFloat(history.allowances || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
-                                    <div class="history-item"><strong>Bonuses</strong><p>₱${parseFloat(history.bonuses || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
-                                    <div class="history-item"><strong>Salary Adjustments</strong><p>₱${parseFloat(history.salary_adjustments || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
-                                    <div class="history-item"><strong>Total Compensation</strong><p style="color: var(--azure-blue); font-weight: 700;">₱${(parseFloat(history.base_salary || 0) + parseFloat(history.allowances || 0) + parseFloat(history.bonuses || 0) + parseFloat(history.salary_adjustments || 0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</p></div>
-                                    <div class="history-item"><strong>Salary Effective Date</strong><p>${history.salary_effective_date ? new Date(history.salary_effective_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</p></div>
-                                    <div class="history-item"><strong>Reason for Change</strong><p>${history.reason_for_change || 'N/A'}</p></div>
+                                <div style="background:linear-gradient(135deg,#fff5e6 0%,#fffaf2 100%);padding:20px;border-radius:10px;border-left:5px solid #ffc107;">
+                                    <h5 style="color:#b89c3a;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">💰 Compensation</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Base Salary</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">${peso(history.base_salary)}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Allowances</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${peso(history.allowances)}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Bonuses</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${peso(history.bonuses)}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Adjustments</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${peso(history.salary_adjustments)}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Total</span><p style="margin:4px 0 0 0;font-size:15px;color:#333;font-weight:700;">${peso(total)}</p></div>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            ${history.duties_responsibilities ? `
-                                <div class="history-full-section">
-                                    <h4>📝 Duties & Responsibilities</h4>
-                                    <p>${history.duties_responsibilities}</p>
+                            <div style="height:2px;background:linear-gradient(90deg,transparent,var(--azure-blue-lighter),transparent);margin:28px 0;"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                                <div style="background:#f0f7ff;padding:18px;border-radius:10px;border-left:5px solid #17a2b8;">
+                                    <h5 style="color:#0c5460;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📅 Employment Period & Status</h5>
+                                    <div style="display:grid;gap:12px;">
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Start Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${fmt(history.start_date)}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">End Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.end_date ? fmt(history.end_date) : '<span style="color:var(--azure-blue);">Currently Employed</span>'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Status</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.employment_status||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Manager</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.manager_name||'—'}</p></div>
+                                    </div>
                                 </div>
-                            ` : ''}
-
-                            ${history.performance_evaluations || history.training_certifications ? `
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                                    ${history.performance_evaluations ? `
-                                        <div class="history-full-section">
-                                            <h4>⭐ Performance Evaluations</h4>
-                                            <p>${history.performance_evaluations}</p>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${history.training_certifications ? `
-                                        <div class="history-full-section">
-                                            <h4>🎓 Training & Certifications</h4>
-                                            <p>${history.training_certifications}</p>
-                                        </div>
-                                    ` : ''}
+                                <div style="background:#fff0f8;padding:18px;border-radius:10px;border-left:5px solid var(--azure-blue);">
+                                    <h5 style="color:var(--azure-blue-dark);margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📝 Additional Info</h5>
+                                    <div style="display:grid;gap:12px;">
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Promotion Type</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.promotion_type||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Position Sequence</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${history.position_sequence||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Previous Salary</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${peso(history.previous_salary)}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Change Reason</span><p style="margin:4px 0 0 0;font-size:13px;color:#333;">${history.reason_for_change||'—'}</p></div>
+                                    </div>
                                 </div>
-                            ` : ''}
-
-                            ${history.contract_details || history.remarks ? `
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                    ${history.contract_details ? `
-                                        <div class="history-full-section">
-                                            <h4>📋 Contract Details</h4>
-                                            <p>${history.contract_details}</p>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${history.remarks ? `
-                                        <div class="history-full-section">
-                                            <h4>📌 Remarks</h4>
-                                            <p>${history.remarks}</p>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            ` : ''}
+                            </div>
+                            ${history.duties_responsibilities ? `<div style="background:#f8f9fa;padding:18px;border-radius:10px;border-left:5px solid #007bff;margin-top:24px;"><h5 style="color:#004085;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📋 Duties & Responsibilities</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${history.duties_responsibilities}</p></div>` : ''}
+                            ${history.remarks ? `<div style="background:#f5f9ff;padding:18px;border-radius:10px;border-left:5px solid #17a2b8;margin-top:20px;"><h5 style="color:#0c5460;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📌 Remarks</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${history.remarks}</p></div>` : ''}
                         </div>
                     `;
-                }
-            });
+                });
+            }
+
+            // EXTERNAL WORK EXPERIENCE SECTION
+            if (external.length > 0) {
+                html += `<div style="font-size:18px;font-weight:700;color:var(--azure-blue-dark);margin:35px 0 20px 0;padding-bottom:12px;border-bottom:3px solid var(--azure-blue-lighter);display:inline-block;">💼 Work Experience (External)</div>`;
+                external.forEach((exp, index) => {
+                    html += `
+                        <div style="background:white;border-radius:12px;padding:24px;margin-bottom:25px;box-shadow:0 3px 12px rgba(0,0,0,0.08);">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+                                <div style="background:linear-gradient(135deg,#f0f4ff 0%,#f8faff 100%);padding:20px;border-radius:10px;border-left:5px solid #1976d2;">
+                                    <h5 style="color:#1565c0;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">🏢 Employer Details</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Employer</span><p style="margin:4px 0 0 0;font-size:15px;color:#333;font-weight:600;">${exp.employer_name||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Type</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.employer_type||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Address</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.employer_address||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Department</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.department_or_division||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Years of Experience</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.years_of_experience ? exp.years_of_experience+' years' : '—'}</p></div>
+                                    </div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#fff5f0 0%,#fffaf8 100%);padding:20px;border-radius:10px;border-left:5px solid #fd7e14;">
+                                    <h5 style="color:#b85116;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">💼 Position & Duration</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(253,126,20,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Job Title</span><p style="margin:4px 0 0 0;font-size:15px;color:#333;font-weight:600;">${exp.job_title||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(253,126,20,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Employment Type</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.employment_type||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(253,126,20,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Period</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">${fmt(exp.start_date)} – ${exp.end_date ? fmt(exp.end_date) : '<span style="color:var(--azure-blue);">Present</span>'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(253,126,20,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Monthly Salary</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">${peso(exp.monthly_salary)} <span style="color:#999;font-size:12px;">${exp.currency||'PHP'}</span></p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Reason for Leaving</span><p style="margin:4px 0 0 0;font-size:13px;color:#333;">${exp.reason_for_leaving || 'Not specified'}</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="height:2px;background:linear-gradient(90deg,transparent,var(--azure-blue-lighter),transparent);margin:28px 0;"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                                <div style="background:#f0fff4;padding:18px;border-radius:10px;border-left:5px solid #28a745;">
+                                    <h5 style="color:#1e7e34;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">👨‍💼 Supervisor & Reference</h5>
+                                    <div style="display:grid;gap:12px;">
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Supervisor</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.immediate_supervisor||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Contact</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.supervisor_contact||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Reference Available</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.reference_available == 1 ? '<span style="color:var(--azure-blue);font-weight:600;">✓ Yes</span>' : 'No'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Verified</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${exp.verified == 1 ? '<span style="color:#28a745;font-weight:600;">✓ Verified</span>' : '<span style="color:#ffc107;font-weight:600;">Pending</span>'}</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                            ${exp.key_responsibilities ? `<div style="background:#f8f9fa;padding:18px;border-radius:10px;border-left:5px solid #007bff;margin-top:24px;"><h5 style="color:#004085;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📋 Key Responsibilities</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${exp.key_responsibilities}</p></div>` : ''}
+                            ${exp.achievements ? `<div style="background:#fff8e1;padding:18px;border-radius:10px;border-left:5px solid #ffc107;margin-top:20px;"><h5 style="color:#7e6008;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">🏆 Achievements</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${exp.achievements}</p></div>` : ''}
+                            ${exp.skills_gained ? `<div style="background:#e7f3ff;padding:18px;border-radius:10px;border-left:5px solid #1976d2;margin-top:20px;"><h5 style="color:#1565c0;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">💡 Skills Gained</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${exp.skills_gained}</p></div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            // SEMINARS & TRAININGS SECTION
+            if (seminars.length > 0) {
+                html += `<div style="font-size:18px;font-weight:700;color:var(--azure-blue-dark);margin:35px 0 20px 0;padding-bottom:12px;border-bottom:3px solid var(--azure-blue-lighter);display:inline-block;">🎓 Seminars & Trainings</div>`;
+                seminars.forEach((sem, index) => {
+                    html += `
+                        <div style="background:white;border-radius:12px;padding:24px;margin-bottom:25px;box-shadow:0 3px 12px rgba(0,0,0,0.08);">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+                                <div style="background:linear-gradient(135deg,#e0f7fa 0%,#f1f8f9 100%);padding:20px;border-radius:10px;border-left:5px solid #17a2b8;">
+                                    <h5 style="color:#0c5460;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">🎓 Training Information</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(23,162,184,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Title</span><p style="margin:4px 0 0 0;font-size:15px;color:#333;font-weight:600;">${sem.title||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(23,162,184,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Category</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.category||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(23,162,184,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Organizer</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.organizer||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(23,162,184,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Venue</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.venue||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Modality</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.modality||'—'}</p></div>
+                                    </div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#fff3e0 0%,#fffaf5 100%);padding:20px;border-radius:10px;border-left:5px solid #ffc107;">
+                                    <h5 style="color:#b89c3a;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">📜 Duration & Dates</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Duration</span><p style="margin:4px 0 0 0;font-size:15px;color:#333;font-weight:600;">${sem.duration_hours ? sem.duration_hours+' hours' : '—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Start Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${fmt(sem.start_date)}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">End Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.end_date&&sem.end_date!==sem.start_date?fmt(sem.end_date):'Same as Start'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Funded By</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.funded_by||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Amount Spent</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">₱${parseFloat(sem.amount_spent||0).toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background:#f0f7ff;padding:18px;border-radius:10px;border-left:5px solid #e91e63;margin-bottom:20px;">
+                                <h5 style="color:#880e4f;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📜 Certificate Information</h5>
+                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Received</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.certificate_received ? '<span style="color:#28a745;font-weight:600;">✓ Yes</span>' : 'No'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Certificate Number</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${sem.certificate_number||'—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Expiry Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${fmt(sem.certificate_expiry)}</p></div>
+                                </div>
+                            </div>
+                            ${sem.learning_outcomes ? `<div style="background:#f0fff4;padding:18px;border-radius:10px;border-left:5px solid #28a745;margin-bottom:20px;"><h5 style="color:#1e7e34;margin:0 0 12px 0;font-weight:700;font-size:13px;text-transform:uppercase;">💡 Learning Outcomes</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${sem.learning_outcomes}</p></div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            // LICENSES & CERTIFICATIONS SECTION
+            if (licenses.length > 0) {
+                html += `<div style="font-size:18px;font-weight:700;color:var(--azure-blue-dark);margin:35px 0 20px 0;padding-bottom:12px;border-bottom:3px solid var(--azure-blue-lighter);display:inline-block;">📜 Licenses & Certifications</div>`;
+                licenses.forEach((lic, index) => {
+                    html += `
+                        <div style="background:white;border-radius:12px;padding:24px;margin-bottom:25px;box-shadow:0 3px 12px rgba(0,0,0,0.08);">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+                                <div style="background:linear-gradient(135deg,#e3f2fd 0%,#f3f7fd 100%);padding:20px;border-radius:10px;border-left:5px solid #1976d2;">
+                                    <h5 style="color:#1565c0;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">📜 License Information</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">License Name</span><p style="margin:4px 0 0 0;font-size:15px;color:#333;font-weight:600;">${lic.license_name||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">License Type</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${lic.license_type||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Issuing Body</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${lic.issuing_body||'—'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(25,118,210,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">License Number</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">${lic.license_number||'—'}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Status</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${lic.status=='Active'?'<span style="color:#28a745;font-weight:600;">● Active</span>':'<span style="color:#dc3545;">● '+lic.status+'</span>'||'—'}</p></div>
+                                    </div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#fff3e0 0%,#fffaf5 100%);padding:20px;border-radius:10px;border-left:5px solid #ffc107;">
+                                    <h5 style="color:#b89c3a;margin:0 0 16px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">📅 Important Dates</h5>
+                                    <div style="display:grid;gap:14px;">
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Date of Exam</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${fmt(lic.date_of_exam)}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Date Issued</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${fmt(lic.date_issued)}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Expiry Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">${lic.expiry_date ? fmt(lic.expiry_date) : '<span style="color:#28a745;">No expiry</span>'}</p></div>
+                                        <div style="border-bottom:1px solid rgba(255,193,7,0.1);padding-bottom:12px;"><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Renewal Date</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;">${fmt(lic.renewal_date)}</p></div>
+                                        <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Exam Rating</span><p style="margin:4px 0 0 0;font-size:14px;color:#333;font-weight:600;">${lic.rating ? parseFloat(lic.rating).toFixed(2)+'%' : '—'}</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // AWARDS & RECOGNITION SECTION
+            if (awards.length > 0) {
+                html += `<div style="font-size:18px;font-weight:700;color:var(--azure-blue-dark);margin:35px 0 20px 0;padding-bottom:12px;border-bottom:3px solid var(--azure-blue-lighter);display:inline-block;">🏆 Awards & Recognition</div>`;
+                awards.forEach((award, index) => {
+                    html += `
+                        <div style="background:white;border-radius:12px;padding:24px;margin-bottom:25px;box-shadow:0 3px 12px rgba(0,0,0,0.08);">
+                            <div style="background:linear-gradient(135deg,#fff8e1 0%,#fffbf0 100%);padding:22px;border-radius:10px;border-left:5px solid #ffc107;margin-bottom:24px;">
+                                <h5 style="color:#d4860b;margin:0 0 18px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">🏆 Award Information</h5>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Award Title</span><p style="margin:6px 0 0 0;font-size:15px;color:#333;font-weight:600;">${award.award_title||'—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Award Type</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;">${award.award_type||'—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Awarding Body</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;">${award.awarding_body||'—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Date Received</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;font-weight:600;">${fmt(award.date_received)}</p></div>
+                                </div>
+                            </div>
+                            ${award.description ? `<div style="background:#e7f3ff;padding:20px;border-radius:10px;border-left:5px solid #0066cc;"><h5 style="color:#004085;margin:0 0 14px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📋 Description</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${award.description}</p></div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            // VOLUNTARY WORK SECTION
+            if (voluntary.length > 0) {
+                html += `<div style="font-size:18px;font-weight:700;color:var(--azure-blue-dark);margin:35px 0 20px 0;padding-bottom:12px;border-bottom:3px solid var(--azure-blue-lighter);display:inline-block;">🤝 Voluntary Work</div>`;
+                voluntary.forEach((vol, index) => {
+                    html += `
+                        <div style="background:white;border-radius:12px;padding:24px;margin-bottom:25px;box-shadow:0 3px 12px rgba(0,0,0,0.08);">
+                            <div style="background:linear-gradient(135deg,#f0fff4 0%,#f5fffb 100%);padding:22px;border-radius:10px;border-left:5px solid #28a745;margin-bottom:24px;">
+                                <h5 style="color:#1e7e34;margin:0 0 18px 0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">🤝 Voluntary Work Information</h5>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:0;">
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Organization</span><p style="margin:6px 0 0 0;font-size:15px;color:#333;font-weight:600;">${vol.organization||'—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Position / Nature of Work</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;">${vol.position_nature_of_work||'—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Start Date</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;font-weight:600;">${vol.start_date ? fmt(vol.start_date) : '—'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">End Date</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;">${vol.end_date ? fmt(vol.end_date) : '<span style="color:var(--azure-blue);font-weight:600;">Ongoing</span>'}</p></div>
+                                    <div><span style="font-size:11px;text-transform:uppercase;color:#999;font-weight:700;">Hours per Week</span><p style="margin:6px 0 0 0;font-size:14px;color:#333;">${vol.hours_per_week ? vol.hours_per_week+' hrs/week' : '—'}</p></div>
+                                </div>
+                            </div>
+                            ${vol.description ? `<div style="background:#e7f3ff;padding:20px;border-radius:10px;border-left:5px solid #0066cc;"><h5 style="color:#004085;margin:0 0 14px 0;font-weight:700;font-size:13px;text-transform:uppercase;">📋 Description</h5><p style="margin:0;color:#555;font-size:14px;line-height:1.7;">${vol.description}</p></div>` : ''}
+                        </div>
+                    `;
+                });
+            }
 
             // Get personal_info_id from employee data
-            const employee = employeesData.find(e => e.employee_id == employeeId);
             const personalInfoId = employee ? employee.personal_info_id : 0;
 
             html += `
-                <div class="nav-buttons-section">
+                <div class="nav-buttons-section" style="margin-top: 30px;">
                     <h4>📋 Related Information</h4>
                     <p style="color: #666; margin-bottom: 15px; font-size: 14px;">Access related records:</p>
                     <div class="nav-button-group">
@@ -1541,12 +1747,12 @@ $allDocuments = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </button>
                     </div>
                 </div>
-            `;
+            </div>`;
 
             content.innerHTML = html;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
-
-        // View Documents for employee
         function viewDocumentsFromProfile(employeeId) {
             const docs = documentsData.filter(d => d.employee_id == employeeId);
             const modal = document.getElementById('viewDetailsModal');
