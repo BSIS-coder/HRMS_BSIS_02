@@ -14,10 +14,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 require_once 'dp.php';
 
 // Database connection
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+    $host = getenv('DB_HOST') ?? 'localhost';
+    $dbname = getenv('DB_NAME') ?? 'hr_system';
+    $username = getenv('DB_USER') ?? 'root';
+    $password = getenv('DB_PASS') ?? '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -31,16 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
-                // Add new exit interview
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt_exit = $pdo->prepare("SELECT employee_id FROM exits WHERE exit_id = ?");
+                    $stmt_exit->execute([$_POST['exit_id']]);
+                    $exit_data = $stmt_exit->fetch(PDO::FETCH_ASSOC);
+                    
+                    $stmt = $pdo->prepare("INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, would_recommend, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $_POST['exit_id'],
-                        $_POST['employee_id'],
+                        $exit_data['employee_id'],
                         $_POST['interview_date'],
                         $_POST['feedback'],
                         $_POST['improvement_suggestions'],
                         $_POST['reason_for_leaving'],
+                        isset($_POST['would_recommend']) ? 1 : 0,
                         $_POST['status']
                     ]);
                     $_SESSION['message'] = "Exit interview added successfully!";
@@ -54,16 +58,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             
             case 'update':
-                // Update exit interview
                 try {
-                    $stmt = $pdo->prepare("UPDATE exit_interviews SET exit_id=?, employee_id=?, interview_date=?, feedback=?, improvement_suggestions=?, reason_for_leaving=?, status=? WHERE interview_id=?");
+                    $stmt_exit = $pdo->prepare("SELECT employee_id FROM exits WHERE exit_id = ?");
+                    $stmt_exit->execute([$_POST['exit_id']]);
+                    $exit_data = $stmt_exit->fetch(PDO::FETCH_ASSOC);
+                    
+                    $stmt = $pdo->prepare("UPDATE exit_interviews SET exit_id=?, employee_id=?, interview_date=?, feedback=?, improvement_suggestions=?, reason_for_leaving=?, would_recommend=?, status=? WHERE interview_id=?");
                     $stmt->execute([
                         $_POST['exit_id'],
-                        $_POST['employee_id'],
+                        $exit_data['employee_id'],
                         $_POST['interview_date'],
                         $_POST['feedback'],
                         $_POST['improvement_suggestions'],
                         $_POST['reason_for_leaving'],
+                        isset($_POST['would_recommend']) ? 1 : 0,
                         $_POST['status'],
                         $_POST['interview_id']
                     ]);
@@ -76,9 +84,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: " . $_SERVER['PHP_SELF']);
                 exit;
                 break;
+
+            case 'conduct':
+                // Save structured interview Q&A + scoring
+                try {
+                    $stmt_exit = $pdo->prepare("SELECT employee_id FROM exits WHERE exit_id = ?");
+                    $stmt_exit->execute([$_POST['exit_id']]);
+                    $exit_data = $stmt_exit->fetch(PDO::FETCH_ASSOC);
+
+                    // Gather all structured answers into JSON
+                    $structured_data = json_encode([
+                        'interview_type'        => $_POST['interview_type'] ?? '',
+                        'conducted_by'          => $_POST['conducted_by'] ?? '',
+                        'duration_minutes'      => $_POST['duration_minutes'] ?? '',
+                        'overall_satisfaction'  => $_POST['overall_satisfaction'] ?? '',
+                        'management_rating'     => $_POST['management_rating'] ?? '',
+                        'culture_rating'        => $_POST['culture_rating'] ?? '',
+                        'growth_rating'         => $_POST['growth_rating'] ?? '',
+                        'compensation_rating'   => $_POST['compensation_rating'] ?? '',
+                        'qa_highlights'         => $_POST['qa_highlights'] ?? '',
+                        'action_items'          => $_POST['action_items'] ?? '',
+                        'rehire_eligible'       => $_POST['rehire_eligible'] ?? 'No',
+                    ]);
+
+                    $stmt = $pdo->prepare("INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, would_recommend, status, structured_data) VALUES (?, ?, ?, ?, ?, ?, ?, 'Completed', ?) ON DUPLICATE KEY UPDATE structured_data=VALUES(structured_data), status='Completed'");
+                    $stmt->execute([
+                        $_POST['exit_id'],
+                        $exit_data['employee_id'],
+                        $_POST['interview_date'],
+                        $_POST['feedback'] ?? '',
+                        $_POST['improvement_suggestions'] ?? '',
+                        $_POST['reason_for_leaving'] ?? '',
+                        isset($_POST['would_recommend']) ? 1 : 0,
+                        $structured_data
+                    ]);
+                    $_SESSION['message'] = "Exit interview conducted and recorded successfully!";
+                    $_SESSION['messageType'] = "success";
+                } catch (PDOException $e) {
+                    // If structured_data column doesn't exist, fall back to basic insert
+                    try {
+                        $stmt = $pdo->prepare("INSERT INTO exit_interviews (exit_id, employee_id, interview_date, feedback, improvement_suggestions, reason_for_leaving, would_recommend, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Completed')");
+                        $stmt->execute([
+                            $_POST['exit_id'],
+                            $exit_data['employee_id'],
+                            $_POST['interview_date'],
+                            $_POST['feedback'] ?? '',
+                            $_POST['improvement_suggestions'] ?? '',
+                            $_POST['reason_for_leaving'] ?? '',
+                            isset($_POST['would_recommend']) ? 1 : 0,
+                        ]);
+                        $_SESSION['message'] = "Exit interview conducted and recorded successfully!";
+                        $_SESSION['messageType'] = "success";
+                    } catch (PDOException $e2) {
+                        $_SESSION['message'] = "Error: " . $e2->getMessage();
+                        $_SESSION['messageType'] = "error";
+                    }
+                }
+                header("Location: " . $_SERVER['PHP_SELF']);
+                exit;
+                break;
             
             case 'delete':
-                // Delete exit interview
                 try {
                     $stmt = $pdo->prepare("DELETE FROM exit_interviews WHERE interview_id=?");
                     $stmt->execute([$_POST['interview_id']]);
@@ -101,7 +167,6 @@ $messageType = '';
 if (isset($_SESSION['message'])) {
     $message = $_SESSION['message'];
     $messageType = $_SESSION['messageType'];
-    // Clear the message after displaying
     unset($_SESSION['message']);
     unset($_SESSION['messageType']);
 }
@@ -131,7 +196,6 @@ $interviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("
     SELECT 
         ex.exit_id, 
-        ex.employee_id,
         ex.exit_date,
         ex.exit_type,
         CONCAT(pi.first_name, ' ', pi.last_name) as employee_name
@@ -141,8 +205,14 @@ $stmt = $pdo->query("
     ORDER BY ex.exit_date DESC
 ");
 $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
 
+// Analytics
+$totalInterviews = count($interviews);
+$completedCount  = count(array_filter($interviews, fn($i) => $i['status'] === 'Completed'));
+$scheduledCount  = count(array_filter($interviews, fn($i) => $i['status'] === 'Scheduled'));
+$recommendCount  = count(array_filter($interviews, fn($i) => $i['would_recommend'] == 1));
+$recommendPct    = $totalInterviews > 0 ? round(($recommendCount / $totalInterviews) * 100) : 0;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -153,953 +223,1055 @@ $exits = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=rose">
     <style>
-        /* Additional custom styles for exit interviews page */
         :root {
-            --azure-blue: #E91E63;
-            --azure-blue-light: #F06292;
-            --azure-blue-dark: #C2185B;
-            --azure-blue-lighter: #F8BBD0;
-            --azure-blue-pale: #FCE4EC;
+            --pink:       #E91E63;
+            --pink-light: #F06292;
+            --pink-dark:  #C2185B;
+            --pink-pale:  #FCE4EC;
+            --pink-soft:  #F8BBD0;
         }
+
+        body { background: var(--pink-pale); }
+
+        .container-fluid { padding: 0; }
+        .row { margin-right: 0; margin-left: 0; }
+
+        .main-content { background: var(--pink-pale); padding: 20px; }
 
         .section-title {
-            color: var(--azure-blue);
-            margin-bottom: 30px;
+            color: var(--pink);
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 1.6rem;
+        }
+
+        /* ── Stat Cards ────────────────────────────────────── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px 18px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(233,30,99,.08);
+            border-top: 4px solid var(--pink);
+            transition: transform .2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-card .stat-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--pink-dark);
+            line-height: 1;
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
         }
-        
-        .container-fluid {
-            padding: 0;
-        }
-        
-        .row {
-            margin-right: 0;
-            margin-left: 0;
-        }
+        .stat-card.green { border-top-color: #28a745; }
+        .stat-card.green .stat-num { color: #1a7a31; }
+        .stat-card.amber { border-top-color: #ffc107; }
+        .stat-card.amber .stat-num { color: #b38600; }
+        .stat-card.teal  { border-top-color: #17a2b8; }
+        .stat-card.teal  .stat-num { color: #0e6c7e; }
 
-        body {
-            background: var(--azure-blue-pale);
-        }
-
-        .main-content {
-            background: var(--azure-blue-pale);
-            padding: 20px;
-        }
-
+        /* ── Controls bar ──────────────────────────────────── */
         .controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 12px;
         }
-
-        .search-box {
-            position: relative;
-            flex: 1;
-            max-width: 400px;
-        }
-
+        .search-box { position: relative; flex: 1; max-width: 380px; }
         .search-box input {
             width: 100%;
-            padding: 12px 15px 12px 45px;
+            padding: 10px 14px 10px 42px;
             border: 2px solid #e0e0e0;
             border-radius: 25px;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            font-size: 15px;
+            transition: all .3s;
         }
-
         .search-box input:focus {
-            border-color: var(--azure-blue);
+            border-color: var(--pink);
             outline: none;
-            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+            box-shadow: 0 0 10px rgba(233,30,99,.2);
         }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #999; }
 
-        .search-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #666;
-        }
+        .btn-group-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+        /* ── Buttons ───────────────────────────────────────── */
         .btn {
-            padding: 12px 25px;
+            padding: 10px 20px;
             border: none;
             border-radius: 25px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
+            transition: all .25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
+        .btn-primary  { background: linear-gradient(135deg,var(--pink),var(--pink-light)); color:#fff; }
+        .btn-primary:hover  { transform:translateY(-2px); box-shadow:0 6px 16px rgba(233,30,99,.35); }
+        .btn-success  { background: linear-gradient(135deg,#28a745,#20c997); color:#fff; }
+        .btn-success:hover  { transform:translateY(-2px); box-shadow:0 6px 16px rgba(40,167,69,.3); }
+        .btn-danger   { background: linear-gradient(135deg,#dc3545,#c82333); color:#fff; }
+        .btn-danger:hover   { transform:translateY(-2px); }
+        .btn-warning  { background: linear-gradient(135deg,#ffc107,#e0a800); color:#fff; }
+        .btn-warning:hover  { transform:translateY(-2px); }
+        .btn-info     { background: linear-gradient(135deg,#17a2b8,#138496); color:#fff; }
+        .btn-info:hover     { transform:translateY(-2px); }
+        .btn-violet   { background: linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; }
+        .btn-violet:hover   { transform:translateY(-2px); box-shadow:0 6px 16px rgba(124,58,237,.3); }
+        .btn-teal     { background: linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; }
+        .btn-teal:hover     { transform:translateY(-2px); }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-secondary { background:#6c757d; color:#fff; }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
-            background: linear-gradient(135deg, var(--azure-blue-light) 0%, var(--azure-blue-dark) 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-            color: white;
-        }
-
-        .btn-small {
-            padding: 8px 15px;
-            font-size: 14px;
-            margin: 0 3px;
-        }
-
+        /* ── Table ─────────────────────────────────────────── */
         .table-container {
             background: white;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 16px rgba(0,0,0,.07);
         }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
+        .table { width: 100%; border-collapse: collapse; }
         .table th {
-            background: linear-gradient(135deg, var(--azure-blue-lighter) 0%, #e9ecef 100%);
-            padding: 15px;
+            background: linear-gradient(135deg, var(--pink-soft), #f0f0f0);
+            padding: 14px 15px;
             text-align: left;
-            font-weight: 600;
-            color: var(--azure-blue-dark);
+            font-weight: 700;
+            color: var(--pink-dark);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
             border-bottom: 2px solid #dee2e6;
         }
-
-        .table td {
-            padding: 15px;
-            border-bottom: 1px solid #f1f1f1;
-            vertical-align: middle;
-        }
-
-        .table tbody tr:hover {
-            background-color: var(--azure-blue-lighter);
-            transform: scale(1.01);
-            transition: all 0.2s ease;
-        }
+        .table td { padding: 13px 15px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; font-size: 14px; }
+        .table tbody tr:hover { background: var(--pink-pale); }
 
         .status-badge {
-            padding: 5px 12px;
+            padding: 4px 11px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: .5px;
         }
+        .status-scheduled  { background:#fff3cd; color:#856404; }
+        .status-completed  { background:#d4edda; color:#155724; }
+        .status-cancelled  { background:#f8d7da; color:#721c24; }
 
-        .status-scheduled {
-            background: #fff3cd;
-            color: #856404;
+        .action-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+
+        /* ── Tabs ──────────────────────────────────────────── */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 22px;
         }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-cancelled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 0;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
-            color: white;
-            padding: 20px 30px;
-            border-radius: 15px 15px 0 0;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            color: white;
-            opacity: 0.7;
-        }
-
-        .close:hover {
-            opacity: 1;
-        }
-
-        .modal-body {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
+        .tab-btn {
+            padding: 10px 18px;
+            border: none;
+            background: none;
+            font-size: 14px;
             font-weight: 600;
-            color: var(--azure-blue-dark);
+            color: #888;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all .2s;
         }
+        .tab-btn.active { color: var(--pink); border-bottom-color: var(--pink); }
+        .tab-btn:hover:not(.active) { color: var(--pink-dark); }
 
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── Modals ────────────────────────────────────────── */
+        .modal {
+            display: none; position: fixed; z-index: 1050;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white; margin: 3% auto;
+            border-radius: 16px; width: 92%; max-width: 780px;
+            max-height: 92vh; overflow-y: auto;
+            box-shadow: 0 24px 48px rgba(0,0,0,.25);
+            animation: popIn .25s ease;
+        }
+        @keyframes popIn {
+            from { transform:scale(.94) translateY(-20px); opacity:0; }
+            to   { transform:scale(1)   translateY(0);    opacity:1; }
+        }
+        .modal-header {
+            padding: 20px 28px;
+            border-radius: 16px 16px 0 0;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-header.pink   { background: linear-gradient(135deg,var(--pink),var(--pink-light)); }
+        .modal-header.violet { background: linear-gradient(135deg,#7c3aed,#a855f7); }
+        .modal-header.teal   { background: linear-gradient(135deg,#0d9488,#14b8a6); }
+        .modal-header.amber  { background: linear-gradient(135deg,#f59e0b,#fbbf24); }
+        .modal-header h2 { margin:0; color:#fff; font-size:1.2rem; }
+        .modal-header .close-btn { background:none; border:none; color:rgba(255,255,255,.8); font-size:22px; cursor:pointer; }
+        .modal-header .close-btn:hover { color:#fff; }
+        .modal-body { padding: 28px; }
+
+        /* ── Form helpers ──────────────────────────────────── */
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display:block; margin-bottom:6px; font-weight:600; color:#444; font-size:13px; }
         .form-control {
-            width: 100%;
-            padding: 6px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            width: 100%; padding: 9px 14px;
+            border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; transition: all .25s; box-sizing: border-box;
         }
+        .form-control:focus { border-color: var(--pink); outline:none; box-shadow:0 0 8px rgba(233,30,99,.2); }
+        textarea.form-control { min-height: 90px; resize: vertical; }
+        .form-row { display: flex; gap: 16px; }
+        .form-col { flex: 1; }
 
-        .form-control:focus {
-            border-color: var(--azure-blue);
-            outline: none;
-            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
+        /* Star rating */
+        .star-rating { display:flex; gap:6px; margin-top:6px; }
+        .star-rating input { display:none; }
+        .star-rating label {
+            font-size: 26px; cursor:pointer; color:#ddd;
+            transition: color .15s;
         }
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label { color:#ffc107; }
+        .star-rating { flex-direction: row-reverse; justify-content: flex-end; }
 
-        textarea.form-control {
-            min-height: 100px;
-            resize: vertical;
+        /* Rating section grid */
+        .ratings-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+        /* Progress bar */
+        .progress-bar-wrap { background:#f0f0f0; border-radius:99px; height:8px; margin-top:8px; }
+        .progress-bar-fill { height:8px; border-radius:99px; background: linear-gradient(90deg,var(--pink),var(--pink-light)); transition: width .6s; }
+
+        /* Reason chips */
+        .reason-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+        .reason-chip {
+            padding: 6px 14px; border-radius: 99px;
+            border: 2px solid #e0e0e0; background: white;
+            font-size: 13px; cursor:pointer; font-weight:600; color:#555;
+            transition: all .2s;
         }
+        .reason-chip.selected { border-color: var(--pink); background: var(--pink-pale); color: var(--pink-dark); }
 
-        .form-row {
-            display: flex;
-            gap: 20px;
+        /* Alerts */
+        .alert { padding:14px 18px; margin-bottom:18px; border-radius:10px; font-weight:500; }
+        .alert-success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .alert-error   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+
+        /* Feedback detail panel */
+        .feedback-panel {
+            background: white; border-radius: 12px;
+            padding: 20px; margin-bottom: 14px;
+            border-left: 4px solid var(--pink);
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
         }
+        .feedback-panel h5 { color: var(--pink-dark); margin: 0 0 8px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+        .feedback-panel p  { margin:0; color:#444; font-size:14px; line-height:1.6; }
 
-        .form-col {
-            flex: 1;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .alert {
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 50px;
-            color: #666;
-        }
-
-        .no-results i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            color: #ddd;
-        }
-
-        /* Certificate Styles */
+        /* Certificate */
         .certificate-container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 40px;
+            max-width: 860px; margin: 0 auto; padding: 40px;
             background: white;
-            border: 15px solid;
-            border-image: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 50%, var(--azure-blue-dark) 100%) 1;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 12px solid var(--pink-soft);
+            outline: 3px solid var(--pink);
+            outline-offset: -18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.1);
             position: relative;
         }
-
-        .certificate-container::before,
-        .certificate-container::after {
-            content: '';
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            border: 3px solid var(--azure-blue);
+        .cert-header { text-align:center; margin-bottom:30px; padding-bottom:20px; border-bottom:2px solid var(--pink-soft); }
+        .cert-logo {
+            width:90px; height:90px; margin:0 auto 14px;
+            background: linear-gradient(135deg,var(--pink),var(--pink-light));
+            border-radius:50%; display:flex; align-items:center; justify-content:center;
+            font-size:40px; color:#fff;
         }
+        .cert-title { font-size:30px; font-weight:800; color:var(--pink-dark); text-transform:uppercase; letter-spacing:3px; }
+        .cert-sub   { color:#888; font-style:italic; margin-top:6px; }
+        .cert-body  { padding: 20px 0; }
+        .cert-text  { font-size:15px; color:#333; text-align:center; margin-bottom:24px; line-height:1.7; }
+        .cert-details { background:var(--pink-pale); padding:24px; border-radius:10px; border-left:5px solid var(--pink); }
+        .cert-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--pink-soft); font-size:14px; }
+        .cert-row:last-child { border:none; }
+        .cert-row span:first-child { font-weight:700; color:var(--pink-dark); }
+        .cert-footer { margin-top:40px; display:flex; justify-content:space-around; border-top:2px solid var(--pink-soft); padding-top:24px; }
+        .sig-block { text-align:center; min-width:180px; }
+        .sig-line  { border-top:2px solid #333; margin:50px 0 8px; }
+        .sig-name  { font-weight:700; color:var(--pink-dark); font-size:14px; }
+        .sig-role  { font-size:12px; color:#888; font-style:italic; }
 
-        .certificate-container::before {
-            top: 20px;
-            left: 20px;
-            border-right: none;
-            border-bottom: none;
-        }
-
-        .certificate-container::after {
-            bottom: 20px;
-            right: 20px;
-            border-left: none;
-            border-top: none;
-        }
-
-        .certificate-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid var(--azure-blue-lighter);
-        }
-
-        .certificate-logo {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 20px;
-            background: linear-gradient(135deg, var(--azure-blue) 0%, var(--azure-blue-light) 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            color: white;
-            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
-        }
-
-        .certificate-title {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--azure-blue-dark);
-            margin: 20px 0 10px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
-
-        .certificate-subtitle {
-            font-size: 18px;
-            color: #666;
-            font-style: italic;
-        }
-
-        .certificate-body {
-            padding: 30px 20px;
-            line-height: 1.8;
-        }
-
-        .certificate-text {
-            font-size: 16px;
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .employee-details {
-            background: var(--azure-blue-pale);
-            padding: 30px;
-            border-radius: 10px;
-            margin: 30px 0;
-            border-left: 5px solid var(--azure-blue);
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--azure-blue-lighter);
-        }
-
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: var(--azure-blue-dark);
-            min-width: 180px;
-        }
-
-        .detail-value {
-            color: #333;
-            text-align: right;
-            flex: 1;
-        }
-
-        .certificate-footer {
-            margin-top: 50px;
-            display: flex;
-            justify-content: space-around;
-            padding-top: 30px;
-            border-top: 2px solid var(--azure-blue-lighter);
-        }
-
-        .signature-block {
-            text-align: center;
-            min-width: 200px;
-        }
-
-        .signature-line {
-            border-top: 2px solid #333;
-            margin: 60px 0 10px;
-            padding-top: 10px;
-        }
-
-        .signature-name {
-            font-weight: 600;
-            color: var(--azure-blue-dark);
-        }
-
-        .signature-title {
-            font-size: 14px;
-            color: #666;
-            font-style: italic;
-        }
-
-        .certificate-seal {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 100px;
-            height: 100px;
-            border: 3px solid var(--azure-blue);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            font-size: 12px;
-            text-align: center;
-            font-weight: 600;
-            color: var(--azure-blue-dark);
-            transform: rotate(-15deg);
-        }
-
-        .certificate-date {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 14px;
-            color: #666;
-        }
-
-        /* IMPROVED PRINT STYLES */
+        /* Print */
         @media print {
-            /* Hide everything except the certificate */
-            body * {
-                visibility: hidden;
-            }
-            
-            #printCertificate,
-            #printCertificate * {
-                visibility: visible;
-            }
-            
-            /* Hide non-printable elements */
-            .no-print {
-                display: none !important;
-            }
-            
-            /* Position certificate for printing */
-            #printCertificate {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            
-            /* Reset page setup for optimal printing */
-            @page {
-                size: A4 portrait;
-                margin: 10mm;
-            }
-            
-            body {
-                margin: 0;
-                padding: 0;
-                background: white;
-            }
-            
-            /* Ensure certificate fits on one page */
-            .certificate-container {
-                max-width: 100%;
-                width: 100%;
-                margin: 0;
-                padding: 20px;
-                page-break-inside: avoid;
-                box-sizing: border-box;
-                border-width: 8px;
-                box-shadow: none !important;
-            }
-            
-            /* Adjust font sizes for print */
-            .certificate-title {
-                font-size: 24px;
-                letter-spacing: 2px;
-            }
-            
-            .certificate-subtitle {
-                font-size: 14px;
-            }
-            
-            .certificate-text {
-                font-size: 13px;
-                line-height: 1.6;
-            }
-            
-            .detail-row {
-                padding: 8px 0;
-                font-size: 13px;
-            }
-            
-            .employee-details {
-                padding: 15px;
-                margin: 15px 0;
-            }
-            
-            .detail-label {
-                font-size: 13px;
-                min-width: 150px;
-            }
-            
-            .detail-value {
-                font-size: 13px;
-            }
-            
-            /* Adjust logo size */
-            .certificate-logo {
-                width: 70px;
-                height: 70px;
-                font-size: 32px;
-                margin-bottom: 15px;
-            }
-            
-            /* Adjust decorative corners */
-            .certificate-container::before,
-            .certificate-container::after {
-                width: 50px;
-                height: 50px;
-                border-width: 2px;
-            }
-            
-            .certificate-container::before {
-                top: 10px;
-                left: 10px;
-            }
-            
-            .certificate-container::after {
-                bottom: 10px;
-                right: 10px;
-            }
-            
-            /* Adjust body padding */
-            .certificate-body {
-                padding: 15px 10px;
-            }
-            
-            /* Adjust header */
-            .certificate-header {
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-            }
-            
-            /* Adjust footer spacing */
-            .certificate-footer {
-                margin-top: 25px;
-                padding-top: 15px;
-            }
-            
-            .signature-line {
-                margin: 30px 0 5px;
-            }
-            
-            .signature-name {
-                font-size: 13px;
-            }
-            
-            .signature-title {
-                font-size: 12px;
-            }
-            
-            /* Adjust seal position and size */
-            .certificate-seal {
-                bottom: 20px;
-                left: 20px;
-                width: 70px;
-                height: 70px;
-                font-size: 9px;
-                border-width: 2px;
-            }
-            
-            .certificate-date {
-                margin-top: 20px;
-                font-size: 12px;
-            }
-            
-            /* Ensure colors print correctly */
-            .certificate-container,
-            .certificate-logo,
-            .employee-details {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                color-adjust: exact;
-            }
-            
-            /* Remove shadows for cleaner print */
-            .certificate-logo {
-                box-shadow: none !important;
-            }
+            body * { visibility: hidden; }
+            #printCertificate, #printCertificate * { visibility: visible; }
+            #printCertificate { position:absolute; left:0; top:0; width:100%; }
+            .no-print { display:none !important; }
+            @page { size:A4 portrait; margin:10mm; }
+            .certificate-container { max-width:100%; margin:0; padding:20px; box-shadow:none; }
         }
 
-        /* Additional responsive adjustments for smaller screens */
-        @media screen and (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
+        @media (max-width:768px) {
+            .form-row  { flex-direction:column; }
+            .ratings-grid { grid-template-columns:1fr; }
+            .stats-row { grid-template-columns:1fr 1fr; }
+        }
 
-            .search-box {
-                max-width: none;
-            }
+        .no-results { text-align:center; padding:60px 20px; color:#aaa; }
+        .no-results .icon { font-size:4rem; display:block; margin-bottom:14px; }
 
-            .form-row {
-                flex-direction: column;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            .content {
-                padding: 20px;
-            }
-
-            .certificate-container {
-                padding: 20px;
-                border-width: 8px;
-            }
-
-            .certificate-title {
-                font-size: 24px;
-            }
-
-            .certificate-footer {
-                flex-direction: column;
-                gap: 40px;
-            }
+        /* Section divider in conduct modal */
+        .section-heading {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--pink);
+            margin: 22px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-heading::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--pink-soft);
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <?php include 'navigation.php'; ?>
-        <div class="row">
-            <?php include 'sidebar.php'; ?>
-            <div class="main-content">
-                <h2 class="section-title">Exit Interview Management</h2>
-                <div class="content">
-                    <?php if ($message): ?>
-                        <div class="alert alert-<?= $messageType ?>">
-                            <?= htmlspecialchars($message) ?>
+<div class="container-fluid">
+    <?php include 'navigation.php'; ?>
+    <div class="row">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+
+            <h2 class="section-title">🗂 Exit Interview Management</h2>
+            <p style="color:#888; margin-bottom:20px; font-size:14px;">Manage exit interviews, gather employee feedback, and record reasons for leaving.</p>
+
+            <?php if ($message): ?>
+            <div class="alert alert-<?= $messageType ?>">
+                <?= $messageType === 'success' ? '✅ ' : '⚠️ ' ?><?= htmlspecialchars($message) ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-num"><?= $totalInterviews ?></div>
+                    <div class="stat-label">Total Interviews</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-num"><?= $completedCount ?></div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-num"><?= $scheduledCount ?></div>
+                    <div class="stat-label">Scheduled</div>
+                </div>
+                <div class="stat-card teal">
+                    <div class="stat-num"><?= $recommendPct ?>%</div>
+                    <div class="stat-label">Would Recommend</div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-nav no-print">
+                <button class="tab-btn active" onclick="switchTab('interviews')">📋 Interviews</button>
+                <button class="tab-btn" onclick="switchTab('feedback')">💬 Feedback Summary</button>
+                <button class="tab-btn" onclick="switchTab('reasons')">📊 Reasons for Leaving</button>
+            </div>
+
+            <!-- Tab: Interviews -->
+            <div id="tab-interviews" class="tab-pane active">
+                <div class="controls">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search employee, status, exit type…">
+                    </div>
+                    <div class="btn-group-actions">
+                        <button class="btn btn-violet" onclick="openConductModal()">🎤 Conduct Interview</button>
+                        <button class="btn btn-primary" onclick="openModal('add')">➕ Add Interview</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="table" id="interviewTable">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Job Title</th>
+                                <th>Interview Date</th>
+                                <th>Exit Date</th>
+                                <th>Exit Type</th>
+                                <th>Status</th>
+                                <th>Recommend</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interviewTableBody">
+                        <?php foreach ($interviews as $interview): ?>
+                        <tr>
+                            <td>
+                                <strong><?= htmlspecialchars($interview['full_name']) ?></strong><br>
+                                <small style="color:#888;">#<?= htmlspecialchars($interview['employee_number']) ?></small>
+                            </td>
+                            <td>
+                                <?= htmlspecialchars($interview['job_title']) ?><br>
+                                <small style="color:#888;"><?= htmlspecialchars($interview['department']) ?></small>
+                            </td>
+                            <td><?= date('M d, Y', strtotime($interview['interview_date'])) ?></td>
+                            <td><?= date('M d, Y', strtotime($interview['exit_date'])) ?></td>
+                            <td><?= htmlspecialchars($interview['exit_type']) ?></td>
+                            <td><span class="status-badge status-<?= strtolower($interview['status']) ?>"><?= htmlspecialchars($interview['status']) ?></span></td>
+                            <td><?= $interview['would_recommend'] ? '✅ Yes' : '❌ No' ?></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn btn-teal btn-sm" onclick="viewFeedback(<?= $interview['interview_id'] ?>)" title="View Feedback">👁 Feedback</button>
+                                    <button class="btn btn-info btn-sm" onclick="printCertificate(<?= $interview['interview_id'] ?>)" title="Print Certificate">🖨️</button>
+                                    <button class="btn btn-warning btn-sm" onclick="editInterview(<?= $interview['interview_id'] ?>)" title="Edit">✏️</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteInterview(<?= $interview['interview_id'] ?>)" title="Delete">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php if (empty($interviews)): ?>
+                    <div class="no-results">
+                        <span class="icon">📋</span>
+                        <h4>No exit interviews found</h4>
+                        <p>Click <strong>Conduct Interview</strong> or <strong>Add Interview</strong> to get started.</p>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Tab: Feedback Summary -->
+            <div id="tab-feedback" class="tab-pane">
+                <div style="max-width:820px;">
+                    <h4 style="color:var(--pink-dark); margin-bottom:18px;">💬 Employee Feedback Overview</h4>
+                    <?php if (empty($interviews)): ?>
+                        <p style="color:#aaa;">No feedback recorded yet.</p>
+                    <?php else: ?>
+                        <?php foreach ($interviews as $interview): if (empty($interview['feedback'])) continue; ?>
+                        <div class="feedback-panel">
+                            <h5><?= htmlspecialchars($interview['full_name']) ?> — <?= htmlspecialchars($interview['job_title']) ?>
+                                <span style="float:right; font-size:12px; color:#aaa; font-weight:400;"><?= date('M d, Y', strtotime($interview['interview_date'])) ?></span>
+                            </h5>
+                            <p><?= nl2br(htmlspecialchars($interview['feedback'])) ?></p>
+                            <?php if (!empty($interview['improvement_suggestions'])): ?>
+                                <div style="margin-top:10px; padding:10px 14px; background:var(--pink-pale); border-radius:8px; font-size:13px; color:#555;">
+                                    💡 <strong>Suggestions:</strong> <?= nl2br(htmlspecialchars($interview['improvement_suggestions'])) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
+                        <?php endforeach; ?>
                     <?php endif; ?>
 
-                    <div class="controls">
-                        <div class="search-box">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search by employee name, status...">
-                        </div>
-                        <button class="btn btn-primary" onclick="openModal('add')">
-                            ➕ Add New Interview
-                        </button>
-                    </div>
-
-                    <div class="table-container">
-                        <table class="table" id="interviewTable">
-                            <thead>
-                                <tr>
-                                    <th>Employee</th>
-                                    <th>Job Title</th>
-                                    <th>Interview Date</th>
-                                    <th>Exit Date</th>
-                                    <th>Exit Type</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="interviewTableBody">
-                                <?php foreach ($interviews as $interview): ?>
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <strong><?= htmlspecialchars($interview['full_name']) ?></strong><br>
-                                            <small style="color: #666;">#<?= htmlspecialchars($interview['employee_number']) ?></small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <?= htmlspecialchars($interview['job_title']) ?><br>
-                                        <small style="color: #666;"><?= htmlspecialchars($interview['department']) ?></small>
-                                    </td>
-                                    <td><?= date('M d, Y', strtotime($interview['interview_date'])) ?></td>
-                                    <td><?= date('M d, Y', strtotime($interview['exit_date'])) ?></td>
-                                    <td><?= htmlspecialchars($interview['exit_type']) ?></td>
-                                    <td>
-                                        <span class="status-badge status-<?= strtolower($interview['status']) ?>">
-                                            <?= htmlspecialchars($interview['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-warning btn-small" onclick="editInterview(<?= $interview['interview_id'] ?>)">
-                                            ✏️ Edit
-                                        </button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                        
-                        <?php if (empty($interviews)): ?>
-                        <div class="no-results">
-                            <i>📋</i>
-                            <h3>No exit interviews found</h3>
-                            <p>Start by adding your first exit interview.</p>
-                        </div>
-                        <?php endif; ?>
+                    <div style="text-align:right; margin-top:16px;">
+                        <button class="btn btn-primary btn-sm" onclick="openFeedbackModal()">📝 Gather New Feedback</button>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Add/Edit Interview Modal -->
-    <div id="interviewModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Add New Exit Interview</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="interviewForm" method="POST">
-                    <input type="hidden" id="action" name="action" value="add">
-                    <input type="hidden" id="interview_id" name="interview_id">
-
-                    <div class="form-group">
-                        <label for="exit_id">Exit Record</label>
-                        <select id="exit_id" name="exit_id" class="form-control" required>
-                            <option value="">Select exit record...</option>
-                            <?php foreach ($exits as $exit): ?>
-                            <option value="<?= $exit['exit_id'] ?>" data-employee-id="<?= $exit['employee_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> - <?= date('M d, Y', strtotime($exit['exit_date'])) ?> (<?= htmlspecialchars($exit['exit_type']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+            <!-- Tab: Reasons for Leaving -->
+            <div id="tab-reasons" class="tab-pane">
+                <h4 style="color:var(--pink-dark); margin-bottom:18px;">📊 Reasons for Leaving</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:900px;">
+                    <?php
+                    $reasonCounts = [];
+                    foreach ($interviews as $i) {
+                        $r = trim($i['reason_for_leaving'] ?? '');
+                        if ($r === '') continue;
+                        // Normalize to first ~40 chars as a key if free text
+                        $key = strlen($r) > 50 ? substr($r, 0, 47).'…' : $r;
+                        $reasonCounts[$key] = ($reasonCounts[$key] ?? 0) + 1;
+                    }
+                    arsort($reasonCounts);
+                    $maxCount = max(array_values($reasonCounts) ?: [1]);
+                    $colors = ['var(--pink)','#7c3aed','#0d9488','#f59e0b','#dc2626','#2563eb'];
+                    $ci = 0;
+                    foreach ($reasonCounts as $reason => $count):
+                        $pct = round(($count / $totalInterviews) * 100);
+                        $barW = round(($count / $maxCount) * 100);
+                        $col = $colors[$ci++ % count($colors)];
+                    ?>
+                    <div style="background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,.06);">
+                        <div style="font-size:13px; font-weight:700; color:#333; margin-bottom:6px;"><?= htmlspecialchars($reason) ?></div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="flex:1; background:#f0f0f0; border-radius:99px; height:10px;">
+                                <div style="width:<?= $barW ?>%; height:10px; border-radius:99px; background:<?= $col ?>;"></div>
+                            </div>
+                            <span style="font-weight:800; color:<?= $col ?>; min-width:32px; font-size:14px;"><?= $count ?></span>
+                        </div>
+                        <div style="font-size:11px; color:#aaa; margin-top:4px;"><?= $pct ?>% of total exits</div>
                     </div>
-                    <input type="hidden" id="employee_id" name="employee_id">
+                    <?php endforeach; ?>
+                    <?php if (empty($reasonCounts)): ?>
+                        <div style="grid-column:1/-1; color:#aaa; text-align:center; padding:40px;">No reasons recorded yet.</div>
+                    <?php endif; ?>
+                </div>
 
-                    <div class="form-group">
-                        <label for="interview_date">Interview Date</label>
+                <div style="margin-top:20px;">
+                    <button class="btn btn-primary btn-sm" onclick="openReasonModal()">📝 Record New Reason</button>
+                </div>
+            </div>
+
+        </div><!-- /main-content -->
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL 1: Add / Edit Interview
+════════════════════════════════════════════════════════════ -->
+<div id="interviewModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header pink">
+            <h2 id="modalTitle">Add New Exit Interview</h2>
+            <button class="close-btn" onclick="closeModal('interviewModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="interviewForm" method="POST">
+                <input type="hidden" id="action" name="action" value="add">
+                <input type="hidden" id="interview_id" name="interview_id">
+
+                <div class="form-group">
+                    <label>Exit Record *</label>
+                    <select id="exit_id" name="exit_id" class="form-control" required>
+                        <option value="">Select exit record…</option>
+                        <?php foreach ($exits as $exit): ?>
+                        <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> — <?= date('M d, Y', strtotime($exit['exit_date'])) ?> (<?= htmlspecialchars($exit['exit_type']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col form-group">
+                        <label>Interview Date *</label>
                         <input type="date" id="interview_date" name="interview_date" class="form-control" required>
                     </div>
-
-                    <div class="form-group">
-                        <label for="feedback">Feedback</label>
-                        <textarea id="feedback" name="feedback" class="form-control" placeholder=" Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="improvement_suggestions">Improvement Suggestions</label>
-                        <textarea id="improvement_suggestions" name="improvement_suggestions" class="form-control" placeholder="Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reason_for_leaving">Reason for Leaving</label>
-                        <textarea id="reason_for_leaving" name="reason_for_leaving" class="form-control" placeholder="Nothing's here yet..." readonly style="background-color: #f5f5f5; cursor: not-allowed;"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="status">Status</label>
+                    <div class="form-col form-group">
+                        <label>Status *</label>
                         <select id="status" name="status" class="form-control" required>
                             <option value="Scheduled">Scheduled</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
+                </div>
 
-                    <div style="text-align: right;">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success">Save Changes</button>
+                <div class="form-group">
+                    <label>Reason for Leaving</label>
+                    <textarea id="reason_for_leaving" name="reason_for_leaving" class="form-control" placeholder="Enter reason for leaving…"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Feedback</label>
+                    <textarea id="feedback" name="feedback" class="form-control" placeholder="General feedback from the employee…"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Improvement Suggestions</label>
+                    <textarea id="improvement_suggestions" name="improvement_suggestions" class="form-control" placeholder="Suggestions the employee made…"></textarea>
+                </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="would_recommend" name="would_recommend" value="1">
+                    <label for="would_recommend" style="margin:0; font-weight:600;">Would recommend the company to others</label>
+                </div>
+
+                <div style="text-align:right; margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('interviewModal')">Cancel</button>
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL 2: Conduct Interview (structured wizard)
+════════════════════════════════════════════════════════════ -->
+<div id="conductModal" class="modal">
+    <div class="modal-content" style="max-width:860px;">
+        <div class="modal-header violet">
+            <h2>🎤 Conduct Exit Interview</h2>
+            <button class="close-btn" onclick="closeModal('conductModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST">
+                <input type="hidden" name="action" value="conduct">
+
+                <!-- Step 1: Basic Info -->
+                <div class="section-heading">1 — Interview Setup</div>
+                <div class="form-row">
+                    <div class="form-col form-group">
+                        <label>Exit Record *</label>
+                        <select name="exit_id" class="form-control" required>
+                            <option value="">Select exit record…</option>
+                            <?php foreach ($exits as $exit): ?>
+                            <option value="<?= $exit['exit_id'] ?>"><?= htmlspecialchars($exit['employee_name']) ?> — <?= date('M d, Y', strtotime($exit['exit_date'])) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                </form>
+                    <div class="form-col form-group">
+                        <label>Interview Date *</label>
+                        <input type="date" name="interview_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col form-group">
+                        <label>Interview Type</label>
+                        <select name="interview_type" class="form-control">
+                            <option value="In-Person">In-Person</option>
+                            <option value="Video Call">Video Call</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Written Form">Written Form</option>
+                        </select>
+                    </div>
+                    <div class="form-col form-group">
+                        <label>Conducted By</label>
+                        <input type="text" name="conducted_by" class="form-control" placeholder="HR Manager / Interviewer name">
+                    </div>
+                    <div class="form-col form-group">
+                        <label>Duration (minutes)</label>
+                        <input type="number" name="duration_minutes" class="form-control" placeholder="e.g. 30" min="5" max="180">
+                    </div>
+                </div>
+
+                <!-- Step 2: Ratings -->
+                <div class="section-heading">2 — Satisfaction Ratings</div>
+                <div class="ratings-grid">
+                    <div class="form-group">
+                        <label>Overall Satisfaction</label>
+                        <div class="star-rating" id="star-overall">
+                            <?php for ($s=5;$s>=1;$s--): ?>
+                            <input type="radio" id="overall<?=$s?>" name="overall_satisfaction" value="<?=$s?>">
+                            <label for="overall<?=$s?>">★</label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Management</label>
+                        <div class="star-rating">
+                            <?php for ($s=5;$s>=1;$s--): ?>
+                            <input type="radio" id="mgmt<?=$s?>" name="management_rating" value="<?=$s?>">
+                            <label for="mgmt<?=$s?>">★</label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Work Culture</label>
+                        <div class="star-rating">
+                            <?php for ($s=5;$s>=1;$s--): ?>
+                            <input type="radio" id="cult<?=$s?>" name="culture_rating" value="<?=$s?>">
+                            <label for="cult<?=$s?>">★</label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Growth Opportunities</label>
+                        <div class="star-rating">
+                            <?php for ($s=5;$s>=1;$s--): ?>
+                            <input type="radio" id="grow<?=$s?>" name="growth_rating" value="<?=$s?>">
+                            <label for="grow<?=$s?>">★</label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Compensation & Benefits</label>
+                        <div class="star-rating">
+                            <?php for ($s=5;$s>=1;$s--): ?>
+                            <input type="radio" id="comp<?=$s?>" name="compensation_rating" value="<?=$s?>">
+                            <label for="comp<?=$s?>">★</label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Eligible for Rehire?</label>
+                        <select name="rehire_eligible" class="form-control">
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="Conditional">Conditional</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 3: Reason for Leaving -->
+                <div class="section-heading">3 — Reason for Leaving</div>
+                <div class="form-group">
+                    <label>Select primary reason(s):</label>
+                    <div class="reason-chips" id="reasonChips">
+                        <?php
+                        $reasonOptions = [
+                            'Better Opportunity','Higher Compensation','Work-Life Balance',
+                            'Relocation','Career Change','Management Issues','Company Culture',
+                            'Lack of Growth','Personal Reasons','Retirement','Contract Ended','Other'
+                        ];
+                        foreach ($reasonOptions as $ro): ?>
+                        <div class="reason-chip" onclick="toggleChip(this,'reason_for_leaving')"><?= $ro ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                    <textarea name="reason_for_leaving" id="reason_for_leaving_conduct" class="form-control" style="margin-top:12px;" placeholder="Additional details about the reason for leaving…"></textarea>
+                </div>
+
+                <!-- Step 4: Feedback -->
+                <div class="section-heading">4 — Feedback & Suggestions</div>
+                <div class="form-group">
+                    <label>Employee Feedback / General Comments</label>
+                    <textarea name="feedback" class="form-control" rows="4" placeholder="Record what the employee shared about their experience…"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Improvement Suggestions</label>
+                    <textarea name="improvement_suggestions" class="form-control" rows="3" placeholder="What would they improve? Processes, culture, management, tools…"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Key Q&A Highlights</label>
+                    <textarea name="qa_highlights" class="form-control" rows="3" placeholder="Notable quotes or highlights from the interview…"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Action Items / Follow-ups</label>
+                    <textarea name="action_items" class="form-control" rows="2" placeholder="Any actions to take based on this interview…"></textarea>
+                </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" name="would_recommend" value="1" id="conduct_recommend">
+                    <label for="conduct_recommend" style="margin:0; font-weight:600;">Employee would recommend this company to others</label>
+                </div>
+
+                <div style="text-align:right; margin-top:14px; display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('conductModal')">Cancel</button>
+                    <button type="submit" class="btn btn-violet">✅ Complete Interview</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL 3: View Feedback
+════════════════════════════════════════════════════════════ -->
+<div id="feedbackModal" class="modal">
+    <div class="modal-content" style="max-width:640px;">
+        <div class="modal-header teal">
+            <h2>💬 Employee Feedback Details</h2>
+            <button class="close-btn" onclick="closeModal('feedbackModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="feedbackModalBody">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL 4: Gather Feedback (quick)
+════════════════════════════════════════════════════════════ -->
+<div id="gatherFeedbackModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header teal">
+            <h2>📝 Gather Feedback</h2>
+            <button class="close-btn" onclick="closeModal('gatherFeedbackModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST">
+                <input type="hidden" name="action" value="update">
+                <div class="form-group">
+                    <label>Select Interview Record *</label>
+                    <select name="exit_id" class="form-control" id="gf_exit_id" required onchange="syncInterviewId(this)">
+                        <option value="">Select…</option>
+                        <?php foreach ($interviews as $iv): ?>
+                        <option value="<?= $iv['exit_id'] ?>" data-iid="<?= $iv['interview_id'] ?>"><?= htmlspecialchars($iv['full_name']) ?> — <?= date('M d, Y', strtotime($iv['interview_date'])) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input type="hidden" name="interview_id" id="gf_interview_id">
+                    <input type="hidden" name="interview_date" id="gf_interview_date" value="<?= date('Y-m-d') ?>">
+                    <input type="hidden" name="status" value="Completed">
+                    <input type="hidden" name="reason_for_leaving" value="">
+                    <input type="hidden" name="improvement_suggestions" value="">
+                </div>
+                <div class="form-group">
+                    <label>Feedback / Comments *</label>
+                    <textarea name="feedback" class="form-control" rows="5" placeholder="Record the employee's feedback…" required></textarea>
+                </div>
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" name="would_recommend" value="1" id="gf_recommend">
+                    <label for="gf_recommend" style="margin:0; font-weight:600;">Would recommend the company</label>
+                </div>
+                <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('gatherFeedbackModal')">Cancel</button>
+                    <button type="submit" class="btn btn-teal">💾 Save Feedback</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL 5: Record Reason for Leaving (quick)
+════════════════════════════════════════════════════════════ -->
+<div id="reasonModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header amber">
+            <h2>📊 Record Reason for Leaving</h2>
+            <button class="close-btn" onclick="closeModal('reasonModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST">
+                <input type="hidden" name="action" value="update">
+                <div class="form-group">
+                    <label>Select Interview Record *</label>
+                    <select name="exit_id" class="form-control" id="rm_exit_id" required onchange="syncReasonInterviewId(this)">
+                        <option value="">Select…</option>
+                        <?php foreach ($interviews as $iv): ?>
+                        <option value="<?= $iv['exit_id'] ?>" data-iid="<?= $iv['interview_id'] ?>"><?= htmlspecialchars($iv['full_name']) ?> — <?= date('M d, Y', strtotime($iv['interview_date'])) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input type="hidden" name="interview_id" id="rm_interview_id">
+                    <input type="hidden" name="interview_date" id="rm_interview_date" value="<?= date('Y-m-d') ?>">
+                    <input type="hidden" name="status" value="Completed">
+                    <input type="hidden" name="feedback" value="">
+                    <input type="hidden" name="improvement_suggestions" value="">
+                </div>
+                <div class="form-group">
+                    <label>Select primary reason(s):</label>
+                    <div class="reason-chips" id="rmChips">
+                        <?php foreach ($reasonOptions as $ro): ?>
+                        <div class="reason-chip" onclick="toggleChip(this,'reason_for_leaving_rm')"><?= $ro ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                    <textarea name="reason_for_leaving" id="reason_for_leaving_rm" class="form-control" style="margin-top:12px;" placeholder="Describe the reason in more detail…"></textarea>
+                </div>
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" name="would_recommend" value="1" id="rm_recommend">
+                    <label for="rm_recommend" style="margin:0; font-weight:600;">Would recommend the company</label>
+                </div>
+                <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('reasonModal')">Cancel</button>
+                    <button type="submit" class="btn btn-warning">💾 Save Reason</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Certificate Print Section
+════════════════════════════════════════════════════════════ -->
+<div id="printCertificate" style="display:none;">
+    <div class="certificate-container">
+        <div class="cert-header">
+            <div class="cert-logo">🏢</div>
+            <div class="cert-title">Exit Certificate</div>
+            <div class="cert-sub">Official Record of Employment Exit</div>
+        </div>
+        <div class="cert-body">
+            <p class="cert-text">
+                This is to certify that <strong id="certEmployeeName">[Employee Name]</strong> has formally completed 
+                the exit process with our organization. The company acknowledges their service and extends 
+                best wishes for their future endeavors.
+            </p>
+            <div class="cert-details">
+                <div class="cert-row"><span>Employee Name</span><span id="certName"></span></div>
+                <div class="cert-row"><span>Employee Number</span><span id="certNumber"></span></div>
+                <div class="cert-row"><span>Job Title</span><span id="certJobTitle"></span></div>
+                <div class="cert-row"><span>Department</span><span id="certDepartment"></span></div>
+                <div class="cert-row"><span>Exit Type</span><span id="certExitType"></span></div>
+                <div class="cert-row"><span>Exit Date</span><span id="certExitDate"></span></div>
+                <div class="cert-row"><span>Interview Date</span><span id="certInterviewDate"></span></div>
+            </div>
+            <div style="text-align:center; margin-top:20px; color:#888; font-size:13px;">
+                Issued on <?= date('F d, Y') ?>
+            </div>
+        </div>
+        <div class="cert-footer">
+            <div class="sig-block">
+                <div class="sig-line"></div>
+                <div class="sig-name">_______________________</div>
+                <div class="sig-role">HR Manager</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line"></div>
+                <div class="sig-name">_______________________</div>
+                <div class="sig-role">Authorized Signature</div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Certificate Print Section -->
-    <div id="printCertificate" style="display: none;">
-        <div class="certificate-container">
-            <div class="certificate-header">
-                <div class="certificate-logo">🏢</div>
-                <h1 class="certificate-title">Exit Certificate</h1>
-                <p class="certificate-subtitle">Official Record of Employment Exit</p>
-            </div>
+<script>
+const allInterviews = <?= json_encode($interviews) ?>;
 
-            <div class="certificate-body">
-                <p class="certificate-text">
-                    This is to certify that <strong id="certEmployeeName">[Employee Name]</strong> has formally completed the exit process with our organization. 
-                    The company acknowledges their service and extends best wishes for their future endeavors.
-                </p>
+/* ── Tabs ────────────────────────────────────────────────── */
+function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+        const tabs = ['interviews','feedback','reasons'];
+        b.classList.toggle('active', tabs[i] === id);
+    });
+    document.querySelectorAll('.tab-pane').forEach(p => {
+        p.classList.toggle('active', p.id === 'tab-'+id);
+    });
+}
 
-                <div class="employee-details">
-                    <div class="detail-row"><span class="detail-label">Employee Name:</span><span class="detail-value" id="certName"></span></div>
-                    <div class="detail-row"><span class="detail-label">Employee Number:</span><span class="detail-value" id="certNumber"></span></div>
-                    <div class="detail-row"><span class="detail-label">Job Title:</span><span class="detail-value" id="certJobTitle"></span></div>
-                    <div class="detail-row"><span class="detail-label">Department:</span><span class="detail-value" id="certDepartment"></span></div>
-                    <div class="detail-row"><span class="detail-label">Exit Type:</span><span class="detail-value" id="certExitType"></span></div>
-                    <div class="detail-row"><span class="detail-label">Exit Date:</span><span class="detail-value" id="certExitDate"></span></div>
-                    <div class="detail-row"><span class="detail-label">Interview Date:</span><span class="detail-value" id="certInterviewDate"></span></div>
-                </div>
+/* ── Modals ──────────────────────────────────────────────── */
+function openModal(action, data = null) {
+    const form = document.getElementById('interviewForm');
+    document.getElementById('action').value = action;
+    document.getElementById('modalTitle').innerText = action === 'add' ? 'Add New Exit Interview' : 'Edit Exit Interview';
+    form.reset();
+    if (data) {
+        for (let key in data) {
+            const el = document.getElementById(key);
+            if (!el) continue;
+            el.type === 'checkbox' ? (el.checked = data[key] == 1) : (el.value = data[key] || '');
+        }
+    }
+    document.getElementById('interviewModal').style.display = 'block';
+}
 
-                <div class="certificate-date">
-                    Issued on <span id="certIssuedDate"><?= date('F d, Y') ?></span>
-                </div>
-            </div>
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
 
-            <div class="certificate-footer">
-                <div class="signature-block">
-                    <div class="signature-line"></div>
-                    <div class="signature-name">_______________________</div>
-                    <div class="signature-title">HR Manager</div>
-                </div>
+function openConductModal() { document.getElementById('conductModal').style.display = 'block'; }
+function openFeedbackModal() { document.getElementById('gatherFeedbackModal').style.display = 'block'; }
+function openReasonModal()   { document.getElementById('reasonModal').style.display = 'block'; }
 
-                <div class="signature-block">
-                    <div class="signature-line"></div>
-                    <div class="signature-name">_______________________</div>
-                    <div class="signature-title">Authorized Signature</div>
-                </div>
-            </div>
+window.addEventListener('click', e => {
+    ['interviewModal','conductModal','feedbackModal','gatherFeedbackModal','reasonModal'].forEach(id => {
+        if (e.target === document.getElementById(id)) closeModal(id);
+    });
+});
 
-            <div class="certificate-seal">
-                OFFICIAL<br>COMPANY<br>SEAL
-            </div>
+/* ── Delete ──────────────────────────────────────────────── */
+function deleteInterview(id) {
+    if (!confirm("Delete this exit interview? This cannot be undone.")) return;
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.innerHTML = `<input type="hidden" name="action" value="delete">
+                   <input type="hidden" name="interview_id" value="${id}">`;
+    document.body.appendChild(f);
+    f.submit();
+}
+
+/* ── Edit ────────────────────────────────────────────────── */
+function editInterview(id) {
+    const i = allInterviews.find(x => x.interview_id == id);
+    if (i) openModal('update', i);
+}
+
+/* ── View Feedback ───────────────────────────────────────── */
+function viewFeedback(id) {
+    const i = allInterviews.find(x => x.interview_id == id);
+    if (!i) return;
+    const body = document.getElementById('feedbackModalBody');
+    const recommend = i.would_recommend == 1 ? '✅ Yes' : '❌ No';
+    body.innerHTML = `
+        <div style="margin-bottom:10px;">
+            <strong style="font-size:16px;">${i.full_name || '—'}</strong>
+            <span style="color:#aaa; font-size:13px; margin-left:10px;">${i.job_title || ''} · ${i.department || ''}</span>
         </div>
-    </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+            <span style="background:var(--pink-pale); color:var(--pink-dark); padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700;">${i.status}</span>
+            <span style="background:#f0fdf4; color:#166534; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700;">Recommend: ${recommend}</span>
+        </div>
+        <div class="feedback-panel">
+            <h5>Reason for Leaving</h5>
+            <p>${i.reason_for_leaving ? nl2br(esc(i.reason_for_leaving)) : '<em style="color:#aaa">Not recorded</em>'}</p>
+        </div>
+        <div class="feedback-panel" style="border-left-color:#7c3aed;">
+            <h5 style="color:#7c3aed;">Feedback</h5>
+            <p>${i.feedback ? nl2br(esc(i.feedback)) : '<em style="color:#aaa">No feedback recorded</em>'}</p>
+        </div>
+        <div class="feedback-panel" style="border-left-color:#0d9488;">
+            <h5 style="color:#0d9488;">Improvement Suggestions</h5>
+            <p>${i.improvement_suggestions ? nl2br(esc(i.improvement_suggestions)) : '<em style="color:#aaa">None recorded</em>'}</p>
+        </div>
+        <div style="text-align:right; margin-top:14px;">
+            <button class="btn btn-secondary btn-sm" onclick="closeModal('feedbackModal')">Close</button>
+        </div>
+    `;
+    document.getElementById('feedbackModal').style.display = 'block';
+}
 
-    <script>
-        // Modal controls
-        const modal = document.getElementById('interviewModal');
-        const form = document.getElementById('interviewForm');
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+function nl2br(str) { return str.replace(/\n/g, '<br>'); }
 
-        // Auto-populate employee_id when exit record is selected
-        document.getElementById('exit_id').addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const employeeId = selectedOption.getAttribute('data-employee-id');
-            document.getElementById('employee_id').value = employeeId || '';
-        });
+/* ── Print Certificate ───────────────────────────────────── */
+function printCertificate(id) {
+    const row = [...document.querySelectorAll('#interviewTableBody tr')].find(r =>
+        r.querySelector('.btn-info') && r.querySelector('.btn-info').getAttribute('onclick').includes(id)
+    );
+    if (!row) return;
+    const cells = row.querySelectorAll('td');
+    document.getElementById('certEmployeeName').textContent = cells[0].querySelector('strong').innerText;
+    document.getElementById('certName').textContent = cells[0].querySelector('strong').innerText;
+    document.getElementById('certNumber').textContent = cells[0].querySelector('small').innerText.replace('#','').trim();
+    document.getElementById('certJobTitle').textContent = cells[1].childNodes[0].textContent.trim();
+    document.getElementById('certDepartment').textContent = cells[1].querySelector('small').innerText;
+    document.getElementById('certInterviewDate').textContent = cells[2].innerText;
+    document.getElementById('certExitDate').textContent = cells[3].innerText;
+    document.getElementById('certExitType').textContent = cells[4].innerText;
 
-        function openModal(action, data = null) {
-            document.getElementById('action').value = action;
-            document.getElementById('modalTitle').innerText = action === 'add' ? 'Add New Exit Interview' : 'Edit Exit Interview';
-            form.reset();
+    const cert = document.getElementById('printCertificate');
+    cert.style.display = 'block';
+    window.print();
+    cert.style.display = 'none';
+}
 
-            if (data) {
-                // Set form values from data
-                for (let key in data) {
-                    const element = document.getElementById(key);
-                    if (element) {
-                        if (element.type === 'checkbox') {
-                            element.checked = data[key] == 1;
-                        } else {
-                            element.value = data[key];
-                        }
-                    }
-                }
-            }
+/* ── Reason chips ────────────────────────────────────────── */
+function toggleChip(el, targetId) {
+    el.classList.toggle('selected');
+    const target = document.getElementById(targetId);
+    const selected = [...el.closest('.reason-chips').querySelectorAll('.selected')].map(c => c.textContent);
+    // Preserve any free-text after a line break if user typed something
+    const existing = target.value.split('\n\n---\n').pop();
+    if (selected.length > 0) {
+        target.value = selected.join(', ') + (existing && !selected.some(s => target.value.startsWith(s)) ? '\n\n---\n' + existing : '');
+    }
+}
 
-            modal.style.display = 'block';
-        }
+/* ── Search ──────────────────────────────────────────────── */
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const val = this.value.toLowerCase();
+    document.querySelectorAll('#interviewTableBody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+    });
+});
 
-        function closeModal() {
-            modal.style.display = 'none';
-        }
-
-        window.onclick = function(event) {
-            if (event.target == modal) closeModal();
-        }
-
-        // Search filter
-        document.getElementById('searchInput').addEventListener('keyup', function() {
-            const value = this.value.toLowerCase();
-            document.querySelectorAll('#interviewTableBody tr').forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
-            });
-        });
-
-        // Edit interview function
-        function editInterview(id) {
-            const interview = <?= json_encode($interviews) ?>.find(i => i.interview_id == id);
-            if (interview) {
-                openModal('update', {
-                    interview_id: interview.interview_id,
-                    employee_id: interview.employee_id,
-                    exit_id: interview.exit_id,
-                    interview_date: interview.interview_date,
-                    feedback: interview.feedback,
-                    improvement_suggestions: interview.improvement_suggestions,
-                    reason_for_leaving: interview.reason_for_leaving,
-                    status: interview.status
-                });
-            }
-        }
-    </script>
+/* ── Feedback modal sync ─────────────────────────────────── */
+function syncInterviewId(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('gf_interview_id').value = opt.dataset.iid || '';
+}
+function syncReasonInterviewId(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('rm_interview_id').value = opt.dataset.iid || '';
+}
+</script>
 </body>
 </html>

@@ -20,10 +20,7 @@ $manualSentAt     = false;
 $autoTrigger      = false;
 
 try {
-    $host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+    $host = 'localhost'; $dbname = 'hr_system';
     $pdo_dash = new PDO("mysql:host=$host;dbname=$dbname", 'root', '');
     $pdo_dash->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 

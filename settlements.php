@@ -14,11 +14,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 require_once 'dp.php';
 
 // Database connection
-$host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
-
+    $host = getenv('DB_HOST') ?? 'localhost';
+    $dbname = getenv('DB_NAME') ?? 'hr_system';
+    $username = getenv('DB_USER') ?? 'root';
+    $password = getenv('DB_PASS') ?? '';
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -35,20 +34,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add':
                 try {
+                    // FIX: Sanitize and default all numeric fields to prevent empty-string DB errors
+                    $exit_id                 = intval($_POST['exit_id']);
+                    $employee_id             = intval($_POST['employee_id']);
+                    $last_working_day        = $_POST['last_working_day'];
+                    $final_salary            = floatval($_POST['final_salary'] ?? 0);
+                    $severance_pay           = floatval($_POST['severance_pay'] ?? 0);
+                    $unused_leave_payout     = floatval($_POST['unused_leave_payout'] ?? 0);
+                    $deductions              = floatval($_POST['deductions'] ?? 0);
+                    $final_settlement_amount = floatval($_POST['final_settlement_amount'] ?? 0);
+                    $payment_date            = !empty($_POST['payment_date']) ? $_POST['payment_date'] : null;
+                    // FIX: payment_method was always empty string — default to 'Bank Transfer' if blank
+                    $payment_method          = !empty($_POST['payment_method']) ? $_POST['payment_method'] : 'Bank Transfer';
+                    $status                  = !empty($_POST['status']) ? $_POST['status'] : 'Pending';
+                    $notes                   = $_POST['notes'] ?? '';
+
+                    // FIX: Re-compute final_settlement_amount server-side as safety net
+                    // in case JS didn't fire before form submission
+                    $computed_net = $final_salary + $severance_pay + $unused_leave_payout - $deductions;
+                    // Use server-computed value if the client-sent value is 0 but components are non-zero
+                    if ($final_settlement_amount == 0 && $computed_net != 0) {
+                        $final_settlement_amount = $computed_net;
+                    }
+
                     $stmt = $pdo->prepare("INSERT INTO settlements (exit_id, employee_id, last_working_day, final_salary, severance_pay, unused_leave_payout, deductions, final_settlement_amount, payment_date, payment_method, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
-                        $_POST['exit_id'],
-                        $_POST['employee_id'],
-                        $_POST['last_working_day'],
-                        $_POST['final_salary'],
-                        $_POST['severance_pay'],
-                        $_POST['unused_leave_payout'],
-                        $_POST['deductions'],
-                        $_POST['final_settlement_amount'],
-                        $_POST['payment_date'] ?: null,
-                        $_POST['payment_method'],
-                        $_POST['status'],
-                        $_POST['notes']
+                        $exit_id,
+                        $employee_id,
+                        $last_working_day,
+                        $final_salary,
+                        $severance_pay,
+                        $unused_leave_payout,
+                        $deductions,
+                        $final_settlement_amount,
+                        $payment_date,
+                        $payment_method,
+                        $status,
+                        $notes
                     ]);
                     $_SESSION['message'] = "Settlement added successfully!";
                     $_SESSION['messageType'] = "success";
@@ -925,6 +947,85 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             .leave-breakdown-header span:last-child,
             .leave-breakdown-row span:last-child { display: none; }
         }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(233,30,99,0.40);
+            transition: all 0.3s ease;
+            z-index: 999;
+            border: none;
+        }
+
+        .fab:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 12px 32px rgba(233,30,99,0.50);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        .fab-tooltip {
+            position: absolute;
+            right: 76px;
+            background: var(--dark);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .fab:hover .fab-tooltip {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .fab {
+                bottom: 20px;
+                right: 20px;
+                width: 56px;
+                height: 56px;
+                font-size: 20px;
+            }
+        }
+
+        /* FIX: Validation error highlight */
+        .form-control.is-invalid {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 0 3px rgba(211,47,47,0.10) !important;
+        }
+
+        .validation-msg {
+            background: var(--danger-pale);
+            border: 1px solid #EF9A9A;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: var(--danger);
+            font-weight: 500;
+            display: none;
+        }
+
+        .validation-msg.show { display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -942,7 +1043,9 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                     <button class="btn btn-outline" onclick="openFinalPayCalculator()">🧮 Final Pay Calculator</button>
-                    <button class="btn btn-primary" onclick="openAddModal()">➕ New Settlement</button>
+                    <button class="btn btn-primary" onclick="openAddModal()" style="font-size:15px; padding:12px 24px;">
+                        <i class="fas fa-plus-circle"></i> New Settlement
+                    </button>
                 </div>
             </div>
 
@@ -1064,6 +1167,12 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
+<!-- Floating Action Button -->
+<button class="fab" onclick="openAddModal()" title="Add New Settlement">
+    <span class="fab-tooltip">Add New Settlement</span>
+    <i class="fas fa-plus"></i>
+</button>
+
 <!-- ══════════════════════════════════════════════
      MODAL: ADD SETTLEMENT
 ══════════════════════════════════════════════ -->
@@ -1077,12 +1186,18 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <button class="modal-close" onclick="closeModal('addModal')">✕</button>
         </div>
         <div class="modal-body">
-            <form id="addForm" method="POST">
+            <!-- FIX: Added onsubmit handler to force-recalc and validate before submit -->
+            <form id="addForm" method="POST" action="settlements.php" onsubmit="return handleAddSubmit(event)">
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" id="add_employee_id" name="employee_id">
                 <input type="hidden" id="add_final_settlement_amount" name="final_settlement_amount" value="0">
                 <input type="hidden" name="status" value="Pending">
-                <input type="hidden" name="payment_method" value="">
+                <!-- FIX: payment_method is now a visible dropdown so it always has a value -->
+
+                <!-- Validation message box -->
+                <div class="validation-msg" id="addValidationMsg">
+                    <span>⚠️</span><span id="addValidationText"></span>
+                </div>
 
                 <!-- Exit Selection -->
                 <div class="form-section">
@@ -1133,7 +1248,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="form-group">
                             <label>13th Month Pay (₱)</label>
-                            <input type="number" id="add_13th_month" name="thirteenth_month" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                            <input type="number" id="add_13th_month" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
                             <div class="field-hint">Pro-rated 13th month pay</div>
                         </div>
                         <div class="form-group">
@@ -1143,7 +1258,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="form-group">
                             <label>Other Benefits (₱)</label>
-                            <input type="number" id="add_other_benefits" name="other_benefits" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
+                            <input type="number" id="add_other_benefits" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
                             <div class="field-hint">Rice subsidy, allowances, etc.</div>
                         </div>
                     </div>
@@ -1175,12 +1290,14 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <input type="number" id="add_leave_total" class="form-control computed" readonly>
                         </div>
                         <div class="form-group" style="display:flex; align-items:flex-end;">
+                            <!-- FIX: applyLeave now auto-applies; button still works as manual trigger -->
                             <button type="button" class="btn btn-outline btn-sm" onclick="applyLeave()" style="width:100%">
                                 ✅ Apply to Settlement
                             </button>
                         </div>
                     </div>
-                    <input type="number" id="add_unused_leave_payout" name="unused_leave_payout" value="0" style="display:none;">
+                    <!-- FIX: This hidden field is now kept in sync automatically by calcLeave() -->
+                    <input type="hidden" id="add_unused_leave_payout" name="unused_leave_payout" value="0">
                 </div>
 
                 <!-- Deductions -->
@@ -1212,7 +1329,29 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <input type="number" id="add_ded_other" class="form-control" step="0.01" min="0" value="0" oninput="recalcAdd()">
                         </div>
                     </div>
-                    <input type="number" id="add_deductions" name="deductions" value="0" style="display:none;">
+                    <!-- FIX: Total deductions synced on every recalc -->
+                    <input type="hidden" id="add_deductions" name="deductions" value="0">
+                </div>
+
+                <!-- FIX: Payment Method is now a visible field (was always blank before) -->
+                <div class="form-section">
+                    <div class="form-section-title">💳 Payment Details</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Payment Method <span class="req">*</span></label>
+                            <select name="payment_method" class="form-control" required>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Check">Check</option>
+                                <option value="GCash">GCash</option>
+                                <option value="Maya">Maya</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <!-- spacer -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Notes -->
@@ -1238,7 +1377,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="action-bar">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">💾 Save Settlement</button>
+                    <button type="submit" id="saveSettlementBtn" class="btn btn-success">💾 Save Settlement</button>
                 </div>
             </form>
         </div>
@@ -1590,17 +1729,17 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     const fmt = (n) => '₱' + parseFloat(n || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-    const gv = (id) => parseFloat(document.getElementById(id)?.value) || 0;
-    const sv = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+    const gv  = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+    const sv  = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
 
     // ── Modal helpers ─────────────────────────────────────────────────────────
-    function openModal(id) { document.getElementById(id).classList.add('active'); document.body.style.overflow='hidden'; }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow='auto'; }
-    function openAddModal() { openModal('addModal'); }
-    function openFinalPayCalculator() { openModal('calcModal'); }
+    function openModal(id)  { document.getElementById(id).classList.add('active');    document.body.style.overflow = 'hidden'; }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow = 'auto';   }
+    function openAddModal()          { openModal('addModal'); }
+    function openFinalPayCalculator(){ openModal('calcModal'); }
 
     document.querySelectorAll('.modal-overlay').forEach(m => {
-        m.addEventListener('click', e => { if(e.target === m) closeModal(m.id); });
+        m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
@@ -1611,20 +1750,19 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('btn-' + tabId).classList.add('active');
         if (tabId === 'tab-summary') buildSummary();
         if (tabId === 'tab-leave') {
-            document.getElementById('calc_leave_reason_display').value = document.getElementById('calc_exit_reason').value;
+            document.getElementById('calc_leave_reason_display').value =
+                document.getElementById('calc_exit_reason').value;
         }
     }
 
     // ── Search + Filter ───────────────────────────────────────────────────────
     function filterTable() {
-        const q = document.getElementById('searchInput').value.toLowerCase();
+        const q  = document.getElementById('searchInput').value.toLowerCase();
         const sf = document.getElementById('statusFilter').value;
         document.querySelectorAll('#settlementTableBody tr').forEach(row => {
-            const txt = row.textContent.toLowerCase();
+            const txt    = row.textContent.toLowerCase();
             const status = row.getAttribute('data-status');
-            const matchText = !q || txt.includes(q);
-            const matchStatus = !sf || status === sf;
-            row.style.display = (matchText && matchStatus) ? '' : 'none';
+            row.style.display = ((!q || txt.includes(q)) && (!sf || status === sf)) ? '' : 'none';
         });
     }
     document.getElementById('searchInput').addEventListener('input', filterTable);
@@ -1634,15 +1772,18 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     function onExitSelect() {
         const sel = document.getElementById('add_exit_id');
         const opt = sel.options[sel.selectedIndex];
-        if (!opt.value) { document.getElementById('addEmpCard').style.display='none'; return; }
-        const eid = opt.getAttribute('data-eid');
+        if (!opt.value) { document.getElementById('addEmpCard').style.display = 'none'; return; }
+
+        const eid    = opt.getAttribute('data-eid');
         const salary = parseFloat(opt.getAttribute('data-salary')) || 0;
-        const hire = opt.getAttribute('data-hire');
+        const hire   = opt.getAttribute('data-hire');
+
         document.getElementById('add_employee_id').value = eid;
         document.getElementById('add_last_working_day').value = opt.getAttribute('data-edate');
         sv('add_final_salary', salary.toFixed(2));
-        sv('add_daily_rate', (salary / 26).toFixed(2));
-        // emp card
+        sv('add_daily_rate',   (salary / 26).toFixed(2));
+
+        // Employee card
         const card = document.getElementById('addEmpCard');
         card.innerHTML = `
             <div class="emp-card-avatar">${opt.text.charAt(0)}</div>
@@ -1655,57 +1796,115 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <span>Monthly Salary</span>
             </div>`;
         card.style.display = 'flex';
-        recalcAdd();
-        calcLeave();
+        calcLeave(); // internally calls recalcAdd()
     }
 
+    // calcLeave computes leave total and syncs the hidden field.
+    // recalcAdd() is always triggered separately by oninput handlers or handleAddSubmit.
     function calcLeave() {
         const daily = gv('add_daily_rate');
-        const vl = gv('add_vl_days');
-        const sl = gv('add_sl_days');
-        const oth = gv('add_other_leave');
-        const total = (vl + sl + oth) * daily;
+        const total = (gv('add_vl_days') + gv('add_sl_days') + gv('add_other_leave')) * daily;
         sv('add_leave_total', total.toFixed(2));
+        sv('add_unused_leave_payout', total.toFixed(2));
+        recalcAdd();
     }
 
+    // Manual "Apply" button — keeps UX intact while also being redundant safety net
     function applyLeave() {
-        const val = gv('add_leave_total');
-        sv('add_unused_leave_payout', val.toFixed(2));
+        sv('add_unused_leave_payout', gv('add_leave_total').toFixed(2));
         recalcAdd();
+        // Visual feedback
+        const btn = event.target.closest('button');
+        const orig = btn.textContent;
+        btn.textContent = '✔ Applied!';
+        btn.style.background = 'var(--success)';
+        btn.style.color = 'white';
+        setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 1500);
     }
 
     function recalcAdd() {
-        const salary = gv('add_final_salary');
+        const salary   = gv('add_final_salary');
         const thirteenth = gv('add_13th_month');
-        const severance = gv('add_severance');
-        const leave = gv('add_unused_leave_payout');
-        const benefits = gv('add_other_benefits');
-        const gross = salary + thirteenth + severance + leave + benefits;
+        const severance  = gv('add_severance');
+        const leave      = gv('add_unused_leave_payout');
+        const benefits   = gv('add_other_benefits');
+        const gross      = salary + thirteenth + severance + leave + benefits;
 
-        const ded = gv('add_ded_sss') + gv('add_ded_ph') + gv('add_ded_pi') + gv('add_ded_tax') + gv('add_ded_loans') + gv('add_ded_other');
+        const ded = gv('add_ded_sss') + gv('add_ded_ph') + gv('add_ded_pi') +
+                    gv('add_ded_tax') + gv('add_ded_loans') + gv('add_ded_other');
+
+        // FIX: Always update both hidden fields so the submitted POST data is correct
         sv('add_deductions', ded.toFixed(2));
+        sv('add_final_settlement_amount', (gross - ded).toFixed(2));
 
-        const net = gross - ded;
-        sv('add_final_settlement_amount', net.toFixed(2));
-
-        document.getElementById('cs_salary').textContent = fmt(salary);
-        document.getElementById('cs_13th').textContent = fmt(thirteenth);
-        document.getElementById('cs_severance').textContent = fmt(severance);
-        document.getElementById('cs_leave').textContent = fmt(leave);
-        document.getElementById('cs_benefits').textContent = fmt(benefits);
-        document.getElementById('cs_gross').textContent = fmt(gross);
+        // Update summary display
+        document.getElementById('cs_salary').textContent     = fmt(salary);
+        document.getElementById('cs_13th').textContent       = fmt(thirteenth);
+        document.getElementById('cs_severance').textContent  = fmt(severance);
+        document.getElementById('cs_leave').textContent      = fmt(leave);
+        document.getElementById('cs_benefits').textContent   = fmt(benefits);
+        document.getElementById('cs_gross').textContent      = fmt(gross);
         document.getElementById('cs_deductions').textContent = '-' + fmt(ded);
-        document.getElementById('cs_total').textContent = fmt(net);
+        document.getElementById('cs_total').textContent      = fmt(gross - ded);
+    }
+
+    // ── FIX: Form submit handler — force recalc, validate, then allow submit ──
+    function handleAddSubmit(e) {
+        // Force recalculate everything fresh before reading hidden field values
+        calcLeave(); // this internally calls recalcAdd() at the end
+
+        const msgBox  = document.getElementById('addValidationMsg');
+        const msgText = document.getElementById('addValidationText');
+
+        // Validate required fields
+        if (!document.getElementById('add_exit_id').value) {
+            showValidationError('Please select an Exit Record before saving.');
+            return false;
+        }
+        if (!document.getElementById('add_employee_id').value) {
+            showValidationError('Employee ID is missing. Please re-select the Exit Record.');
+            return false;
+        }
+        if (!document.getElementById('add_last_working_day').value) {
+            showValidationError('Please enter the Last Working Day.');
+            return false;
+        }
+        if (gv('add_final_salary') <= 0) {
+            showValidationError('Final Salary must be greater than zero.');
+            return false;
+        }
+
+        msgBox.classList.remove('show');
+
+        // Use setTimeout(0) so the browser captures the submit FIRST,
+        // then we update the button visually — never disable before submit fires
+        const btn = document.getElementById('saveSettlementBtn');
+        setTimeout(() => {
+            btn.textContent = '⏳ Saving…';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+        }, 0);
+
+        return true; // Allow native form submit
+    }
+
+    function showValidationError(msg) {
+        const box  = document.getElementById('addValidationMsg');
+        document.getElementById('addValidationText').textContent = msg;
+        box.classList.add('show');
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     // ── FINAL PAY CALCULATOR ─────────────────────────────────────────────────
     function onCalcEmpSelect() {
-        const sel = document.getElementById('calc_emp');
-        const opt = sel.options[sel.selectedIndex];
+        const sel    = document.getElementById('calc_emp');
+        const opt    = sel.options[sel.selectedIndex];
         if (!opt.value) return;
         const salary = parseFloat(opt.getAttribute('data-salary')) || 0;
         sv('calc_monthly_salary', salary.toFixed(2));
-        document.getElementById('calc_last_day').value = document.getElementById('calc_last_day').value || new Date().toISOString().split('T')[0];
+        if (!document.getElementById('calc_last_day').value) {
+            document.getElementById('calc_last_day').value = new Date().toISOString().split('T')[0];
+        }
         onSalaryInput();
         calcSeverance();
         recalcFP();
@@ -1713,46 +1912,41 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     function onSalaryInput() {
         const monthly = gv('calc_monthly_salary');
-        const daily = monthly / 26;
-        sv('calc_daily_rate', daily.toFixed(2));
+        sv('calc_daily_rate', (monthly / 26).toFixed(2));
         recalcLeave();
         recalcFP();
     }
 
     function calcSeverance() {
-        const monthly = gv('calc_monthly_salary');
+        const monthly    = gv('calc_monthly_salary');
         const exitReason = document.getElementById('calc_exit_reason').value;
-        const lastDay = document.getElementById('calc_last_day').value;
-        const sel = document.getElementById('calc_emp');
-        const opt = sel.options[sel.selectedIndex];
-        const hire = opt?.getAttribute('data-hire');
+        const lastDay    = document.getElementById('calc_last_day').value;
+        const sel        = document.getElementById('calc_emp');
+        const opt        = sel.options[sel.selectedIndex];
+        const hire       = opt?.getAttribute('data-hire');
 
         let years = 0;
         if (hire && lastDay) {
-            const ms = new Date(lastDay) - new Date(hire);
-            years = ms / (1000 * 60 * 60 * 24 * 365.25);
+            years = (new Date(lastDay) - new Date(hire)) / (1000 * 60 * 60 * 24 * 365.25);
         }
 
-        let severance = 0;
-        let note = '';
-        const halfMonth = monthly * 0.5;
-        const oneMonth = monthly;
+        let severance = 0, note = '';
+        const half = monthly * 0.5;
 
         if (['Retrenchment','Redundancy'].includes(exitReason)) {
-            severance = Math.max(halfMonth * Math.ceil(years), halfMonth);
+            severance = Math.max(half * Math.ceil(years), half);
             note = `½ month × ${Math.ceil(years)} year(s) (Retrenchment/Redundancy)`;
         } else if (exitReason === 'Disease') {
-            severance = Math.max(oneMonth * Math.ceil(years), oneMonth);
+            severance = Math.max(monthly * Math.ceil(years), monthly);
             note = `1 month × ${Math.ceil(years)} year(s) (Disease)`;
         } else if (exitReason === 'Retirement') {
-            severance = Math.max(halfMonth * Math.ceil(years), halfMonth);
+            severance = Math.max(half * Math.ceil(years), half);
             note = `½ month × ${Math.ceil(years)} year(s) (Retirement)`;
-        } else if (exitReason === 'Resignation' || exitReason === 'End of Contract') {
+        } else {
             severance = 0;
-            note = 'No statutory severance for resignation / end of contract';
-        } else if (exitReason === 'Termination for Cause') {
-            severance = 0;
-            note = 'No separation pay for termination for cause';
+            note = exitReason === 'Termination for Cause'
+                ? 'No separation pay for termination for cause'
+                : 'No statutory severance for resignation / end of contract';
         }
 
         sv('calc_severance_val', severance.toFixed(2));
@@ -1760,100 +1954,96 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if (noteEl) noteEl.textContent = note;
 
         // Pro-rated 13th month
-        const workedMonths = lastDay ? Math.min(12, (new Date(lastDay).getMonth() + 1)) : 0;
-        const auto13th = (monthly / 12) * workedMonths;
-        sv('calc_13th', auto13th.toFixed(2));
+        const workedMonths = lastDay ? Math.min(12, new Date(lastDay).getMonth() + 1) : 0;
+        sv('calc_13th', ((monthly / 12) * workedMonths).toFixed(2));
         recalcFP();
     }
 
     function recalcFP() {
-        const monthly = gv('calc_monthly_salary');
+        const monthly    = gv('calc_monthly_salary');
         const workedDays = gv('calc_worked_days');
-        const daily = monthly / 26;
-        const prorated = daily * workedDays;
+        const prorated   = (monthly / 26) * workedDays;
         sv('calc_prorated_salary', prorated.toFixed(2));
 
-        const salary13 = gv('calc_13th_override') || gv('calc_13th');
+        const salary13  = gv('calc_13th_override') || gv('calc_13th');
         const severance = gv('calc_severance_override') || gv('calc_severance_val');
-        const leave = gv('calc_leave_payout_total') || 0;
-        const benefits = gv('calc_other_benefits');
-        const gross = prorated + salary13 + severance + leave + benefits;
-
-        const ded = gv('calc_ded_sss') + gv('calc_ded_ph') + gv('calc_ded_pi') + gv('calc_ded_tax') + gv('calc_ded_loans') + gv('calc_ded_other');
-        const net = gross - ded;
-        sv('calc_net_total', net.toFixed(2));
+        const leave     = gv('calc_leave_payout_total') || 0;
+        const benefits  = gv('calc_other_benefits');
+        const gross     = prorated + salary13 + severance + leave + benefits;
+        const ded       = gv('calc_ded_sss') + gv('calc_ded_ph') + gv('calc_ded_pi') +
+                          gv('calc_ded_tax') + gv('calc_ded_loans') + gv('calc_ded_other');
+        sv('calc_net_total', (gross - ded).toFixed(2));
     }
 
     function recalcLeave() {
-        const daily = gv('calc_daily_rate');
-        const vl = gv('calc_vl');
-        const sl = gv('calc_sl');
-        const oth = gv('calc_other_leave');
-        const vlRate = gv('calc_vl_rate');
-        const slRate = gv('calc_sl_rate');
-        const othRate = gv('calc_other_leave_rate');
+        const daily    = gv('calc_daily_rate');
+        const vl       = gv('calc_vl');
+        const sl       = gv('calc_sl');
+        const oth      = gv('calc_other_leave');
+        const vlRate   = gv('calc_vl_rate');
+        const slRate   = gv('calc_sl_rate');
+        const othRate  = gv('calc_other_leave_rate');
         const eligible = document.getElementById('calc_sil_eligible').value === '1';
 
-        const vlAmt = eligible ? vl * daily * vlRate : 0;
-        const slAmt = eligible ? sl * daily * slRate : 0;
+        const vlAmt  = eligible ? vl  * daily * vlRate  : 0;
+        const slAmt  = eligible ? sl  * daily * slRate  : 0;
         const othAmt = eligible ? oth * daily * othRate : 0;
-        const total = vlAmt + slAmt + othAmt;
+        const total  = vlAmt + slAmt + othAmt;
 
         const rateLabel = (r) => r == 1 ? '100%' : r == 0.5 ? '50%' : '0%';
 
-        document.getElementById('lb_vl_days').textContent = vl;
-        document.getElementById('lb_sl_days').textContent = sl;
+        document.getElementById('lb_vl_days').textContent  = vl;
+        document.getElementById('lb_sl_days').textContent  = sl;
         document.getElementById('lb_oth_days').textContent = oth;
-        document.getElementById('lb_vl_rate').textContent = eligible ? rateLabel(vlRate) : 'N/A';
-        document.getElementById('lb_sl_rate').textContent = eligible ? rateLabel(slRate) : 'N/A';
+        document.getElementById('lb_vl_rate').textContent  = eligible ? rateLabel(vlRate)  : 'N/A';
+        document.getElementById('lb_sl_rate').textContent  = eligible ? rateLabel(slRate)  : 'N/A';
         document.getElementById('lb_oth_rate').textContent = eligible ? rateLabel(othRate) : 'N/A';
-        document.getElementById('lb_vl_amt').textContent = fmt(vlAmt);
-        document.getElementById('lb_sl_amt').textContent = fmt(slAmt);
-        document.getElementById('lb_oth_amt').textContent = fmt(othAmt);
-        document.getElementById('lb_total').textContent = fmt(total);
+        document.getElementById('lb_vl_amt').textContent   = fmt(vlAmt);
+        document.getElementById('lb_sl_amt').textContent   = fmt(slAmt);
+        document.getElementById('lb_oth_amt').textContent  = fmt(othAmt);
+        document.getElementById('lb_total').textContent    = fmt(total);
 
         sv('calc_leave_payout_total', total.toFixed(2));
         recalcFP();
     }
 
     function buildSummary() {
-        const sel = document.getElementById('calc_emp');
-        const opt = sel.options[sel.selectedIndex];
-        const empName = opt.value ? opt.text.split(' (')[0] : '—';
-        const exitReason = document.getElementById('calc_exit_reason').value;
+        const sel      = document.getElementById('calc_emp');
+        const opt      = sel.options[sel.selectedIndex];
+        const empName  = opt.value ? opt.text.split(' (')[0] : '—';
+        const exitType = document.getElementById('calc_exit_reason').value;
 
         const prorated = gv('calc_prorated_salary');
-        const salary13 = gv('calc_13th_override') || gv('calc_13th');
-        const severance = gv('calc_severance_override') || gv('calc_severance_val');
-        const leave = gv('calc_leave_payout_total') || 0;
+        const s13      = gv('calc_13th_override') || gv('calc_13th');
+        const sev      = gv('calc_severance_override') || gv('calc_severance_val');
+        const leave    = gv('calc_leave_payout_total') || 0;
         const benefits = gv('calc_other_benefits');
-        const gross = prorated + salary13 + severance + leave + benefits;
-
-        const sss = gv('calc_ded_sss');
-        const ph = gv('calc_ded_ph');
-        const pi = gv('calc_ded_pi');
-        const tax = gv('calc_ded_tax');
-        const loans = gv('calc_ded_loans');
+        const gross    = prorated + s13 + sev + leave + benefits;
+        const sss      = gv('calc_ded_sss');
+        const ph       = gv('calc_ded_ph');
+        const pi       = gv('calc_ded_pi');
+        const tax      = gv('calc_ded_tax');
+        const loans    = gv('calc_ded_loans');
         const dedOther = gv('calc_ded_other');
         const totalDed = sss + ph + pi + tax + loans + dedOther;
-        const net = gross - totalDed;
+        const net      = gross - totalDed;
 
-        document.getElementById('sum_emp_name').textContent = empName;
-        document.getElementById('sum_exit_type').textContent = exitReason;
-        document.getElementById('sum_salary').textContent = fmt(prorated);
-        document.getElementById('sum_13th').textContent = fmt(salary13);
-        document.getElementById('sum_severance').textContent = fmt(severance);
-        document.getElementById('sum_leave').textContent = fmt(leave);
-        document.getElementById('sum_benefits').textContent = fmt(benefits);
-        document.getElementById('sum_gross').textContent = fmt(gross);
-        document.getElementById('sum_sss').textContent = fmt(sss);
-        document.getElementById('sum_ph').textContent = fmt(ph);
-        document.getElementById('sum_pi').textContent = fmt(pi);
-        document.getElementById('sum_tax').textContent = fmt(tax);
-        document.getElementById('sum_loans').textContent = fmt(loans);
+        document.getElementById('sum_emp_name').textContent  = empName;
+        document.getElementById('sum_exit_type').textContent = exitType;
+        document.getElementById('sum_salary').textContent    = fmt(prorated);
+        document.getElementById('sum_13th').textContent      = fmt(s13);
+        document.getElementById('sum_severance').textContent = fmt(sev);
+        document.getElementById('sum_leave').textContent     = fmt(leave);
+        document.getElementById('sum_benefits').textContent  = fmt(benefits);
+        document.getElementById('sum_gross').textContent     = fmt(gross);
+        document.getElementById('sum_sss').textContent       = fmt(sss);
+        document.getElementById('sum_ph').textContent        = fmt(ph);
+        document.getElementById('sum_pi').textContent        = fmt(pi);
+        document.getElementById('sum_tax').textContent       = fmt(tax);
+        document.getElementById('sum_loans').textContent     = fmt(loans);
         document.getElementById('sum_ded_other').textContent = fmt(dedOther);
         document.getElementById('sum_total_ded').textContent = fmt(totalDed);
-        document.getElementById('sum_net').textContent = fmt(net);
+        document.getElementById('sum_net').textContent       = fmt(net);
         document.getElementById('sum_net_total').textContent = fmt(net);
     }
 
@@ -1869,7 +2059,11 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         const s = settlementsData.find(x => x.settlement_id == id);
         if (!s) return;
 
-        const statusClass = { Pending: 'badge-pending', Processing: 'badge-processing', Completed: 'badge-completed' };
+        const statusClass = {
+            Pending: 'badge-pending',
+            Processing: 'badge-processing',
+            Completed: 'badge-completed'
+        };
 
         document.getElementById('detailsModalBody').innerHTML = `
             <div class="emp-card" style="margin-bottom:20px;">
@@ -1893,7 +2087,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
                 <div>
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:12px;">Employee & Exit Details</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:12px;">Employee &amp; Exit Details</div>
                     <div class="fin-breakdown-card">
                         <div class="fin-breakdown-row"><span>Employee #</span><span>${s.employee_number}</span></div>
                         <div class="fin-breakdown-row"><span>Email</span><span style="font-size:13px;">${s.work_email || '—'}</span></div>
@@ -1919,72 +2113,75 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
 
-            ${s.notes ? `<div style="margin-top:20px;"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px;">Notes</div><div style="background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:14px;white-space:pre-wrap;">${s.notes}</div></div>` : ''}
+            ${s.notes ? `<div style="margin-top:20px;">
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px;">Notes</div>
+                <div style="background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:14px;white-space:pre-wrap;">${s.notes}</div>
+            </div>` : ''}
 
             <div class="action-bar">
                 <button class="btn btn-outline" onclick="closeModal('detailsModal')">Close</button>
                 <button class="btn btn-ghost" onclick="printDetails(${id})">🖨️ Print</button>
-            </div>
-        `;
+            </div>`;
 
         // Log access
         const fd = new FormData();
         fd.append('action', 'view_details');
         fd.append('settlement_id', id);
-        fetch(window.location.href, { method: 'POST', body: fd }).catch(()=>{});
+        fetch(window.location.href, { method: 'POST', body: fd }).catch(() => {});
 
         openModal('detailsModal');
     }
 
     // ── Print Final Pay ───────────────────────────────────────────────────────
     function printFinalPay() {
-        const sel = document.getElementById('calc_emp');
-        const opt = sel.options[sel.selectedIndex];
-        const empName = opt.value ? opt.text.split(' (')[0] : '—';
-        const exitReason = document.getElementById('calc_exit_reason').value;
-        const lastDay = document.getElementById('calc_last_day').value;
+        const sel      = document.getElementById('calc_emp');
+        const opt      = sel.options[sel.selectedIndex];
+        const empName  = opt.value ? opt.text.split(' (')[0] : '—';
+        const exitType = document.getElementById('calc_exit_reason').value;
+        const lastDay  = document.getElementById('calc_last_day').value;
 
         const prorated = gv('calc_prorated_salary');
-        const salary13 = gv('calc_13th_override') || gv('calc_13th');
-        const severance = gv('calc_severance_override') || gv('calc_severance_val');
-        const leave = gv('calc_leave_payout_total') || 0;
+        const s13      = gv('calc_13th_override') || gv('calc_13th');
+        const sev      = gv('calc_severance_override') || gv('calc_severance_val');
+        const leave    = gv('calc_leave_payout_total') || 0;
         const benefits = gv('calc_other_benefits');
-        const gross = prorated + salary13 + severance + leave + benefits;
-        const sss = gv('calc_ded_sss'); const ph = gv('calc_ded_ph'); const pi = gv('calc_ded_pi');
-        const tax = gv('calc_ded_tax'); const loans = gv('calc_ded_loans'); const dedOther = gv('calc_ded_other');
+        const gross    = prorated + s13 + sev + leave + benefits;
+        const sss      = gv('calc_ded_sss');
+        const ph       = gv('calc_ded_ph');
+        const pi       = gv('calc_ded_pi');
+        const tax      = gv('calc_ded_tax');
+        const loans    = gv('calc_ded_loans');
+        const dedOther = gv('calc_ded_other');
         const totalDed = sss + ph + pi + tax + loans + dedOther;
-        const net = gross - totalDed;
+        const net      = gross - totalDed;
 
         const win = window.open('', '', 'width=800,height=900');
         win.document.write(`<!DOCTYPE html><html><head><title>Final Pay — ${empName}</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 32px; color: #1A1A2E; }
-            .header { border-bottom: 3px solid #E91E63; padding-bottom: 16px; margin-bottom: 24px; display:flex; justify-content:space-between; }
-            .header h2 { margin:0; color:#E91E63; font-size:22px; }
-            .header p { margin:4px 0 0; font-size:13px; color:#6B7280; }
-            table { width:100%; border-collapse:collapse; margin-bottom:24px; }
-            th { background:#F9FAFB; padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#6B7280; border-bottom:1px solid #E5E7EB; }
-            td { padding:10px 14px; border-bottom:1px solid #F3F4F6; font-size:14px; }
-            .amt { font-family:'Courier New',monospace; font-weight:600; text-align:right; }
-            .positive { color:#1B5E20; }
-            .negative { color:#D32F2F; }
-            .total-row td { background:#FCE4EC; font-weight:700; font-size:16px; color:#C2185B; }
-            .section-head td { background:#F9FAFB; font-weight:700; color:#6B7280; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
-            .footer { font-size:11px; color:#9CA3AF; margin-top:32px; border-top:1px solid #E5E7EB; padding-top:12px; display:flex; justify-content:space-between; }
+            body{font-family:'Segoe UI',sans-serif;margin:0;padding:32px;color:#1A1A2E;}
+            .header{border-bottom:3px solid #E91E63;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;}
+            .header h2{margin:0;color:#E91E63;font-size:22px;} .header p{margin:4px 0 0;font-size:13px;color:#6B7280;}
+            table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+            th{background:#F9FAFB;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#6B7280;border-bottom:1px solid #E5E7EB;}
+            td{padding:10px 14px;border-bottom:1px solid #F3F4F6;font-size:14px;}
+            .amt{font-family:'Courier New',monospace;font-weight:600;text-align:right;}
+            .positive{color:#1B5E20;} .negative{color:#D32F2F;}
+            .total-row td{background:#FCE4EC;font-weight:700;font-size:16px;color:#C2185B;}
+            .section-head td{background:#F9FAFB;font-weight:700;color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+            .footer{font-size:11px;color:#9CA3AF;margin-top:32px;border-top:1px solid #E5E7EB;padding-top:12px;display:flex;justify-content:space-between;}
         </style></head><body>
         <div class="header">
             <div><h2>FINAL PAY COMPUTATION</h2><p>Settlement Report · Confidential</p></div>
             <div style="text-align:right;font-size:13px;color:#6B7280;">
-                <strong>${empName}</strong><br>
-                Exit: ${exitReason}<br>
+                <strong>${empName}</strong><br>Exit: ${exitType}<br>
                 Last Day: ${lastDay ? new Date(lastDay).toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}) : '—'}
             </div>
         </div>
         <table>
             <tr class="section-head"><td colspan="2">Earnings</td></tr>
             <tr><td>Pro-Rated Final Salary</td><td class="amt positive">${fmt(prorated)}</td></tr>
-            <tr><td>13th Month Pay</td><td class="amt positive">${fmt(salary13)}</td></tr>
-            <tr><td>Severance Pay</td><td class="amt positive">${fmt(severance)}</td></tr>
+            <tr><td>13th Month Pay</td><td class="amt positive">${fmt(s13)}</td></tr>
+            <tr><td>Severance Pay</td><td class="amt positive">${fmt(sev)}</td></tr>
             <tr><td>Leave Monetization</td><td class="amt positive">${fmt(leave)}</td></tr>
             <tr><td>Other Benefits</td><td class="amt positive">${fmt(benefits)}</td></tr>
             <tr style="background:#F0FDF4;font-weight:600;"><td>Gross Settlement</td><td class="amt positive">${fmt(gross)}</td></tr>
@@ -2001,8 +2198,7 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="footer">
             <span>This is a CONFIDENTIAL document. For HR use only.</span>
             <span>Printed: ${new Date().toLocaleString()}</span>
-        </div>
-        </body></html>`);
+        </div></body></html>`);
         win.document.close();
         setTimeout(() => win.print(), 300);
     }

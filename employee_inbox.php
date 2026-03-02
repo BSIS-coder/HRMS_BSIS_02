@@ -7,9 +7,11 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION
 
 require_once 'dp.php';
 
-$username    = $_SESSION['username'] ?? '';
-$employee_id = $_SESSION['user_id'] ?? null;
-$current_page = basename($_SERVER['PHP_SELF']);
+    $host = getenv('DB_HOST') ?? 'localhost';
+    $dbname = getenv('DB_NAME') ?? 'hr_system';
+    $username = getenv('DB_USER') ?? 'root';
+    $password = getenv('DB_PASS') ?? '';
+
 
 // ── DB ────────────────────────────────────────────────
 try {

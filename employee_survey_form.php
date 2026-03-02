@@ -8,10 +8,11 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION
 
 require_once 'dp.php';
 
- $host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+    $host = getenv('DB_HOST') ?? 'localhost';
+    $dbname = getenv('DB_NAME') ?? 'hr_system';
+    $username = getenv('DB_USER') ?? 'root';
+    $password = getenv('DB_PASS') ?? '';
+
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username_db, $password_db);

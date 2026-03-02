@@ -161,7 +161,7 @@ $sidebar_stats = getSidebarStats();
             <a class="nav-link dropdown-toggle" data-toggle="collapse" href="#payrollCollapse" role="button" aria-expanded="false" aria-controls="payrollCollapse">
                 <i class="fas fa-money-bill-wave"></i> Payroll
             </a>
-            <div class="collapse" id="payrollCollapse">
+             <div class="collapse" id="payrollCollapse">
                 <ul class="nav flex-column pl-4">
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('salary_structures.php'); ?>" href="salary_structures.php">
@@ -183,34 +183,37 @@ $sidebar_stats = getSidebarStats();
                             <i class="fas fa-file-invoice-dollar"></i> Statutory Deductions
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('benefits_plans.php'); ?>" href="benefits_plans.php">
-                            <i class="fas fa-gift"></i> Benefits Plans
-                        </a>
-                    </li>
+                   
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('bonus_payments.php'); ?>" href="bonus_payments.php">
                             <i class="fas fa-coins"></i> Bonus Payments
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('compensation_packages.php'); ?>" href="compensation_packages.php">
-                            <i class="fas fa-box-open"></i> Compensation Packages
-                        </a>
-                    </li>
+                   
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('payroll_transactions.php'); ?>" href="payroll_transactions.php">
                             <i class="fas fa-exchange-alt"></i> Payroll Transactions
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo isActiveMenu('payment_disbursements.php'); ?>" href="payment_disbursements.php">
-                            <i class="fas fa-credit-card"></i> Payment Disbursements
-                        </a>
-                    </li>
+                
                     <li class="nav-item">
                         <a class="nav-link <?php echo isActiveMenu('payslips.php'); ?>" href="payslips.php">
                             <i class="fas fa-receipt"></i> Payslips
+                        </a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link <?php echo isActiveMenu('payroll_reports.php'); ?>" href="payroll_reports.php">
+                            <i class="fas fa-file-alt"></i> Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo isActiveMenu('payroll_approval.php'); ?>" href="payroll_approval.php">
+                            <i class="fas fa-file-alt"></i> Approval Requests
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo isActiveMenu('approval_dashboard.php'); ?>" href="approval_dashboard.php">
+                            <i class="fas fa-file-alt"></i> Approval
                         </a>
                     </li>
                 </ul>

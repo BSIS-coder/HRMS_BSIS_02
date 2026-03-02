@@ -21,9 +21,9 @@ require_once 'dp.php';
 // Database connection
 if (!isset($pdo) || !($pdo instanceof PDO)) {
     $host = getenv('DB_HOST') ?? 'localhost';
-$dbname = getenv('DB_NAME') ?? 'hr_system';
-$username = getenv('DB_USER') ?? 'root';
-$password = getenv('DB_PASS') ?? '';
+    $dbname = getenv('DB_NAME') ?? 'hr_system';
+    $username = getenv('DB_USER') ?? 'root';
+    $password = getenv('DB_PASS') ?? '';
     try {
         $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

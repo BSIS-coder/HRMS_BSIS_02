@@ -3449,7 +3449,7 @@ ALTER TABLE `post_exit_surveys`
   ADD KEY `exit_id` (`exit_id`);
 
   ALTER TABLE post_exit_surveys 
-ADD COLUMN submitted_by_employee TINYINT(1) NOT NULL DEFAULT 0;
+  ADD COLUMN submitted_by_employee TINYINT(1) NOT NULL DEFAULT 0;
 
 --
 -- Indexes for table `public_holidays`
@@ -5377,6 +5377,37 @@ VALUES
 
 ALTER TABLE `reports`
   MODIFY `report_id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+  function ensureNotificationsTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS exit_notifications (
+            notification_id   INT AUTO_INCREMENT PRIMARY KEY,
+            exit_id           INT            NOT NULL,
+            recipient_type    VARCHAR(50)    NOT NULL COMMENT 'employee|supervisor|IT|Finance|Admin|department',
+            recipient_label   VARCHAR(255)   NOT NULL,
+            subject           VARCHAR(255)   NOT NULL,
+            message           TEXT           NOT NULL,
+            sent_by           VARCHAR(100)   DEFAULT NULL,
+            sent_at           DATETIME       DEFAULT CURRENT_TIMESTAMP,
+            status            ENUM('sent','failed','simulated') DEFAULT 'simulated'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+}
+
+ CREATE TABLE IF NOT EXISTS employee_inbox (
+        inbox_id     INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id  INT          NOT NULL,
+        exit_id      INT          NULL,
+        sender_label VARCHAR(100) NOT NULL DEFAULT 'HR Department',
+        subject      VARCHAR(255) NOT NULL,
+        message      TEXT         NOT NULL,
+        is_read      TINYINT(1)   NOT NULL DEFAULT 0,
+        created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX (employee_id),
+        INDEX (is_read)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+
+
 
  -- Payroll Approval Requests
 CREATE TABLE payroll_approval_requests (
